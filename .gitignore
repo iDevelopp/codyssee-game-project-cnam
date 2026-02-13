@@ -1,0 +1,42 @@
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# Mémoire cache des assets et fichiers de build
+MemoryCaptures/
+Recordings/
+
+# Fichiers de solution Visual Studio / Rider / VS Code
+[Aa]sset[Cc]heck/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+
+# Fichiers spécifiques au système d'exploitation
+.DS_Store
+Thumbs.db
+
+# Crashlytics et rapports d'erreurs
+sysinfo.txt
+
+# Dossiers générés par Unity pour Android / iOS
+/[Aa]ssets/Plugins/Android/assets/
+/[Aa]ssets/Plugins/iOS/assets/
+
+# Dossier pour les builds (si vous les nommez "Build")
+[Bb]uild/
+[Bb]uilds/
