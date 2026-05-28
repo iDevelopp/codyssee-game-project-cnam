@@ -21,7 +21,7 @@ public class move : MonoBehaviour
         horizontal = 0f;
         vertical = 0f;
 
-        if(DialogueBox.Instance.IsOpen) return;
+        if (IsUIBlockingInput()) return;
         
         if (Keyboard.current.leftArrowKey.isPressed || Keyboard.current.aKey.isPressed)
         {
@@ -46,6 +46,13 @@ public class move : MonoBehaviour
     private void FixedUpdate()
     {
         rb.linearVelocity = new Vector2(horizontal * speed, vertical * speed);
+    }
+
+    private static bool IsUIBlockingInput()
+    {
+        if (DialogueBox.Instance != null && DialogueBox.Instance.IsOpen) return true;
+        if (DeckUI.Instance != null && DeckUI.Instance.IsOpen) return true;
+        return false;
     }
 
     private void Flip()
