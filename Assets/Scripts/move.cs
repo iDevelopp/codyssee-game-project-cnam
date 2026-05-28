@@ -21,6 +21,8 @@ public class move : MonoBehaviour
         horizontal = 0f;
         vertical = 0f;
 
+        if(DialogueBox.Instance.IsOpen) return;
+        
         if (Keyboard.current.leftArrowKey.isPressed || Keyboard.current.aKey.isPressed)
         {
             horizontal = -1f;
