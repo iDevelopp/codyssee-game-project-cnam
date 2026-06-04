@@ -8,29 +8,20 @@ Guide complet pour monter le prototype jouable de A à Z depuis un clone frais d
 - Le projet ouvert dans l'éditeur Unity
 - Une fois le projet ouvert, attendre la fin de la première compilation (Unity recompile les `.cs` et importe les assets)
 
-## 1. ScriptableObjects à créer
+## 1. ScriptableObjects — déjà prêts ✅
 
-### 1.1 Les 5 cartes (CardData)
-
-Crée le dossier `Assets/ScriptableObjects/Cards/` (clic droit dans `Project window` > `Create` > `Folder`).
-
-Pour chaque carte : clic droit dans ce dossier > `Create` > `Codyssey` > `Card`. Renomme l'asset, puis remplis dans l'Inspector :
+Pour le play test « projet de base », les cartes et la database sont **déjà créées et remplies** dans le repo — rien à faire dans l'éditeur ici. SQL a été retiré pour rester simple : **4 cartes**.
 
 | Asset | DisplayName | Description | Usage |
 |---|---|---|---|
-| `Python.asset` | `Python` | `Langage interprété, syntaxe lisible, polyvalent.` | `Scripts, data science, IA` |
-| `JavaScript.asset` | `JavaScript` | `Langage du web, exécuté dans le navigateur.` | `Sites web interactifs` |
-| `CSharp.asset` | `C#` | `Langage orienté objet de Microsoft.` | `Unity, applications Windows` |
-| `HTML.asset` | `HTML` | `Langage de balisage pour structurer les pages web.` | `Pages web` |
-| `SQL.asset` | `SQL` | `Langage de requête pour bases de données.` | `Manipulation de données` |
+| `Cards/Python.asset` | `Python` | Langage interprété, syntaxe lisible, polyvalent. | Scripts, data science, IA |
+| `Cards/JS.asset` | `JavaScript` | Langage du web, exécuté dans le navigateur. | Sites web interactifs |
+| `Cards/CSharp.asset` | `C#` | Langage orienté objet de Microsoft. | Unity, applications Windows |
+| `Cards/HTML.asset` | `HTML` | Langage de balisage pour structurer les pages web. | Pages web |
 
-`Icon` : laisser vide (placeholder OK pour le prototype).
+`CardDatabase.asset` référence déjà ces 4 cartes (`All Cards`, Size = 4). `Icon` laissé vide (l'art arrivera plus tard).
 
-### 1.2 La CardDatabase
-
-Dans `Assets/ScriptableObjects/` : clic droit > `Create` > `Codyssey` > `Card Database`. Renomme en `CardDatabase.asset`.
-
-Dans l'Inspector : déplie `All Cards`, met `Size = 5`, drag les 5 cartes ci-dessus dans les slots (ordre indifférent).
+> Chaque PNJ déclare sa carte-réponse dans l'Inspector (voir §2.3). Le joueur démarre avec **toutes les cartes sauf** celles que les PNJ vont lui apprendre — donc chaque bonne réponse est une carte réellement nouvelle. Exemple : PNJ_1 → `JavaScript`, PNJ_2 → `C#` ⇒ deck initial = `Python`, `HTML`.
 
 ## 2. Setup de la scène Zone_01
 
@@ -76,12 +67,12 @@ Champs du composant `NPC` :
   - Ligne 1 : `Je veux faire un site web interactif, quel langage je dois apprendre ?`
 - **`Choices`** : laisser `Size = 0` (mode question prioritaire)
 - **`Question`** :
-  - `Expected Answer` : **laisser vide** (le GameManager l'assigne au lancement)
+  - `Expected Answer` : **drag la carte attendue** (ex. la carte `JS` si la question parle de site web interactif). C'est cette carte que le joueur doit choisir, et qu'il gagne en répondant juste.
   - `Thanks Line` : ex. `Exactement, merci pour ton aide !`
   - `Hint Line` : ex. `Hmm non, c'est plutôt un langage qui tourne dans le navigateur...`
 - **`Card Database`** : **laisser vide** (le GameManager le pousse au lancement)
 
-> **Note sur les questions** : comme le `GameManager` assigne aux PNJ une carte au hasard parmi les manquantes, écris des questions **génériques** ou conçois-les pour que le sens marche quelle que soit la réponse. Pour un système de banque de questions par carte, voir section 5 (améliorations).
+> **Note sur les questions** : la réponse de chaque PNJ est **fixe** (`Expected Answer`). Écris donc la dernière ligne de `Dialogue Lines` pour qu'elle colle à cette carte. Suggestion pour 2 PNJ : PNJ_1 → `JavaScript` (« Je veux faire un site web interactif, quel langage j'apprends ? »), PNJ_2 → `C#` (« Quel langage est utilisé pour développer dans Unity ? »). Donne-leur **deux réponses différentes** : le joueur démarrera alors avec `Python` + `HTML`.
 
 ### 2.4 Door
 
@@ -103,7 +94,6 @@ Crée un GameObject vide `GameManager`. Ajoute le script `GameManager`.
 | Champ | Valeur |
 |---|---|
 | `Card Database` | Drag `CardDatabase.asset` |
-| `Initial Deck Size` | `3` |
 | `NPCs` > `Size` | `2` |
 | `NPCs > Element 0` | Drag `NPC_01` depuis la Hierarchy |
 | `NPCs > Element 1` | Drag `NPC_02` depuis la Hierarchy |
@@ -126,17 +116,17 @@ Crée un GameObject `Ground` avec un `SpriteRenderer`, sprite carré, couleur un
 
 ▶ Play. Ouvre la `Console` (`Window` > `General` > `Console`).
 
-Logs attendus au lancement :
+Logs attendus au lancement (avec PNJ_1 → JavaScript et PNJ_2 → C#) :
 ```
-[GameManager] Deck initial : Python, JavaScript, HTML
-[GameManager] Cartes manquantes (questions PNJ) : SQL, C#
+[GameManager] Deck initial : Python, HTML
+[GameManager] Réponses attendues (PNJ) : JavaScript, C#
 ```
 
 Critères d'acceptation :
 
 1. Le joueur bouge avec ZQSD ou flèches
 2. La caméra suit avec un léger smooth
-3. En s'approchant d'un PNJ et en appuyant sur **E** : dialogue ligne par ligne, puis le DeckUI s'ouvre avec les 5 cartes
+3. En s'approchant d'un PNJ et en appuyant sur **E** : dialogue ligne par ligne, puis le DeckUI s'ouvre avec les 4 cartes
 4. Sélection d'une mauvaise carte : `hintLine` du PNJ s'affiche, **E** rouvre le DeckUI pour retry
 5. Sélection de la bonne carte : `thanksLine`, log `[GameManager] X/2 PNJ aidés.`, la carte est ajoutée au deck du joueur
 6. Une fois les 2 PNJ aidés : log `[GameManager] Tous les PNJ ont été aidés !` + log `[Door] Porte ouverte !` + la porte passe du gris au vert

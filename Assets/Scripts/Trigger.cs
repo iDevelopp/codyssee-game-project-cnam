@@ -1,28 +1,23 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Trigger : MonoBehaviour
 {
     [SerializeField] private bool triggerActive = false;
 
-    public void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            triggerActive = true;
-        }
+        if (other.CompareTag("Player")) triggerActive = true;
     }
 
-    public void OnTriggerExit(Collider other)
+    private void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            triggerActive = false;
-        }
+        if (other.CompareTag("Player")) triggerActive = false;
     }
 
     private void Update()
     {
-        if (triggerActive && Input.GetKeyDown(KeyCode.Space))
+        if (triggerActive && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
             SomeCoolAction();
         }

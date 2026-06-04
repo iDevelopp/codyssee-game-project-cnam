@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abfcebe0fd6567d479f88fbd08aca34b, type: 3}
   m_Name: CSharp
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  displayName: Nouvelle carte
-  description: Description de la carte.
-  usage: Usage typique
+  displayName: C#
+  description: Langage orienté objet de Microsoft.
+  usage: Unity, applications Windows
   icon: {fileID: 0}

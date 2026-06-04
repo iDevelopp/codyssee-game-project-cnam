@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: abfcebe0fd6567d479f88fbd08aca34b, type: 3}
-  m_Name: Python
+  m_Name: HTML
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  displayName: Python
-  description: Langage interprété, syntaxe lisible, polyvalent.
-  usage: Scripts, data science, IA
+  displayName: HTML
+  description: Langage de balisage pour structurer les pages web.
+  usage: Pages web
   icon: {fileID: 0}

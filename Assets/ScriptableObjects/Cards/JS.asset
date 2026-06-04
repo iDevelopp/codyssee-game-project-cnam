@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abfcebe0fd6567d479f88fbd08aca34b, type: 3}
   m_Name: JS
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  displayName: Nouvelle carte
-  description: Description de la carte.
-  usage: Usage typique
+  displayName: JavaScript
+  description: Langage du web, exécuté dans le navigateur.
+  usage: Sites web interactifs
   icon: {fileID: 0}

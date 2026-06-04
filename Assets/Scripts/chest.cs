@@ -1,26 +1,14 @@
 using UnityEngine;
 
-public class chest : MonoBehaviour, IInteractable 
+// Coffre interactif — placeholder pour le play test.
+// Désactivé tant que le contenu n'est pas implémenté : CanInteract() renvoie false
+// pour que PlayerInteraction l'ignore proprement (au lieu de lever une exception).
+public class chest : MonoBehaviour, IInteractable
 {
-    public bool CanInteract()
-    {
-        throw new System.NotImplementedException();
-    }
+    public bool CanInteract() => false;
 
     public void Interactable()
     {
-        throw new System.NotImplementedException();
-    }
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        // TODO: ouvrir le coffre (récompense, dialogue, etc.)
     }
 }
