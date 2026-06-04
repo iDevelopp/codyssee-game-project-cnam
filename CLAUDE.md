@@ -77,6 +77,7 @@ Assets/
 À compléter au fur et à mesure. Liste ici ce qui est implémenté pour que les futures sessions Claude Code sachent où elles en sont.
 
 - [x] Déplacement joueur top-down — `move.cs` (4 directions, freeze quand UI ouverte)
+- [x] Animation du joueur — `move.cs` anime le `SpriteRenderer` à partir du sprite sheet `neo_zero_char_01` : 3 sprites par direction (bas `0,1,2` / haut `3,4,5` / gauche `6,7,8`, frame du milieu = immobile), droite = gauche en miroir (`flipX`). Cycle de marche immobile→pas G→immobile→pas D, vitesse réglable (`framesPerSecond`). Sprites 16×25 px → `localScale` du joueur passé à `5` et collider réduit en conséquence (même gabarit physique qu'avant)
 - [x] Système de cartes (ScriptableObject + data) — `CardData.cs` + `CardDatabase.cs` + **4 cartes `.asset` remplies** (Python, JavaScript, C#, HTML) + `CardDatabase.asset` peuplée (SQL retiré pour le play test de base)
 - [x] PNJ interactif basique — `NPC.cs` + `PlayerInteraction.cs` + `IInteractable`
 - [x] Système de dialogue — `DialogueBox.cs` (auto-spawn, portrait, lignes multiples, choix optionnels)
