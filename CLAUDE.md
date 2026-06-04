@@ -77,14 +77,18 @@ Assets/
 À compléter au fur et à mesure. Liste ici ce qui est implémenté pour que les futures sessions Claude Code sachent où elles en sont.
 
 - [x] Déplacement joueur top-down — `move.cs` (4 directions, freeze quand UI ouverte)
-- [x] Système de cartes (ScriptableObject + data) — `CardData.cs` + `CardDatabase.cs` + 5 cartes `.asset`
+- [x] Système de cartes (ScriptableObject + data) — `CardData.cs` + `CardDatabase.cs` + **4 cartes `.asset` remplies** (Python, JavaScript, C#, HTML) + `CardDatabase.asset` peuplée (SQL retiré pour le play test de base)
 - [x] PNJ interactif basique — `NPC.cs` + `PlayerInteraction.cs` + `IInteractable`
 - [x] Système de dialogue — `DialogueBox.cs` (auto-spawn, portrait, lignes multiples, choix optionnels)
 - [x] UI deck — `DeckUI.cs` (auto-spawn, affiche N cartes en boutons, callback à la sélection)
-- [x] Question/réponse via cartes — `NPC` mode `Question` + `GameManager` assigne les bonnes réponses (les 2 cartes manquantes du deck initial)
+- [x] Question/réponse via cartes — `NPC` mode `Question` (réponse fixée par PNJ dans l'Inspector) + `GameManager` construit le deck initial = complément des réponses PNJ
 - [x] Récompense (ajout de carte au deck) — bonne réponse → `Deck.Add(carte)` sur le joueur
-- [x] Mécanisme de progression de zone — `GameManager.OnAllNPCsHelped` → `Door` change de couleur
-- [ ] Scène `Zone_01` jouable de bout en bout — code prêt, assemblage de la scène à finaliser dans l'éditeur (voir `SETUP.md` à la racine)
+- [x] Dialogue post-aide — `NPC.resolvedLines` : une fois le PNJ aidé (`IsResolved`), il joue un dialogue différent et ne repose plus sa question
+- [x] Mécanisme de progression de zone — `GameManager.OnAllNPCsHelped` → `Door` change de couleur. Le comptage se base sur les PNJ **qui ont une question** (`questNPCCount`), pas `npcs.Count`
+- [x] Sortie de zone — `Door` est `IInteractable` : verrouillée → message d'info ; ouverte → `EndScreenUI` (message de fin + boutons Rejouer / Menu principal / Quitter)
+- [x] Menu principal — `MainMenuController.cs` (UI construite en code) dans la scène `MainMenu`, bouton Jouer → charge `Zone_1`
+- [x] Scène `Zone_1` jouable de bout en bout — boucle complète testée : menu → zone → aider les PNJ → porte → écran de fin
+- [ ] **Build Settings** : `MainMenu` (index 0) et `Zone_1` (index 1) doivent rester ajoutées ; sinon les boutons Jouer/Menu lèvent « scene not in build settings »
 
 ## Voir aussi
 
@@ -99,3 +103,23 @@ Décisions prises explicitement avec Arthur pour livrer le prototype plus vite, 
 - **Namespaces** : aucun script n'a de namespace `Codyssey.*`. Refactor à faire en même temps que la réorganisation des dossiers.
 - **Singletons UI** : `DialogueBox.Instance` et `DeckUI.Instance` sont des singletons auto-spawn via `RuntimeInitializeOnLoadMethod`. Justifiés comme singletons UI globaux, mais à reconsidérer si on veut tout passer par `GameManager` selon la règle "Pas de Singletons sauvages".
 - **Renames PascalCase** : les classes existantes `move` et `chest` (lowercase) n'ont pas été renommées en `Move` / `Chest`. À faire avec le refactor structure.
+
+## Play test de base (session 2026-06-02)
+
+Décisions pour livrer un play test « projet de base » (art ajouté plus tard) :
+
+- **4 cartes au lieu de 5** : SQL retiré. Cartes = Python, JavaScript, C#, HTML. `CardDatabase.asset` peuplée en conséquence.
+- **Réponses fixes par PNJ (option B)** : chaque PNJ déclare sa carte-réponse dans l'Inspector (`Question > Expected Answer`). `GameManager` ne tire plus au hasard ; il lit `npc.ExpectedAnswer` et construit le deck initial = **toutes les cartes sauf** celles des PNJ (chaque bonne réponse est donc une carte nouvelle). Le champ `initialDeckSize` a été supprimé. Questions et réponses sont maintenant cohérentes.
+- **`chest.cs` neutralisé** : `CanInteract()` renvoie `false` (était un `throw NotImplementedException` → plantait l'interaction près des `InteractCube`). À implémenter ou retirer les cubes plus tard.
+- **`Trigger.cs` corrigé** : passé en callbacks 2D (`OnTriggerEnter2D`/`OnTriggerExit2D`) + new Input System (`Keyboard.current.spaceKey`). Était en 3D + ancien `Input` (aurait jeté une exception, le projet est en New Input System only).
+
+## Flux de sortie + menu (session 2026-06-04)
+
+- **Dialogue post-aide** : `NPC` a un champ `resolvedLines` joué quand `IsResolved == true` (retombe sur `dialogueLines` si vide).
+- **Porte de sortie** : `Door` est désormais `IInteractable`. Fermée → `lockedMessage` via `DialogueBox` ; ouverte → `EndScreenUI.Show(exitMessage)`. Tous les textes sont éditables dans l'Inspector de la porte.
+- **`EndScreenUI.cs`** (nouveau) : overlay plein écran auto-spawn (`sortingOrder 200`), boutons Rejouer (recharge la scène) / Menu principal (charge `MainMenu`) / Quitter.
+- **`MainMenuController.cs`** (nouveau) : menu construit en code, à poser sur un GameObject de la scène `MainMenu`. Bouton Jouer → `SceneManager.LoadScene("Zone_1")`. **Les deux scènes doivent être dans les Build Settings.**
+- **`GameManager`** : le seuil d'ouverture de la porte se base sur `questNPCCount` (PNJ ayant une `Expected Answer`) et non plus sur `npcs.Count`, sinon un PNJ sans question bloquait l'ouverture à vie. Logs ajoutés pour le debug.
+- **Bug `DeckUI` corrigé** : le voile « Dim » était créé actif et jamais masqué → comme `DeckUI` est `DontDestroyOnLoad` (`sortingOrder 150`), il interceptait tous les clics des canvas en dessous (ex. les boutons du `MainMenu`). Le Dim est maintenant activé/désactivé avec le panel.
+- **`move.cs`** : `IsUIBlockingInput()` gèle aussi le joueur quand `EndScreenUI` est ouvert.
+- **Noms de scènes en dur** : `EndScreenUI` charge `"MainMenu"` en constante. Si on renomme la scène, mettre à jour la constante.

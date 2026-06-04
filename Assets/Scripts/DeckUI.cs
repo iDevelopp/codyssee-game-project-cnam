@@ -10,6 +10,7 @@ public class DeckUI : MonoBehaviour
     public bool IsOpen => panel != null && panel.activeSelf;
 
     private GameObject panel;
+    private GameObject dimOverlay;
     private Transform cardsContainer;
     private Text titleText;
     private Action<CardData> onCardPicked;
@@ -29,6 +30,7 @@ public class DeckUI : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         BuildUI();
+        dimOverlay.SetActive(false);
         panel.SetActive(false);
     }
 
@@ -44,7 +46,8 @@ public class DeckUI : MonoBehaviour
 
         gameObject.AddComponent<GraphicRaycaster>();
 
-        GameObject dim = new GameObject("Dim");
+        dimOverlay = new GameObject("Dim");
+        GameObject dim = dimOverlay;
         dim.transform.SetParent(transform, false);
         Image dimImg = dim.AddComponent<Image>();
         dimImg.color = new Color(0f, 0f, 0f, 0.55f);
@@ -102,6 +105,7 @@ public class DeckUI : MonoBehaviour
         if (!string.IsNullOrEmpty(title)) titleText.text = title;
         onCardPicked = onPicked;
         BuildCardButtons(cards);
+        dimOverlay.SetActive(true);
         panel.SetActive(true);
     }
 
@@ -114,6 +118,7 @@ public class DeckUI : MonoBehaviour
     {
         onCardPicked = null;
         panel.SetActive(false);
+        dimOverlay.SetActive(false);
     }
 
     private void BuildCardButtons(IReadOnlyList<CardData> cards)

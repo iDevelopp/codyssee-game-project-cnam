@@ -21,6 +21,7 @@ public class NPC : MonoBehaviour, IInteractable
     [SerializeField] private string npcName = "PNJ";
     [SerializeField] private Sprite portrait;
     [SerializeField, TextArea(2, 5)] private string[] dialogueLines = { "Bonjour, aventurier !" };
+    [SerializeField, TextArea(2, 5)] private string[] resolvedLines = { "Merci encore pour ton aide, tout refonctionne !" };
     [SerializeField] private DialogueChoice[] choices;
     [SerializeField] private Question question;
     [SerializeField] private CardDatabase cardDatabase;
@@ -35,11 +36,13 @@ public class NPC : MonoBehaviour, IInteractable
 
     public bool CanInteract() => state != State.ShowingChoices && state != State.AwaitingAnswer;
 
-    public void SetExpectedAnswer(CardData card)
-    {
-        if (question == null) question = new Question();
-        question.expectedAnswer = card;
-    }
+    // La carte-réponse est fixée dans l'Inspector (champ Question > Expected Answer).
+    public CardData ExpectedAnswer => question != null ? question.expectedAnswer : null;
+
+    // Lignes jouées tant que la question n'est pas résolue, puis lignes "post-aide" une fois résolue.
+    // Si resolvedLines est vide, on retombe sur dialogueLines pour ne jamais avoir un PNJ muet.
+    private string[] ActiveLines =>
+        IsResolved && resolvedLines != null && resolvedLines.Length > 0 ? resolvedLines : dialogueLines;
 
     public void SetCardDatabase(CardDatabase db) => cardDatabase = db;
 
@@ -72,18 +75,20 @@ public class NPC : MonoBehaviour, IInteractable
 
     private void StartDialogue()
     {
-        if (dialogueLines.Length == 0) return;
+        string[] lines = ActiveLines;
+        if (lines.Length == 0) return;
         currentLine = 0;
         state = State.ShowingLines;
-        DialogueBox.Instance.Show(npcName, dialogueLines[currentLine], portrait, this);
+        DialogueBox.Instance.Show(npcName, lines[currentLine], portrait, this);
     }
 
     private void AdvanceLine()
     {
-        if (currentLine < dialogueLines.Length - 1)
+        string[] lines = ActiveLines;
+        if (currentLine < lines.Length - 1)
         {
             currentLine++;
-            DialogueBox.Instance.Show(npcName, dialogueLines[currentLine], portrait, this);
+            DialogueBox.Instance.Show(npcName, lines[currentLine], portrait, this);
             return;
         }
 
@@ -136,7 +141,7 @@ public class NPC : MonoBehaviour, IInteractable
         state = State.ShowingChoices;
         string[] options = new string[choices.Length];
         for (int i = 0; i < choices.Length; i++) options[i] = choices[i].optionText;
-        DialogueBox.Instance.ShowChoices(npcName, dialogueLines[currentLine], options, OnChoicePicked, portrait, this);
+        DialogueBox.Instance.ShowChoices(npcName, ActiveLines[currentLine], options, OnChoicePicked, portrait, this);
     }
 
     private void OnChoicePicked(int index)

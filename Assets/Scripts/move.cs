@@ -52,6 +52,7 @@ public class move : MonoBehaviour
     {
         if (DialogueBox.Instance != null && DialogueBox.Instance.IsOpen) return true;
         if (DeckUI.Instance != null && DeckUI.Instance.IsOpen) return true;
+        if (EndScreenUI.Instance != null && EndScreenUI.Instance.IsOpen) return true;
         return false;
     }
 

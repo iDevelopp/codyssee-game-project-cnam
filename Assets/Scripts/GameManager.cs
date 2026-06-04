@@ -7,13 +7,16 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [SerializeField] private CardDatabase cardDatabase;
-    [SerializeField] private int initialDeckSize = 3;
     [SerializeField] private List<NPC> npcs = new List<NPC>();
 
     public event Action OnAllNPCsHelped;
     public CardDatabase Database => cardDatabase;
     public int NPCsHelped { get; private set; }
-    public int NPCsTotal => npcs.Count;
+    public int NPCsTotal => questNPCCount;
+
+    // Nombre de PNJ qui ont réellement une question à résoudre (≠ npcs.Count, qui peut
+    // contenir des PNJ purement décoratifs sans Expected Answer).
+    private int questNPCCount;
 
     private void Awake()
     {
@@ -36,34 +39,46 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        List<CardData> initialDeck = cardDatabase.PickRandom(initialDeckSize);
-        playerDeck.SetCards(initialDeck);
-        Debug.Log($"[GameManager] Deck initial : {FormatCards(initialDeck)}");
-
-        List<CardData> complement = cardDatabase.GetComplement(initialDeck);
-        Shuffle(complement);
-        Debug.Log($"[GameManager] Cartes manquantes (questions PNJ) : {FormatCards(complement)}");
-
-        if (npcs.Count > complement.Count)
+        // Chaque PNJ déclare sa propre carte-réponse dans l'Inspector.
+        // Le deck initial = toutes les cartes SAUF celles que les PNJ vont apprendre au joueur,
+        // pour que chaque bonne réponse soit une carte réellement nouvelle.
+        List<CardData> answerCards = new List<CardData>();
+        questNPCCount = 0;
+        foreach (NPC npc in npcs)
         {
-            Debug.LogWarning($"[GameManager] {npcs.Count} PNJ mais seulement {complement.Count} cartes manquantes — certains PNJ n'auront pas de question.");
+            if (npc == null) continue;
+            CardData answer = npc.ExpectedAnswer;
+            if (answer == null)
+            {
+                Debug.LogWarning($"[GameManager] Le PNJ '{npc.name}' n'a pas de réponse attendue assignée — il n'aura pas de question et ne compte pas pour ouvrir la sortie.");
+                continue;
+            }
+            questNPCCount++;
+            if (!answerCards.Contains(answer)) answerCards.Add(answer);
         }
 
-        for (int i = 0; i < npcs.Count; i++)
+        List<CardData> initialDeck = cardDatabase.GetComplement(answerCards);
+        playerDeck.SetCards(initialDeck);
+        Debug.Log($"[GameManager] Deck initial : {FormatCards(initialDeck)}");
+        Debug.Log($"[GameManager] Réponses attendues (PNJ) : {FormatCards(answerCards)}");
+
+        foreach (NPC npc in npcs)
         {
-            NPC npc = npcs[i];
             if (npc == null) continue;
-            if (i < complement.Count) npc.SetExpectedAnswer(complement[i]);
             npc.SetCardDatabase(cardDatabase);
             npc.OnQuestionResolved += HandleNPCResolved;
         }
+
+        Debug.Log($"[GameManager] {questNPCCount} PNJ avec une question à résoudre pour ouvrir la sortie (liste : {npcs.Count} PNJ).");
+        if (questNPCCount == 0)
+            Debug.LogWarning("[GameManager] Aucun PNJ n'a de question : vérifie que la liste 'npcs' est remplie et que chaque PNJ a une Expected Answer.");
     }
 
     private void HandleNPCResolved(NPC npc)
     {
         NPCsHelped++;
-        Debug.Log($"[GameManager] {NPCsHelped}/{npcs.Count} PNJ aidés.");
-        if (NPCsHelped >= npcs.Count)
+        Debug.Log($"[GameManager] {NPCsHelped}/{questNPCCount} PNJ aidés.");
+        if (NPCsHelped >= questNPCCount)
         {
             Debug.Log("[GameManager] Tous les PNJ ont été aidés !");
             OnAllNPCsHelped?.Invoke();
@@ -74,15 +89,6 @@ public class GameManager : MonoBehaviour
     {
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         return player != null ? player.GetComponent<Deck>() : null;
-    }
-
-    private static void Shuffle<T>(IList<T> list)
-    {
-        for (int i = list.Count - 1; i > 0; i--)
-        {
-            int j = UnityEngine.Random.Range(0, i + 1);
-            (list[i], list[j]) = (list[j], list[i]);
-        }
     }
 
     private static string FormatCards(IEnumerable<CardData> cards)
