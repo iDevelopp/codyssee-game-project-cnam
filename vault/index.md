@@ -4,7 +4,7 @@
 
 **Dernière MAJ** : 2026-06-12
 **Branche** : `web` (depuis `main`, base propre). Unity intact sur `dev-Egor`.
-**Phase** : **J0 terminé** ✅ (page vide déployée et rendue sur `ohvenus.fr/codyssee`, 0 erreur console). Prêt pour J1 (en attente feu vert commit + lancement).
+**Phase** : **J1 terminé** ✅ (QA 6/6 PASS, parité Unity). BUG-01 (content absent du build prod) corrigé en revue (ADR-005). J0 committé ; **J1 non committé** (attente feu vert). Prochain : J2.
 
 ## État global
 
@@ -17,16 +17,16 @@
 | Scaffold Vite+Phaser+TS | ✅ done (phaser 3.90, vite 6.4, base=/codyssee/) |
 | Pipeline assets de base | ✅ done (player.png 32×32, tiles, portraits ; grille char confirmée) |
 | Types TS + ContentLoader + seed /content | ✅ done (tsc vert, fetch data-driven) |
-| Déploiement nginx | ✅ done (https://ohvenus.fr/codyssee → 200, rendu OK) |
-| Boucle jouable web | ⛔ pas commencé (J1) |
+| Déploiement nginx | ✅ done (https://ohvenus.fr/codyssee → page J0 ; **J1 pas encore redéployé**) |
+| Boucle jouable web (J1) | ✅ done (QA 6/6, build prod OK après fix ADR-005) |
 
 ## Roadmap (jalons)
 
 | Jalon | Objectif | État |
 |---|---|---|
 | **J0** | Fondations : scaffold Vite+Phaser+TS, vault, agents, pipeline assets de base, build statique déployé nginx (page vide jouable) | ✅ terminé |
-| **J1** | Vertical slice parité Unity : 1 zone, joueur animé, 2 PNJ, deck 4 cartes, dialogue, Q/R, porte, écran de fin, menu, save localStorage | 🟡 prochain |
-| **J2** | Moteur data-driven : tout le contenu en `/content` ; audio (musique+SFX) | ⛔ |
+| **J1** | Vertical slice parité Unity : 1 zone, joueur animé, 2 PNJ, deck 4 cartes, dialogue, Q/R, porte, écran de fin, menu, save localStorage | ✅ terminé |
+| **J2** | Moteur data-driven : tout le contenu en `/content` ; audio (musique+SFX) | 🟡 prochain |
 | **J3** | Multi-zones + progression : zones enchaînées, déblocage, deck persistant, transitions | ⛔ |
 | **J4** | Frise chronologique : `timeline.json`, UI frise révélée, liens logiques langages | ⛔ |
 | **J5** | Narration & polish : trame cyberpunk, équilibrage, responsive, perf, déploiement final | ⛔ |
@@ -50,12 +50,30 @@
 | TASK-003 | Pipeline assets de base (atlas perso, tiles) | agent-art | done | J0 |
 | TASK-004 | Build statique + déploiement nginx | agent-infra | done | J0 |
 | TASK-005 | Types TS + loader `/content` (squelette) | agent-moteur | done | J0 |
+| TASK-006 | Scènes + flux (Preload/Menu/Zone/UI) | agent-moteur | done | J1 |
+| TASK-007 | Joueur animé + caméra | agent-moteur | done | J1 |
+| TASK-008 | Système d'interaction (E) | agent-moteur | done | J1 |
+| TASK-009 | Dialogue + DialogueBox + NPC | agent-moteur | done | J1 |
+| TASK-010 | Deck + question/réponse | agent-moteur | done | J1 |
+| TASK-011 | Progression + porte + écran de fin | agent-moteur | done | J1 |
+| TASK-012 | SaveSystem localStorage | agent-moteur | done | J1 |
+| TASK-013 | QA J1 (E2E Playwright) | agent-qa | done | J1 |
 
 ## Décisions (ADR)
 
 - ADR-001 — Stack Phaser 3 + TS + Vite
 - ADR-002 — Architecture data-driven
 - ADR-003 — Coordination via vault
+- ADR-004 — Adaptations web (frise, Quitter→menu, deploy sous-chemin)
+- ADR-005 — Contenu copié dans le build (vite-plugin-static-copy)
+
+## Backlog / dette (à traiter)
+
+- **OBS-01** (UX, agent-moteur/contenu) : rayon d'interaction 240px peut cibler un PNJ résolu proche au lieu du PNJ voulu. Espacer les PNJ dans le contenu ou affiner la sélection. Non bloquant.
+- **OBS-02** (cosmétique, agent-infra) : `favicon.ico` 404. Ajouter un favicon.
+- **Bundle** : Phaser ~1.5 MB (347 kB gzip). `manualChunks` plus tard (agent-infra).
+- **Placeholders art** : PNJ = rectangle, tilemap = damier, portraits = rips NES Zelda → remplacer avant release (agent-art, J5).
+- **DialogueSystem.ts** non créé (logique dans DialogueBox+NPC) — écart mineur assumé vs fiche TASK-009.
 
 ## Décisions Arthur (2026-06-12) — voir ADR-004
 
