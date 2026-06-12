@@ -38,6 +38,29 @@ export default defineConfig({
     // Output directory for nginx static serving
     outDir: 'dist',
     emptyOutDir: true,
+
+    rollupOptions: {
+      output: {
+        /**
+         * Split Phaser into its own vendor chunk so the browser can cache it
+         * independently of game-logic changes (TASK-026 perf — OBS bundle).
+         *
+         * Strategy: any module whose resolved id includes 'phaser' goes into
+         * 'vendor-phaser'. Game code and content-loader live in the default
+         * 'index' chunk. This cuts the single-chunk 500 kB warning because
+         * Rollup will warn per-chunk, and the game-logic chunk is much smaller.
+         *
+         * Cache benefit: after a code change only the game chunk is re-downloaded;
+         * the ~800 kB Phaser chunk stays cached in the browser.
+         */
+        manualChunks(id: string): string | undefined {
+          if (id.includes('phaser')) {
+            return 'vendor-phaser';
+          }
+          return undefined;
+        },
+      },
+    },
   },
 
   server: {

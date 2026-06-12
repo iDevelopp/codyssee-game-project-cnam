@@ -52,30 +52,44 @@ export class MainMenuScene extends Phaser.Scene {
       color: '#9999bb',
     }).setOrigin(0.5);
 
-    // Jouer button — resumes at the last zone reached (or zone_01 on first launch).
-    // currentZoneId from SaveSystem is the resume point written by ZoneScene.create()
-    // each time a new zone is entered. Falls back to the first zone in the index.
+    // Jouer button — new game or resume depending on save state.
+    // currentZoneId in SaveSystem is the resume point written by ZoneScene.create()
+    // on each zone entry. null = first launch ever = NEW GAME.
     this._makeButton(width / 2, height * 0.58, cl.getString('menu.play'), 0x4444aa, () => {
       const save = SaveSystem.getInstance();
       const currentZoneId = save.getCurrentZoneId();
 
-      // Determine which zone to start. If save has a currentZoneId we use it;
-      // otherwise start from the first zone in the index (first launch).
+      // Determine whether this is a new game or a resume.
+      // new game: currentZoneId === null (never entered a zone).
+      // resume:   currentZoneId is set — pick up where the player left off.
+      const isNewGame = currentZoneId === null;
       const startData = currentZoneId ? { zoneId: currentZoneId } : undefined;
 
-      // Start the zone and launch the persistent UI overlay in parallel.
-      // UIScene is not stopped between zones — it is launched once here and
-      // stays active across all zone transitions (ZoneScene handles it).
-      this.scene.start('ZoneScene', startData);
-      // Only launch UIScene if it is not already running (prevents duplicate overlays
-      // when returning to MainMenu via END_MENU from a live game).
+      // Ensure UIScene and TimelineScene are running before emitting events.
+      // Both are launched once here and persist across zone transitions.
       if (!this.scene.isActive('UIScene')) {
         this.scene.launch('UIScene');
       }
-      // Launch TimelineScene as a persistent overlay above UIScene (TASK-023).
-      // It starts hidden and shows itself only when TIMELINE_OPEN is emitted.
       if (!this.scene.isActive('TimelineScene')) {
         this.scene.launch('TimelineScene');
+      }
+
+      if (isNewGame) {
+        // NEW GAME: show the intro narrative overlay before starting zone_01.
+        // UIScene must already be running (launched above) to receive INTRO_SHOW.
+        // We defer ZoneScene.start() to the callback so the zone loads AFTER
+        // the intro is dismissed (not alongside it).
+        // Small delay ensures UIScene.create() has completed before we emit.
+        this.time.delayedCall(100, () => {
+          this.game.events.emit('intro-show', {
+            onComplete: () => {
+              this.scene.start('ZoneScene', startData);
+            },
+          });
+        });
+      } else {
+        // RESUME: skip intro, jump straight to the saved zone.
+        this.scene.start('ZoneScene', startData);
       }
     });
 

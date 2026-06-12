@@ -1,0 +1,19 @@
+{
+  "id": "zone_04",
+  "displayName": "Zone 4 — L'explosion du web (1990s–2000s)",
+  "tilemap": "zone_04.json",
+  "spawn": { "x": 160, "y": 300 },
+  "npcs": ["npc_rasmus", "npc_yukihiro", "npc_james"],
+  "doors": [
+    {
+      "id": "door_exit_04",
+      "position": { "x": 1100, "y": 360 },
+      "lockedMessageKey": "door.locked",
+      "exitMessageKey": "door.exit_04",
+      "leadsToZoneId": "zone_05"
+    }
+  ],
+  "unlockCondition": "all_quest_npcs_helped",
+  "nextZoneId": "zone_05",
+  "themeEra": "2000s"
+}

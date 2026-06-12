@@ -335,6 +335,12 @@ export class ZoneScene extends Phaser.Scene {
     // ---- Fade in on zone entry ----
     // Provides the visual counterpart to the fade-out on exit.
     this.cameras.main.fadeIn(300, 0, 0, 0);
+
+    // ---- Zone-entry banner (TASK-026) ----
+    // Non-blocking: does not set InputLock. Shows zoneIntros[zoneId] from
+    // narrative.json as a fade banner in UIScene. Emitted after the scene is
+    // fully set up so UIScene can safely render it above the zone.
+    this.game.events.emit('zone-banner-show', { zoneId: this.zoneData.id });
   }
 
   update(): void {

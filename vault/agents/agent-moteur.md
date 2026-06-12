@@ -2,7 +2,7 @@
 
 - **Domaine** : Phaser 3 / TypeScript. Scènes, boucle de jeu, déplacement, interaction (E), caméra, deck UI, dialogue, portes, écran de fin, menu. Garant de la boucle de gameplay.
 - **Modèle par défaut** : sonnet.
-- **Statut courant** : TASK-021 → `review`. BUG-03 + BUG-04 corrigés (ZoneScene field resets, ProgressionSystem zone-scoped whitelist). tsc ✓, build ✓.
+- **Statut courant** : TASK-026 → `review`. Narration (NarrativeOverlay+ZoneBanner+ContentLoader.getNarrative()), new-game-vs-resume detection, outro EndScreen, manualChunks Phaser. tsc ✓, build ✓.
 - **Tâches assignées** : TASK-006→012 (done), TASK-014 (done), TASK-016 (done), TASK-020 (done), TASK-021 bugs (done — voir HANDOFF-002).
 - **Blocages** : aucun.
 - **Todo perso** : —

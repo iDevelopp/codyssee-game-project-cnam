@@ -5,6 +5,26 @@ import type { TimelineEntry } from '@/types/TimelineEntry';
 import type { Strings } from '@/types/Strings';
 
 // ---------------------------------------------------------------------------
+// Narrative types (TASK-026) — shape of content/narrative.json
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape of content/narrative.json.
+ *
+ * - intro: slides shown before zone_01 on a new game.
+ * - zoneIntros: keyed by zone id, shown as a fade banner on each zone entry.
+ * - outro: slides shown in the EndScreen after the final zone is cleared.
+ */
+export interface NarrativeData {
+  /** Lines shown in sequence on a new game (before zone_01). */
+  intro: string[];
+  /** Per-zone lines shown as a non-blocking banner on zone entry. Keyed by zone id. */
+  zoneIntros: Record<string, string[]>;
+  /** Lines shown in the EndScreen after the final zone. */
+  outro: string[];
+}
+
+// ---------------------------------------------------------------------------
 // Internal raw shapes — exactly what the JSON files contain.
 // The engine uses the typed accessors below, never the raw arrays directly.
 // ---------------------------------------------------------------------------
@@ -35,6 +55,8 @@ interface ContentStore {
   strings: Strings;
   /** Audio manifest from content/audio.json — null if file is missing (graceful). */
   audio: AudioManifest | null;
+  /** Narrative data from content/narrative.json — defaults to empty if missing. */
+  narrative: NarrativeData;
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +304,17 @@ export class ContentLoader {
   }
 
   /**
+   * Returns the narrative data loaded from content/narrative.json.
+   *
+   * Always returns a valid object — if the file was missing at load time,
+   * returns `{intro:[], zoneIntros:{}, outro:[]}` (graceful degradation).
+   * Callers never need to handle null.
+   */
+  getNarrative(): NarrativeData {
+    return this._require().narrative;
+  }
+
+  /**
    * Returns the ids of all cards that are NOT expected answers for any NPC.
    *
    * This is the initial player deck (complement set), matching the Unity
@@ -322,9 +355,12 @@ export class ContentLoader {
   private async _loadAll(): Promise<void> {
     const base = import.meta.env.BASE_URL;
 
+    /** Default narrative returned when narrative.json is absent (graceful degradation). */
+    const NARRATIVE_DEFAULT: NarrativeData = { intro: [], zoneIntros: {}, outro: [] };
+
     // Fetch all root-level JSON files in parallel for performance.
-    // audio.json is optional — AudioManager degrades gracefully if missing.
-    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw] = await Promise.all([
+    // audio.json and narrative.json are optional — gracefully degrade if missing.
+    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw] = await Promise.all([
       this._fetchJson(`${base}content/cards.json`),
       this._fetchJson(`${base}content/npcs.json`),
       // timeline.json is optional in J0 — returns empty array if missing
@@ -332,6 +368,8 @@ export class ContentLoader {
       this._fetchJson(`${base}content/strings.fr.json`),
       // audio.json is optional — returns null if missing so AudioManager can skip gracefully
       this._fetchJsonOptional(`${base}content/audio.json`, null),
+      // narrative.json is optional — default empty if missing (TASK-026)
+      this._fetchJsonOptional(`${base}content/narrative.json`, null),
     ]);
 
     // --- Parse cards ---
@@ -418,7 +456,22 @@ export class ContentLoader {
         ? (audioRaw as AudioManifest)
         : null;
 
-    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio };
+    // Parse narrative — optional, default empty structure if missing or malformed.
+    // A partial object is also accepted (missing keys default to empty arrays/objects).
+    let narrative: NarrativeData = NARRATIVE_DEFAULT;
+    if (narrativeRaw !== null && typeof narrativeRaw === 'object' && !Array.isArray(narrativeRaw)) {
+      const raw = narrativeRaw as Record<string, unknown>;
+      narrative = {
+        intro: Array.isArray(raw['intro']) ? (raw['intro'] as string[]) : [],
+        zoneIntros:
+          raw['zoneIntros'] !== null && typeof raw['zoneIntros'] === 'object' && !Array.isArray(raw['zoneIntros'])
+            ? (raw['zoneIntros'] as Record<string, string[]>)
+            : {},
+        outro: Array.isArray(raw['outro']) ? (raw['outro'] as string[]) : [],
+      };
+    }
+
+    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative };
   }
 
   /**

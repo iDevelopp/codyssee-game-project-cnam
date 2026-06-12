@@ -89,5 +89,47 @@
     "description": "Langage de scripts puissant pour le traitement de texte.",
     "usage": "Administration système, bioinformatique",
     "era": "1980s"
+  },
+  {
+    "id": "php",
+    "displayName": "PHP",
+    "description": "Langage de scripts côté serveur, intégré au HTML, dominant du web dynamique.",
+    "usage": "Sites web dynamiques, back-end",
+    "era": "1990s"
+  },
+  {
+    "id": "ruby",
+    "displayName": "Ruby",
+    "description": "Langage orienté objet élégant, conçu pour la joie du développeur.",
+    "usage": "Applications web, scripting",
+    "era": "1990s"
+  },
+  {
+    "id": "go",
+    "displayName": "Go",
+    "description": "Langage compilé minimaliste de Google, conçu pour la concurrence et les microservices.",
+    "usage": "Cloud, microservices, CLI",
+    "era": "2010s"
+  },
+  {
+    "id": "kotlin",
+    "displayName": "Kotlin",
+    "description": "Langage moderne pour la JVM, concurrent de Java, officiellement soutenu pour Android.",
+    "usage": "Android, applications JVM",
+    "era": "2010s"
+  },
+  {
+    "id": "typescript",
+    "displayName": "TypeScript",
+    "description": "Sur-ensemble typé de JavaScript développé par Microsoft.",
+    "usage": "Applications web, front-end à grande échelle",
+    "era": "2010s"
+  },
+  {
+    "id": "swift",
+    "displayName": "Swift",
+    "description": "Langage sûr et expressif d'Apple, remplaçant d'Objective-C.",
+    "usage": "iOS, macOS, applications Apple",
+    "era": "2010s"
   }
 ]

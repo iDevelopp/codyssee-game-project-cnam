@@ -169,5 +169,119 @@
       "thanksLine": "Le C ! Conçu aux Bell Labs, il a changé le monde. Tu sais reconnaître un classique.",
       "hintLine": "Né en 1972 aux Bell Labs, ce langage bas niveau a permis d'écrire Unix. Initiale unique…"
     }
+  },
+  {
+    "id": "npc_rasmus",
+    "name": "Rasmus",
+    "position": { "x": 300, "y": 260 },
+    "dialogueLines": [
+      "Salut ! Je gère un serveur web pour une boutique en ligne.",
+      "En 1994, un étudiant danois a créé un langage pour générer des pages HTML dynamiquement.",
+      "Quel langage de scripts côté serveur, né du web, propulse des millions de sites ?"
+    ],
+    "resolvedLines": [
+      "PHP ! Personal Home Page… devenu PHP: Hypertext Preprocessor.",
+      "Avec PHP, je peux connecter ma base de données et afficher les produits en temps réel."
+    ],
+    "question": {
+      "expectedCardId": "php",
+      "thanksLine": "PHP ! Né en 1994 par Rasmus Lerdorf. Il fait tourner WordPress et la moitié du web. Merci !",
+      "hintLine": "Un langage de scripts intégré au HTML, créé en 1994. Ses initiales : trois lettres récursives…"
+    }
+  },
+  {
+    "id": "npc_yukihiro",
+    "name": "Yukihiro",
+    "position": { "x": 640, "y": 420 },
+    "dialogueLines": [
+      "Bonjour ! Je cherche un langage qui rende la programmation agréable, presque poétique.",
+      "En 1995, un ingénieur japonais a conçu un langage orienté objet centré sur la joie du développeur.",
+      "Quel langage élégant, né au Japon, a inspiré le framework Rails ?"
+    ],
+    "resolvedLines": [
+      "Ruby ! 'Optimisé pour le bonheur du programmeur', comme dit son créateur Matz.",
+      "Avec Ruby on Rails, je peux créer une application web complète en quelques heures."
+    ],
+    "question": {
+      "expectedCardId": "ruby",
+      "thanksLine": "Ruby ! Yukihiro Matsumoto l'a créé en 1995. Simple, expressif, un vrai bijou. Merci !",
+      "hintLine": "Un langage orienté objet né en 1995 au Japon. Son nom est une pierre précieuse…"
+    }
+  },
+  {
+    "id": "npc_james",
+    "name": "James",
+    "position": { "x": 960, "y": 240 },
+    "dialogueLines": [
+      "Hey ! Je développe une application d'entreprise qui doit tourner sur tous les systèmes.",
+      "En 1995, Sun Microsystems a lancé un langage avec le slogan 'Write once, run anywhere'.",
+      "Quel langage orienté objet, basé sur une machine virtuelle, est dominant dans les entreprises ?"
+    ],
+    "resolvedLines": [
+      "Java ! La JVM garantit la portabilité sur tous les systèmes.",
+      "De Android aux serveurs d'entreprise, Java est partout depuis trente ans."
+    ],
+    "question": {
+      "expectedCardId": "java",
+      "thanksLine": "Java ! Créé par James Gosling chez Sun en 1995. La JVM, c'est le génie du système. Merci !",
+      "hintLine": "Langage portable via sa propre machine virtuelle, lancé en 1995 par Sun Microsystems…"
+    }
+  },
+  {
+    "id": "npc_rob",
+    "name": "Rob",
+    "position": { "x": 300, "y": 260 },
+    "dialogueLines": [
+      "Salut ! Je construis des microservices pour une infrastructure cloud massivement parallèle.",
+      "En 2009, Google a publié un langage compilé, minimaliste, avec des goroutines pour la concurrence.",
+      "Quel langage simple et rapide, né chez Google, est devenu le standard des outils cloud ?"
+    ],
+    "resolvedLines": [
+      "Go ! Compilé en secondes, goroutines légères, interfaces implicites.",
+      "Docker, Kubernetes, Terraform — presque tous les grands outils cloud sont écrits en Go."
+    ],
+    "question": {
+      "expectedCardId": "go",
+      "thanksLine": "Go ! Conçu par Rob Pike, Ken Thompson et Robert Griesemer chez Google en 2009. Merci !",
+      "hintLine": "Langage compilé de Google (2009), deux lettres, conçu pour la concurrence et les serveurs…"
+    }
+  },
+  {
+    "id": "npc_jetbrains",
+    "name": "Svetlana",
+    "position": { "x": 650, "y": 420 },
+    "dialogueLines": [
+      "Bonjour ! Je migre une application Android de Java vers un langage plus moderne.",
+      "En 2016, Google a officiellement soutenu un langage JetBrains qui compile vers la JVM.",
+      "Quel langage, successeur expressif de Java sur Android, est plébiscité par les développeurs mobiles ?"
+    ],
+    "resolvedLines": [
+      "Kotlin ! Null safety, coroutines, syntaxe concise — Java en mieux.",
+      "Depuis que Google l'a officialisé pour Android, Kotlin est devenu le choix numéro un."
+    ],
+    "question": {
+      "expectedCardId": "kotlin",
+      "thanksLine": "Kotlin ! Développé par JetBrains, officialisé Google en 2017. Merci, je migre ce soir !",
+      "hintLine": "Langage JVM (2016), interopérable avec Java, null-safe, officiellement soutenu pour Android…"
+    }
+  },
+  {
+    "id": "npc_anders",
+    "name": "Anders",
+    "position": { "x": 960, "y": 240 },
+    "dialogueLines": [
+      "Bonjour ! Je maintiens une grande base de code JavaScript qui devient ingérable.",
+      "En 2012, Microsoft a publié un sur-ensemble de JavaScript qui ajoute un système de types statiques.",
+      "Quel langage, compilé vers JavaScript, apporte la sécurité du typage aux grands projets web ?"
+    ],
+    "resolvedLines": [
+      "TypeScript ! Les types détectent les bugs avant l'exécution — une révélation.",
+      "VS Code, Angular, NestJS — les plus grands projets web ont adopté TypeScript."
+    ],
+    "question": {
+      "expectedCardId": "typescript",
+      "thanksLine": "TypeScript ! Créé par Anders Hejlsberg chez Microsoft en 2012. Merci, mon code est sauvé !",
+      "hintLine": "Sur-ensemble typé de JavaScript, publié par Microsoft en 2012. Ses fichiers ont l'extension .ts…"
+    }
   }
 ]

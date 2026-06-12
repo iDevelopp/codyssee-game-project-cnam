@@ -171,7 +171,30 @@ Packs Kenney téléchargés depuis URLs directes (CC0 confirmé via `License.txt
 
 ### 8.3 Notes
 
-- `music.ambient` : placeholder synthétisé (drone basse 80 Hz + harmoniques 160/240/320 Hz, tremolo, echo, 30 s, fade in/out). À remplacer par une vraie piste cyberpunk CC0 si disponible.
+- `music.ambient` : **TASK-027** — placeholder amélioré synthétisé ffmpeg (bass drone 55 Hz + harmoniques 110/165/220 Hz, tremolo modulation 0.3 Hz ; pink noise filtré bandpass 800 Hz ; shimmer 440/660/880 Hz avec chorus ; pulse tremolo 0.4 Hz ; amix 4 pistes, acompressor, fade in 3 s / fade out 3 s, 30 s loop, OGG 248 KB / MP3 164 KB). Licence **CC0 (généré)**. Réseau offline — pas de piste tierce disponible.
 - OGG preferred for browsers with Vorbis support; MP3 fallback for Safari/Edge. Phaser `this.sound.add()` prend le premier format supporté.
 - Manifest : `web/content/audio.json` — clés TASK-016 (agent-moteur) directement lisibles.
+
+---
+
+## 9. Favicon — TASK-027 (2026-06-12)
+
+- **Fichier** : `web/public/favicon.ico`
+- **Contenu** : glyph pixel-art 'C' (Codyssey), cyan (#00DCDC) sur navy (#0A0A1E), multi-résolution ICO (16×16, 24×24, 32×32, 48×48).
+- **Méthode** : généré Python/Pillow, procédural — aucun asset tiers.
+- **Licence** : **CC0 (généré)**.
+- **Link** : `<link rel="icon" type="image/x-icon" href="/favicon.ico" />` dans `web/index.html`. Vite corrige la base en `/codyssee/` en prod.
+
+---
+
+## 10. Portraits (v2) — TASK-027 (2026-06-12)
+
+Portraits NES Zelda rips remplacés par silhouettes pixel-art synthétisées.
+
+| Fichier | Dimensions | Contenu | Méthode | Licence |
+|---------|------------|---------|---------|---------|
+| `portraits/zelda_portrait.png` | 162×256 | Silhouette NPC tutrice (forme féminine, glow cyan, détail circuit) | Python/Pillow procédural | **CC0 (généré)** |
+| `portraits/link.png` | 256×256 | Silhouette NPC tech (forme neutre, capuche, yeux cyan, grille) | Python/Pillow procédural | **CC0 (généré)** |
+
+Note : ces clés (`portrait_zelda`, `portrait_link`) sont chargées par PreloadScene mais non encore référencées dans npcs.json — elles restent des réservoirs disponibles pour agent-contenu/agent-moteur.
 </content>

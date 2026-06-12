@@ -2,9 +2,9 @@
 
 > Seule vue d'ensemble. Tenue par l'orchestrateur. Doit toujours refléter la réalité.
 
-**Dernière MAJ** : 2026-06-12 10:15 — J4 clos (frise chrono, QA 7/7 PASS, BUG-05 fixé)
+**Dernière MAJ** : 2026-06-12 — **J5 clos — PROJET TERMINÉ** (vision GDD complète, QA finale F1-F10 PASS)
 **Branche** : `web` (depuis `main`, base propre, **pushée sur origin**). Unity intact sur `dev-Egor`.
-**Phase** : **J4 terminé** (frise chronologique). J0-J3 ✅ committés+pushés ; J3 live sur ohvenus.fr/codyssee. J4 committé, **à redéployer**. **J5 = prochain** (narration cyberpunk + polish + déploiement final).
+**Phase** : **🏁 J0–J5 TERMINÉS**. Vision complète livrée : 5 zones, 19 langages, frise chronologique, narration cyberpunk (intro/bandeaux/outro), responsive, bundle splitté, favicon. Live sur ohvenus.fr/codyssee.
 
 ## État global
 
@@ -29,7 +29,7 @@
 | **J2** | Moteur data-driven : tout le contenu en `/content` ; audio (musique+SFX) | ✅ terminé |
 | **J3** | Multi-zones + progression : zones enchaînées, déblocage, deck persistant, transitions | ✅ terminé |
 | **J4** | Frise chronologique : `timeline.json`, UI frise révélée, liens logiques langages | ✅ terminé |
-| **J5** | Narration & polish : trame cyberpunk, équilibrage, responsive, perf, déploiement final | ⛔ |
+| **J5** | Narration & polish : trame cyberpunk, équilibrage, responsive, perf, déploiement final | ✅ terminé |
 
 ## Qui fait quoi (à l'activation)
 
@@ -69,6 +69,10 @@
 | TASK-022 | Contenu frise (timeline.json, 13 entrées + influences) | agent-contenu | done | J4 |
 | TASK-023 | Frise UI + reveal (TimelineScene, touche T) | agent-moteur | done | J4 |
 | TASK-024 | QA J4 (frise) + fix BUG-05 (deck initial non persisté) | agent-qa | done | J4 |
+| TASK-025 | Expansion contenu (zones 4-5, 19 langages) + narration | agent-contenu | done | J5 |
+| TASK-026 | Narration affichée + responsive (Scale.FIT) + perf (chunks) | agent-moteur | done | J5 |
+| TASK-027 | Polish art/audio (favicon, ambient, portraits CC0) | agent-art | done | J5 |
+| TASK-028 | QA J5 finale (5 zones, narration, responsive, perf) | agent-qa | done | J5 |
 
 ## Décisions (ADR)
 

@@ -37,5 +37,16 @@
   "timeline.locked": "Inconnu — aide un personnage pour révéler ce langage.",
   "timeline.hint": "Appuie sur [T] pour fermer la frise.",
   "timeline.empty": "Aucun langage découvert pour l'instant. Explore et aide les personnages !",
-  "timeline.button": "Voir la frise"
+  "timeline.button": "Voir la frise",
+
+  "zone.zone_04": "Zone 4 — L'explosion du web (1990s–2000s)",
+  "zone.zone_05": "Zone 5 — L'ère moderne (2010s+)",
+
+  "door.exit_04": "Remarquable ! Le web dynamique n'a plus de secrets pour toi. Cap sur l'ère moderne !",
+  "door.exit_05": "Mémoire complète restaurée. Dix-neuf langages transmis. L'histoire tient. Mission accomplie.",
+
+  "narrative.intro.title": "Transmission en cours…",
+  "narrative.zoneIntro.title": "Archive temporelle",
+  "narrative.outro.title": "Restauration complète",
+  "narrative.hint": "Clic ou touche pour continuer…"
 }

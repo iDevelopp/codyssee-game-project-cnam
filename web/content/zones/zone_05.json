@@ -1,0 +1,17 @@
+{
+  "id": "zone_05",
+  "displayName": "Zone 5 — L'ère moderne (2010s+)",
+  "tilemap": "zone_05.json",
+  "spawn": { "x": 160, "y": 300 },
+  "npcs": ["npc_rob", "npc_jetbrains", "npc_anders"],
+  "doors": [
+    {
+      "id": "door_exit_05",
+      "position": { "x": 1100, "y": 360 },
+      "lockedMessageKey": "door.locked",
+      "exitMessageKey": "door.exit_05"
+    }
+  ],
+  "unlockCondition": "all_quest_npcs_helped",
+  "themeEra": "2010s"
+}

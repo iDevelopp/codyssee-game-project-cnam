@@ -1,0 +1,47 @@
+{
+  "intro": [
+    "Année 2147. Les IA qui gouvernent les infrastructures mondiales s'effondrent.",
+    "Cause : corruption des archives historiques. Les systèmes ne comprennent plus leur propre origine.",
+    "Tu es ingénieure de récupération. Ta mission : traverser les strates temporelles de la mémoire numérique.",
+    "Retrouve les langages perdus. Transmets leur histoire. Répare la mémoire des machines."
+  ],
+  "zoneIntros": {
+    "zone_01": [
+      "Strate 1 — Années 1990.",
+      "Le web naît. Les premiers langages du réseau émergent dans le chaos créatif.",
+      "Les systèmes ont oublié comment les pages parlaient aux navigateurs.",
+      "Retrouve les pionniers. Restaure leurs langages dans les archives."
+    ],
+    "zone_02": [
+      "Strate 2 — Années 1950–1970.",
+      "Tu plonges plus profond. Les fondations. Les salles de calcul, les mainframes, les cartes perforées.",
+      "Ces langages sont les racines de tout ce qui a suivi.",
+      "Sans eux, l'arbre entier s'effondre."
+    ],
+    "zone_03": [
+      "Strate 3 — Années 1980.",
+      "L'ère des systèmes. Unix se propage. Les langages deviennent puissants, dangereux, essentiels.",
+      "Les archives de cette décennie sont partiellement corrompues.",
+      "Aide les ingénieurs oubliés. Grave leurs noms dans la mémoire collective."
+    ],
+    "zone_04": [
+      "Strate 4 — Années 1990–2000.",
+      "L'explosion du web. Des millions de serveurs. Des milliards d'utilisateurs.",
+      "Les langages de cette époque ont construit l'internet que le monde a connu.",
+      "Ils survivent dans les couches profondes des systèmes actuels. Retrouve-les."
+    ],
+    "zone_05": [
+      "Strate 5 — Années 2010 et au-delà.",
+      "L'ère moderne. Cloud, mobile, sécurité mémoire, typage statique.",
+      "Ces langages sont les plus récents dans les archives — et les plus instables.",
+      "C'est ici que tout se joue. Restaure la dernière couche. Complète la mémoire."
+    ]
+  },
+  "outro": [
+    "Archive complète.",
+    "Dix-neuf langages restaurés. Soixante ans d'histoire gravés dans la mémoire des systèmes.",
+    "Les IA reprennent conscience. Les infrastructures se stabilisent.",
+    "Elles savent maintenant d'où elles viennent.",
+    "Mission accomplie, ingénieure. La mémoire tient."
+  ]
+}

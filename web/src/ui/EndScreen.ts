@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
+import type { NarrativeData } from '@/systems/ContentLoader';
 
 /**
  * EndScreen — full-screen end-of-zone overlay shown in UIScene.
@@ -24,7 +25,8 @@ export class EndScreen extends Phaser.GameObjects.Container {
     // Full-screen overlay: (0.07, 0.07, 0.12, 0.97) → #121220
     this.bg = scene.add.rectangle(0, 0, 1280, 720, 0x121220, 0.97).setOrigin(0);
 
-    this.messageText = scene.add.text(640, 240, '', {
+    // Main congrats message — placed in upper zone, outro slides go below it
+    this.messageText = scene.add.text(640, 160, '', {
       fontFamily: 'monospace',
       fontSize: '28px',
       color: '#e0e0ff',
@@ -40,21 +42,45 @@ export class EndScreen extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Display the end screen with the given message and standard buttons.
-   * Includes a "Voir la frise" button that opens TimelineScene (TASK-023).
+   * Display the end screen with the given message, outro narration, and buttons.
+   *
+   * Layout (top → bottom):
+   *  1. messageText — congratulations string from strings.fr.json "end.congrats"
+   *  2. outro lines — from narrative.json outro[] (TASK-026), shown between message and buttons
+   *  3. Action buttons row (Rejouer / Menu / Quitter)
+   *  4. "Voir la frise" button (second row)
    *
    * @param message - Congratulations text (from strings.fr.json "end.congrats")
    */
   show(message: string): void {
     this.messageText.setText(message);
 
-    // Remove existing buttons before re-creating (idempotent show)
+    // Remove existing dynamic children (outro texts + buttons) before re-creating
     this._clearButtons();
 
     const cl = ContentLoader.getInstance();
+    const narrative: NarrativeData = cl.getNarrative();
 
-    // Three standard action buttons on row 1
-    const buttonY = 400;
+    // ---- Outro narration (TASK-026) ----
+    // Shown between the congrats message and the action buttons.
+    // Each line is a separate text object for clean layout.
+    const outroStartY = 220;
+    const outroLineHeight = 32;
+    for (let i = 0; i < narrative.outro.length; i++) {
+      const outroText = this.scene.add.text(640, outroStartY + i * outroLineHeight, narrative.outro[i], {
+        fontFamily: 'monospace',
+        fontSize: '18px',
+        color: '#9999bb',
+        align: 'center',
+        wordWrap: { width: 860 },
+      }).setOrigin(0.5);
+      this.add(outroText);
+    }
+
+    // ---- Action buttons ----
+    // Positioned below the outro block. If outro is empty, buttons sit at a
+    // reasonable fixed Y so the layout still works (TASK-026 graceful degradation).
+    const buttonY = outroStartY + Math.max(narrative.outro.length, 1) * outroLineHeight + 56;
     const spacing = 220;
 
     this._makeButton(640 - spacing, buttonY, cl.getString('end.replay'), 0x2244aa, () => {

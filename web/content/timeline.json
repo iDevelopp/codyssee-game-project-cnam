@@ -72,6 +72,14 @@
     "influences": []
   },
   {
+    "year": 1994,
+    "language": "PHP",
+    "cardId": "php",
+    "blurb": "Créé par Rasmus Lerdorf (1994). Scripts côté serveur intégrés au HTML. Héritage de C et Perl. Propulse encore plus de 75 % des serveurs web.",
+    "unlockedBy": "php",
+    "influences": ["c", "perl"]
+  },
+  {
     "year": 1995,
     "language": "Java",
     "cardId": "java",
@@ -88,6 +96,14 @@
     "influences": ["java", "c"]
   },
   {
+    "year": 1995,
+    "language": "Ruby",
+    "cardId": "ruby",
+    "blurb": "Conçu par Yukihiro Matsumoto (1995). Orienté objet pur, syntaxe inspirée de Perl et Lisp. Ruby on Rails a révolutionné le développement web rapide.",
+    "unlockedBy": "ruby",
+    "influences": ["perl", "lisp"]
+  },
+  {
     "year": 2000,
     "language": "C#",
     "cardId": "csharp",
@@ -96,11 +112,43 @@
     "influences": ["c", "cpp", "java"]
   },
   {
+    "year": 2009,
+    "language": "Go",
+    "cardId": "go",
+    "blurb": "Google, 2009 (Pike, Thompson, Griesemer). Compilé, goroutines légères, interfaces implicites. Standard de facto des outils cloud (Docker, Kubernetes).",
+    "unlockedBy": "go",
+    "influences": ["c"]
+  },
+  {
     "year": 2010,
     "language": "Rust",
     "cardId": "rust",
     "blurb": "Mozilla Research, 2010. Sécurité mémoire sans garbage collector, héritier de C et C++. Prisé pour WebAssembly, systèmes embarqués et CLI.",
     "unlockedBy": "rust",
     "influences": ["cpp", "c"]
+  },
+  {
+    "year": 2012,
+    "language": "TypeScript",
+    "cardId": "typescript",
+    "blurb": "Microsoft, 2012 (Hejlsberg). Sur-ensemble typé de JavaScript. Les types statiques capturent les bugs à la compilation. Adopté par Angular, VS Code, NestJS.",
+    "unlockedBy": "typescript",
+    "influences": ["javascript", "java"]
+  },
+  {
+    "year": 2014,
+    "language": "Swift",
+    "cardId": "swift",
+    "blurb": "Apple, 2014. Remplace Objective-C pour iOS et macOS. Sûreté mémoire, syntaxe moderne, performances proches du C++. Influences : C++ et Rust.",
+    "unlockedBy": "swift",
+    "influences": ["cpp", "rust"]
+  },
+  {
+    "year": 2016,
+    "language": "Kotlin",
+    "cardId": "kotlin",
+    "blurb": "JetBrains, 2016. Langage JVM null-safe, interopérable avec Java. Officiellement soutenu par Google pour Android. Héritage direct de Java.",
+    "unlockedBy": "kotlin",
+    "influences": ["java"]
   }
 ]

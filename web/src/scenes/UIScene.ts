@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { DialogueBox } from '@/ui/DialogueBox';
 import { DeckPanel } from '@/ui/DeckPanel';
 import { EndScreen } from '@/ui/EndScreen';
+import { NarrativeOverlay } from '@/ui/NarrativeOverlay';
+import { ZoneBanner } from '@/ui/ZoneBanner';
 import { GameEvents } from '@/systems/GameEvents';
 import type { CardData } from '@/types/CardData';
 import { ContentLoader } from '@/systems/ContentLoader';
@@ -25,6 +27,10 @@ export class UIScene extends Phaser.Scene {
   private dialogueBox!: DialogueBox;
   private deckPanel!: DeckPanel;
   private endScreen!: EndScreen;
+  /** Fullscreen intro overlay — shown once on new game before zone_01 (TASK-026). */
+  private narrativeOverlay!: NarrativeOverlay;
+  /** Non-blocking zone-entry banner (TASK-026). */
+  private zoneBanner!: ZoneBanner;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -35,6 +41,9 @@ export class UIScene extends Phaser.Scene {
     this.dialogueBox = new DialogueBox(this);
     this.deckPanel = new DeckPanel(this);
     this.endScreen = new EndScreen(this);
+    // Narration components (TASK-026)
+    this.narrativeOverlay = new NarrativeOverlay(this);
+    this.zoneBanner = new ZoneBanner(this);
 
     this._bindEvents();
   }
@@ -93,6 +102,25 @@ export class UIScene extends Phaser.Scene {
     ev.on(GameEvents.END_MENU, () => {
       this.endScreen.hide();
       // UIScene shuts down when ZoneScene stops; no extra cleanup needed
+    });
+
+    // ---- Narration (TASK-026) ----
+
+    // INTRO_SHOW: new game only — show fullscreen intro slides before zone_01.
+    // Payload: { onComplete: () => void } — MainMenuScene passes the callback
+    // that launches ZoneScene once the intro is dismissed.
+    ev.on(GameEvents.INTRO_SHOW, (payload: { onComplete: () => void }) => {
+      const narrative = cl.getNarrative();
+      const hint = cl.getString('narrative.hint');
+      this.narrativeOverlay.show(narrative.intro, hint, payload.onComplete);
+    });
+
+    // ZONE_BANNER_SHOW: non-blocking banner on each zone entry (TASK-026).
+    // Payload: { zoneId: string } — ZoneScene emits this in create().
+    ev.on(GameEvents.ZONE_BANNER_SHOW, (payload: { zoneId: string }) => {
+      const narrative = cl.getNarrative();
+      const lines = narrative.zoneIntros[payload.zoneId] ?? [];
+      this.zoneBanner.show(lines);
     });
   }
 

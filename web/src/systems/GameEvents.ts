@@ -117,4 +117,23 @@ export const GameEvents = {
    * ZoneScene listens to release InputLock.
    */
   TIMELINE_CLOSE: 'timeline-close',
+
+  // ---------------------------------------------------------------------------
+  // Narration events (added for TASK-026)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emitted by MainMenuScene on new game (no currentZoneId in save).
+   * UIScene shows the NarrativeOverlay with narrative.json intro[] before
+   * starting ZoneScene. Payload: { onComplete: () => void } — UIScene calls
+   * the callback when the last slide is dismissed, then ZoneScene is launched.
+   */
+  INTRO_SHOW: 'intro-show',
+
+  /**
+   * Emitted by ZoneScene on each zone entry.
+   * UIScene shows the ZoneBanner with zoneIntros[zoneId] (non-blocking fade).
+   * Payload: { zoneId: string }
+   */
+  ZONE_BANNER_SHOW: 'zone-banner-show',
 } as const;

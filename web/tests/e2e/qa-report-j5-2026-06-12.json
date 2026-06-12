@@ -1,0 +1,209 @@
+{
+  "date": "2026-06-12",
+  "task": "TASK-028",
+  "milestone": "J5",
+  "results": [
+    {
+      "id": "F10",
+      "label": "pnpm build green",
+      "result": "PASS",
+      "evidence": [
+        "Exit: success",
+        "Output tail: (!) Some chunks are larger than 500 kB after minification. Consider: | - Using dynamic import() to code-split the application | - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks | - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit. | ✓ built in 4.75s | "
+      ]
+    },
+    {
+      "id": "F8",
+      "label": "Build output ≥2 JS chunks including vendor-phaser",
+      "result": "PASS",
+      "evidence": [
+        "JS chunks: [\"index-C01YYUsl.js\",\"vendor-phaser-B61OQUcB.js\"]",
+        "Count: 2 (≥2 required)",
+        "vendor-phaser chunk present: true"
+      ]
+    },
+    {
+      "id": "F1",
+      "label": "New game → intro overlay shown, advance, then zone_01",
+      "result": "PASS",
+      "evidence": [
+        "NarrativeOverlay visible after Jouer: true",
+        "Overlay slideText present: true (\"Année 2147. Les IA qui gouvernent les infrastructu\")",
+        "Counter text: \"1 / 4\"",
+        "Overlay hidden after advancing all slides: true",
+        "Entered zone_01 after intro: true (currentZoneId=zone_01)",
+        "Note: if overlay not probed, zone entry is functional evidence of correct flow",
+        "SCREENSHOT (overlay): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-002-f1-intro-overlay.png",
+        "SCREENSHOT (zone after intro): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-003-f1-after-intro-zone.png"
+      ]
+    },
+    {
+      "id": "F2",
+      "label": "Resume (existing save) → no intro overlay, jump to saved zone",
+      "result": "PASS",
+      "evidence": [
+        "NarrativeOverlay visible on resume: false (expected false)",
+        "No overlay on resume: true",
+        "Saved zone was: zone_01",
+        "Resumed to zone: zone_01",
+        "Correct zone resumed: true",
+        "SCREENSHOT (resume, no intro): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-005-f2-resume-no-intro.png"
+      ]
+    },
+    {
+      "id": "F3",
+      "label": "Zone-enter banner (ZoneBanner) appears per zone entry",
+      "result": "PASS",
+      "evidence": [
+        "ZoneBanner bg alpha: 0.75 (>0 = showing/shown)",
+        "ZoneBanner hasTexts: true",
+        "Probe limitation (no access to banner): false",
+        "Note: ZoneBanner.ts implemented; show() called on zone_entry event; non-blocking (no InputLock).",
+        "Note: Banner fades out after ~2-3s. If alpha=0, banner already faded — normal behavior.",
+        "SCREENSHOT (zone_01 entry area): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-006-f3-zone-banner.png"
+      ]
+    },
+    {
+      "id": "F4",
+      "label": "Full playthrough zone_01→05→end, 15 NPCs helped",
+      "result": "PASS",
+      "evidence": [
+        "zone_01 NPCs helped: true",
+        "Entered zone_02: true",
+        "Entered zone_03: true",
+        "Entered zone_04: true",
+        "Entered zone_05: true",
+        "All 15 NPCs helped: true (15/15)",
+        "helpedNpcIds: [\"npc_lea\",\"npc_thomas\",\"npc_clara\",\"npc_ernst\",\"npc_grace\",\"npc_john\",\"npc_bjarne\",\"npc_larry\",\"npc_ada\",\"npc_rasmus\",\"npc_yukihiro\",\"npc_james\",\"npc_rob\",\"npc_jetbrains\",\"npc_anders\"]",
+        "SCREENSHOT (end screen): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-058-f4-end-screen.png"
+      ]
+    },
+    {
+      "id": "F5",
+      "label": "Outro lines rendered on EndScreen",
+      "result": "PASS",
+      "evidence": [
+        "EndScreen visible: true",
+        "Outro text objects found (>20 chars): 4",
+        "Outro texts: [\"Dix-neuf langages restaurés. Soixante an\",\"Les IA reprennent conscience. Les infras\",\"Elles savent maintenant d'où elles vienn\",\"Mission accomplie, ingénieure. La mémoir\"]",
+        "Note: EndScreen.ts adds narrative.outro[] text objects between message and buttons.",
+        "narrative.json outro has 5 lines (Archive complète. / Dix-neuf langages... / etc.)",
+        "If outroCount=0: container probe limitation (fontSize filter may miss). Code evidence: EndScreen.ts lines 69-78.",
+        "SCREENSHOT (end screen with outro): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-059-f5-outro.png"
+      ]
+    },
+    {
+      "id": "F6",
+      "label": "Timeline: 19/19 revealed; influence links present; chronological",
+      "result": "PASS",
+      "evidence": [
+        "Counter: \"19 / 19 révélés\" (expected \"19 / 19 révélés\")",
+        "19/19 revealed: true (19/19)",
+        "Influence arrows between revealed pairs: true (25 expected arrows)",
+        "Entries in year-ascending order: true",
+        "Years sequence: [1957,1958,1959,1972,1974,1985,1987,1991,1993,1994,1995,1995,1995,2000,2009,2010,2012,2014,2016]",
+        "SCREENSHOT (full timeline at end): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-060-f6-timeline-full.png"
+      ]
+    },
+    {
+      "id": "F7",
+      "label": "Responsive: canvas present, no overflow at 1366×768 and 1920×1080",
+      "result": "PASS",
+      "evidence": [
+        "[1366x768] canvas found: true",
+        "[1366x768] overflow: false (expected false)",
+        "[1366x768] canvas rect: {\"x\":0,\"y\":0,\"width\":1365.328125,\"height\":768,\"right\":1365.328125,\"bottom\":768}",
+        "[1366x768] viewport: 1366×768",
+        "[1366x768] centered: true",
+        "[1366x768] SCREENSHOT: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-061-f7-1366x768.png",
+        "[1920x1080] canvas found: true",
+        "[1920x1080] overflow: false (expected false)",
+        "[1920x1080] canvas rect: {\"x\":0,\"y\":0,\"width\":1920,\"height\":1080,\"right\":1920,\"bottom\":1080}",
+        "[1920x1080] viewport: 1920×1080",
+        "[1920x1080] centered: true",
+        "[1920x1080] SCREENSHOT: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-062-f7-1920x1080.png"
+      ]
+    },
+    {
+      "id": "F9",
+      "label": "Zero console errors, zero page errors, favicon 200",
+      "result": "PASS",
+      "evidence": [
+        "Console errors: 0 (expected 0)",
+        "Page errors: 0 (expected 0)",
+        "Favicon HTTP status: 200 (expected 200)"
+      ]
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "favicon": "200",
+  "buildChunks": [
+    "index-C01YYUsl.js",
+    "vendor-phaser-B61OQUcB.js"
+  ],
+  "screenshots": [
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-001-f1-main-menu.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-002-f1-intro-overlay.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-003-f1-after-intro-zone.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-004-f2-menu-after-reload.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-005-f2-resume-no-intro.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-006-f3-zone-banner.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-007-f4-z1-start.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-008-near-zone01-npc_lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-009-deck-zone01-npc_lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-010-helped-zone01-npc_lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-011-near-zone01-npc_thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-012-deck-zone01-npc_thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-013-helped-zone01-npc_thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-014-near-zone01-npc_clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-015-deck-zone01-npc_clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-016-helped-zone01-npc_clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-017-door-f4-z1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-018-near-zone02-npc_ernst.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-019-deck-zone02-npc_ernst.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-020-helped-zone02-npc_ernst.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-021-near-zone02-npc_grace.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-022-deck-zone02-npc_grace.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-023-helped-zone02-npc_grace.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-024-near-zone02-npc_john.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-025-deck-zone02-npc_john.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-026-helped-zone02-npc_john.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-027-door-f4-z2.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-028-near-zone03-npc_bjarne.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-029-deck-zone03-npc_bjarne.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-030-helped-zone03-npc_bjarne.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-031-near-zone03-npc_larry.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-032-deck-zone03-npc_larry.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-033-helped-zone03-npc_larry.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-034-near-zone03-npc_ada.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-035-deck-zone03-npc_ada.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-036-helped-zone03-npc_ada.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-037-door-f4-z3.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-038-near-zone04-npc_rasmus.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-039-deck-zone04-npc_rasmus.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-040-helped-zone04-npc_rasmus.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-041-near-zone04-npc_yukihiro.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-042-deck-zone04-npc_yukihiro.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-043-helped-zone04-npc_yukihiro.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-044-near-zone04-npc_james.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-045-deck-zone04-npc_james.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-046-helped-zone04-npc_james.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-047-door-f4-z4.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-048-near-zone05-npc_rob.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-049-deck-zone05-npc_rob.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-050-helped-zone05-npc_rob.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-051-near-zone05-npc_jetbrains.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-052-deck-zone05-npc_jetbrains.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-053-helped-zone05-npc_jetbrains.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-054-near-zone05-npc_anders.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-055-deck-zone05-npc_anders.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-056-helped-zone05-npc_anders.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-057-door-f4-z5.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-058-f4-end-screen.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-059-f5-outro.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-060-f6-timeline-full.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-061-f7-1366x768.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j5-062-f7-1920x1080.png"
+  ]
+}

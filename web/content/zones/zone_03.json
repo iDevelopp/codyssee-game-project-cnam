@@ -9,9 +9,11 @@
       "id": "door_exit_03",
       "position": { "x": 1100, "y": 360 },
       "lockedMessageKey": "door.locked",
-      "exitMessageKey": "door.exit_03"
+      "exitMessageKey": "door.exit_03",
+      "leadsToZoneId": "zone_04"
     }
   ],
   "unlockCondition": "all_quest_npcs_helped",
+  "nextZoneId": "zone_04",
   "themeEra": "1980s"
 }
