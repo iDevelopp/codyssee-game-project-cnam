@@ -31,5 +31,11 @@
   "zone.zone_03": "Zone 3 — L'ère des systèmes (1980s)",
 
   "door.exit_02": "Remarquable ! Tu maîtrises les origines de l'informatique. En avant vers les années 80 !",
-  "door.exit_03": "Félicitations ! Tu as traversé toute l'histoire des langages fondateurs. L'aventure continue…"
+  "door.exit_03": "Félicitations ! Tu as traversé toute l'histoire des langages fondateurs. L'aventure continue…",
+
+  "timeline.title": "Frise chronologique des langages",
+  "timeline.locked": "Inconnu — aide un personnage pour révéler ce langage.",
+  "timeline.hint": "Appuie sur [T] pour fermer la frise.",
+  "timeline.empty": "Aucun langage découvert pour l'instant. Explore et aide les personnages !",
+  "timeline.button": "Voir la frise"
 }

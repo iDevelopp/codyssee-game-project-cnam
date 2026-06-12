@@ -101,4 +101,20 @@ export const GameEvents = {
    * ZoneScene shows the EndScreen (game complete).
    */
   GAME_COMPLETE: 'game-complete',
+
+  // ---------------------------------------------------------------------------
+  // Timeline frieze events (added for TASK-023)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emitted by ZoneScene (T key) or EndScreen button to open the timeline frieze.
+   * TimelineScene listens and makes itself visible.
+   */
+  TIMELINE_OPEN: 'timeline-open',
+
+  /**
+   * Emitted by TimelineScene (T key / ESC) to signal the frieze was closed.
+   * ZoneScene listens to release InputLock.
+   */
+  TIMELINE_CLOSE: 'timeline-close',
 } as const;

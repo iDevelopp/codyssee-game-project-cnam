@@ -1,0 +1,106 @@
+[
+  {
+    "year": 1957,
+    "language": "Fortran",
+    "cardId": "fortran",
+    "blurb": "Premier langage de haut niveau (IBM, 1957). Pionnier du calcul scientifique, ancêtre indirect de C et de tous les langages procéduraux.",
+    "unlockedBy": "fortran",
+    "influences": []
+  },
+  {
+    "year": 1958,
+    "language": "Lisp",
+    "cardId": "lisp",
+    "blurb": "Inventé par John McCarthy (MIT, 1958). Fondateur de la programmation fonctionnelle et de l'IA symbolique. Inspirera Python et Rust.",
+    "unlockedBy": "lisp",
+    "influences": []
+  },
+  {
+    "year": 1959,
+    "language": "COBOL",
+    "cardId": "cobol",
+    "blurb": "Conçu en 1959 pour la gestion d'entreprise. Encore actif dans les banques et mainframes, il a posé les bases du traitement de données en masse.",
+    "unlockedBy": "cobol",
+    "influences": []
+  },
+  {
+    "year": 1972,
+    "language": "C",
+    "cardId": "c",
+    "blurb": "Créé par Ritchie (Bell Labs, 1972), héritier procédural de Fortran. Socle de Linux, Unix, et ancêtre de C++, Java, Python, Rust, JavaScript.",
+    "unlockedBy": "c",
+    "influences": ["fortran"]
+  },
+  {
+    "year": 1974,
+    "language": "SQL",
+    "cardId": "sql",
+    "blurb": "Standardisé en 1974 (IBM). Langage déclaratif universel des bases de données relationnelles. Toujours omniprésent dans les back-ends modernes.",
+    "unlockedBy": "sql",
+    "influences": []
+  },
+  {
+    "year": 1985,
+    "language": "C++",
+    "cardId": "cpp",
+    "blurb": "Extension orientée objet de C (Stroustrup, 1985). Langage de référence des jeux vidéo, moteurs graphiques et logiciels haute performance.",
+    "unlockedBy": "cpp",
+    "influences": ["c"]
+  },
+  {
+    "year": 1987,
+    "language": "Perl",
+    "cardId": "perl",
+    "blurb": "Créé par Larry Wall (1987). Puissant pour le traitement de texte et les scripts système, il hérite de C et SQL pour manipuler données et chaînes.",
+    "unlockedBy": "perl",
+    "influences": ["c", "sql"]
+  },
+  {
+    "year": 1991,
+    "language": "Python",
+    "cardId": "python",
+    "blurb": "Conçu par Van Rossum (1991). Syntaxe lisible héritée de C, expressivité de Lisp. Dominant en data science, IA et scripting.",
+    "unlockedBy": "python",
+    "influences": ["c", "lisp"]
+  },
+  {
+    "year": 1993,
+    "language": "HTML",
+    "cardId": "html",
+    "blurb": "Inventé par Tim Berners-Lee (CERN, 1993). Langage de balisage fondateur du World Wide Web, base de toute interface web.",
+    "unlockedBy": "html",
+    "influences": []
+  },
+  {
+    "year": 1995,
+    "language": "Java",
+    "cardId": "java",
+    "blurb": "Sun Microsystems, 1995. Orienté objet, portable via la JVM (\"write once, run anywhere\"). Hérite de C et C++ ; influencera C# et JavaScript.",
+    "unlockedBy": "java",
+    "influences": ["c", "cpp"]
+  },
+  {
+    "year": 1995,
+    "language": "JavaScript",
+    "cardId": "javascript",
+    "blurb": "Créé en 10 jours par Brendan Eich (Netscape, 1995). Syntaxe inspirée de Java et C, omniprésent dans les navigateurs, aujourd'hui aussi côté serveur.",
+    "unlockedBy": "javascript",
+    "influences": ["java", "c"]
+  },
+  {
+    "year": 2000,
+    "language": "C#",
+    "cardId": "csharp",
+    "blurb": "Conçu par Microsoft (2000), hérite de C, C++ et Java. Langage phare de la plateforme .NET et du moteur Unity.",
+    "unlockedBy": "csharp",
+    "influences": ["c", "cpp", "java"]
+  },
+  {
+    "year": 2010,
+    "language": "Rust",
+    "cardId": "rust",
+    "blurb": "Mozilla Research, 2010. Sécurité mémoire sans garbage collector, héritier de C et C++. Prisé pour WebAssembly, systèmes embarqués et CLI.",
+    "unlockedBy": "rust",
+    "influences": ["cpp", "c"]
+  }
+]

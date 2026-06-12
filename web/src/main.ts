@@ -4,6 +4,7 @@ import { PreloadScene } from './scenes/PreloadScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { ZoneScene } from './scenes/ZoneScene';
 import { UIScene } from './scenes/UIScene';
+import { TimelineScene } from './scenes/TimelineScene';
 
 /**
  * Entry point — configures and launches the Phaser 3 game instance.
@@ -63,7 +64,8 @@ const config: Phaser.Types.Core.GameConfig = {
   },
 
   // All scenes registered here. Start with BootScene; others activated by scene manager.
-  scene: [BootScene, PreloadScene, MainMenuScene, ZoneScene, UIScene],
+  // TimelineScene is registered last so it renders above all other scenes (highest depth).
+  scene: [BootScene, PreloadScene, MainMenuScene, ZoneScene, UIScene, TimelineScene],
 };
 
 // Instantiate game — stored so the browser doesn't GC it

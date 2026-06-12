@@ -54,6 +54,30 @@
 
 ---
 
+## Frise chronologique (timeline.json) — TASK-022 ✓
+
+`web/content/timeline.json` créé (2026-06-12, agent-contenu). 13 entrées ordonnées chronologiquement (1957–2010). Champs : `year`, `language` (FR), `cardId`, `blurb` (FR, ≤160 car.), `unlockedBy` (= cardId), `influences` (cardIds héritage). Révélation = carte dans le deck. `dist/content/timeline.json` présent après build.
+
+| cardId | year | influences |
+|---|---|---|
+| `fortran` | 1957 | — |
+| `lisp` | 1958 | — |
+| `cobol` | 1959 | — |
+| `c` | 1972 | fortran |
+| `sql` | 1974 | — |
+| `cpp` | 1985 | c |
+| `perl` | 1987 | c, sql |
+| `python` | 1991 | c, lisp |
+| `html` | 1993 | — |
+| `java` | 1995 | c, cpp |
+| `javascript` | 1995 | java, c |
+| `csharp` | 2000 | c, cpp, java |
+| `rust` | 2010 | cpp, c |
+
+Strings ajoutées dans `strings.fr.json` : `timeline.title`, `timeline.locked`, `timeline.hint`, `timeline.empty`.
+
+---
+
 ## Plan d'extension frise chronologique (~15-20 langages, J5)
 
 Cible ADR-004 : 4-6 zones thématiques, ~15-20 langages couvrant les grandes ères.

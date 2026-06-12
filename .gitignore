@@ -40,3 +40,6 @@ sysinfo.txt
 # Dossier pour les builds (si vous les nommez "Build")
 [Bb]uild/
 [Bb]uilds/
+
+# QA scratch / diagnostic playwright scripts (not part of the suite)
+web/tests/e2e/diag-*.js

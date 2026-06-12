@@ -1,0 +1,154 @@
+{
+  "date": "2026-06-12",
+  "task": "TASK-024",
+  "milestone": "J4",
+  "results": [
+    {
+      "id": "T7",
+      "label": "pnpm build green",
+      "result": "PASS",
+      "evidence": [
+        "Build exit: success",
+        "Output tail: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks | - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit. | ✓ built in 4.66s | "
+      ]
+    },
+    {
+      "id": "T1",
+      "label": "T opens frieze; T/ESC closes; player frozen while open",
+      "result": "PASS",
+      "evidence": [
+        "Initially closed: true",
+        "Opens on T press: true",
+        "Player frozen (timelineOpen=true): true",
+        "No player movement while open: true (dx=0px)",
+        "T key received by Phaser while open (wasTDown=true during hold): true",
+        "T-close functional (direct _close() call succeeds): true",
+        "Note: keyboard.press('t') for close untestable via Playwright — keydown+keyup fire synchronously before Phaser rAF frame, so isDown=false when Phaser processes. Verified functionally instead.",
+        "Closes on ESC press: true",
+        "SCREENSHOT (open): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-002-t1-frieze-open.png",
+        "SCREENSHOT (closed via direct call): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-003-t1-frieze-closed-T.png",
+        "SCREENSHOT (closed by ESC): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-005-t1-frieze-closed-ESC.png"
+      ]
+    },
+    {
+      "id": "T2",
+      "label": "Initial state: only initial-deck cards revealed (4: html,python,java,rust)",
+      "result": "PASS",
+      "evidence": [
+        "DeckSystem in-memory ids: [\"python\",\"html\",\"java\",\"rust\"] (expected: [\"python\",\"html\",\"java\",\"rust\"])",
+        "DeckSystem has all initial cards (html,python,java,rust): true",
+        "DeckSystem excludes NPC answer cards: true",
+        "DeckSystem size correct (4): true",
+        "SaveSystem deckCardIds: [\"python\",\"html\",\"java\",\"rust\"] (expected same as deck)",
+        "Save matches deck in-memory: true",
+        "Total entries in Timeline: 13 (expected 13)",
+        "NPC answer cards locked in display: true",
+        "Counter: \"4 / 13 révélés\" (expected \"4 / 13 révélés\")",
+        "Display shows 4 revealed: true (4/13 shown)",
+        "SCREENSHOT (initial state): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-006-t2-initial-state.png"
+      ]
+    },
+    {
+      "id": "T3",
+      "label": "Help NPC (Léa/javascript) → entry flips locked→revealed",
+      "result": "PASS",
+      "evidence": [
+        "javascript locked BEFORE: true",
+        "javascript revealed AFTER: true",
+        "Counter: \"5 / 13 révélés\" (expected \"5 / 13 révélés\")",
+        "Revealed count increased by 1: true (5 vs expected 5)",
+        "deck in save: [\"python\",\"html\",\"java\",\"rust\",\"javascript\"]",
+        "SCREENSHOT (after helping Léa): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-010-t3-after-helping-lea.png"
+      ]
+    },
+    {
+      "id": "T4",
+      "label": "Reload → revealed entries persist (deck persisted in localStorage)",
+      "result": "PASS",
+      "evidence": [
+        "Deck before reload: [\"html\",\"java\",\"javascript\",\"python\",\"rust\"]",
+        "Deck after reload: [\"html\",\"java\",\"javascript\",\"python\",\"rust\"]",
+        "Decks match: true",
+        "javascript still revealed in TimelineScene: true",
+        "Counter after reload: \"5 / 13 révélés\"",
+        "SCREENSHOT (after reload): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-011-t4-after-reload.png"
+      ]
+    },
+    {
+      "id": "T5",
+      "label": "Influence links rendered between revealed pairs; entries in chronological order",
+      "result": "PASS",
+      "evidence": [
+        "Entries in year-ascending order: true",
+        "Years sequence: [1957,1958,1959,1972,1974,1985,1987,1991,1993,1995,1995,2000,2010]",
+        "Influence arrows between revealed pairs: true (1 expected arrows)",
+        "Current deck: [\"python\",\"html\",\"java\",\"rust\",\"javascript\"]",
+        "gfx commandBuffer length: 416",
+        "SCREENSHOT (frieze with influences): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-012-t5-influence-chronological.png"
+      ]
+    },
+    {
+      "id": "T6",
+      "label": "Non-regression: J1–J3 loop intact (dialogue, deck, zone transitions, end), 0 errors",
+      "result": "PASS",
+      "evidence": [
+        "z1 Léa helped: true",
+        "z1 Thomas helped: true",
+        "z1 Clara helped: true",
+        "Entered zone_02: true",
+        "Entered zone_03: true",
+        "9/9 NPCs helped: true (9)",
+        "0 new console errors in T6: true (0 new errors)",
+        "0 new page errors in T6: true (0 new errors)",
+        "SCREENSHOT (end screen): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-043-t6-end-screen.png"
+      ]
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "screenshots": [
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-001-t1-game-start.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-002-t1-frieze-open.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-003-t1-frieze-closed-T.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-004-t1-frieze-reopen.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-005-t1-frieze-closed-ESC.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-006-t2-initial-state.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-007-near-t3-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-008-deck-t3-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-009-correct-t3-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-010-t3-after-helping-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-011-t4-after-reload.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-012-t5-influence-chronological.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-013-near-t6-z1-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-014-deck-t6-z1-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-015-correct-t6-z1-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-016-near-t6-z1-thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-017-deck-t6-z1-thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-018-correct-t6-z1-thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-019-near-t6-z1-clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-020-deck-t6-z1-clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-021-correct-t6-z1-clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-022-at-door-t6-z1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-023-near-t6-z2-ernst.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-024-deck-t6-z2-ernst.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-025-correct-t6-z2-ernst.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-026-near-t6-z2-grace.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-027-deck-t6-z2-grace.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-028-correct-t6-z2-grace.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-029-near-t6-z2-john.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-030-deck-t6-z2-john.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-031-correct-t6-z2-john.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-032-at-door-t6-z2.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-033-near-t6-z3-bjarne.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-034-deck-t6-z3-bjarne.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-035-correct-t6-z3-bjarne.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-036-near-t6-z3-larry.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-037-deck-t6-z3-larry.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-038-correct-t6-z3-larry.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-039-near-t6-z3-ada.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-040-deck-t6-z3-ada.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-041-correct-t6-z3-ada.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-042-at-door-t6-z3.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j4-043-t6-end-screen.png"
+  ]
+}

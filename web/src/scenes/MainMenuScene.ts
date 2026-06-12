@@ -72,6 +72,11 @@ export class MainMenuScene extends Phaser.Scene {
       if (!this.scene.isActive('UIScene')) {
         this.scene.launch('UIScene');
       }
+      // Launch TimelineScene as a persistent overlay above UIScene (TASK-023).
+      // It starts hidden and shows itself only when TIMELINE_OPEN is emitted.
+      if (!this.scene.isActive('TimelineScene')) {
+        this.scene.launch('TimelineScene');
+      }
     });
 
     // Quitter button — on web, returns to main menu (ADR-004; no Application.Quit)

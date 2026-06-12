@@ -41,6 +41,7 @@ export class EndScreen extends Phaser.GameObjects.Container {
 
   /**
    * Display the end screen with the given message and standard buttons.
+   * Includes a "Voir la frise" button that opens TimelineScene (TASK-023).
    *
    * @param message - Congratulations text (from strings.fr.json "end.congrats")
    */
@@ -51,7 +52,9 @@ export class EndScreen extends Phaser.GameObjects.Container {
     this._clearButtons();
 
     const cl = ContentLoader.getInstance();
-    const buttonY = 430;
+
+    // Three standard action buttons on row 1
+    const buttonY = 400;
     const spacing = 220;
 
     this._makeButton(640 - spacing, buttonY, cl.getString('end.replay'), 0x2244aa, () => {
@@ -68,6 +71,12 @@ export class EndScreen extends Phaser.GameObjects.Container {
     this._makeButton(640 + spacing, buttonY, cl.getString('end.quit'), 0x442222, () => {
       this.hide();
       this.scene.game.events.emit(GameEvents.END_MENU);
+    });
+
+    // "Voir la frise" — second row, centered. Opens TimelineScene overlay without
+    // hiding the EndScreen. Deck is null: game session ended, no live-reveal needed.
+    this._makeButton(640, buttonY + 80, cl.getString('timeline.button'), 0x224455, () => {
+      this.scene.game.events.emit(GameEvents.TIMELINE_OPEN, null);
     });
 
     this.setVisible(true);

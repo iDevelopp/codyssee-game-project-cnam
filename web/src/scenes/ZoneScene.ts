@@ -130,6 +130,15 @@ export class ZoneScene extends Phaser.Scene {
   /** Whether M was down last frame (single-press guard). */
   private wasMDown = false;
 
+  /** T key — timeline frieze toggle (single-press guard). */
+  private tKey!: Phaser.Input.Keyboard.Key;
+
+  /** Whether T was down last frame (single-press guard). */
+  private wasTDown = false;
+
+  /** Whether the timeline frieze is currently open (to avoid double-toggle). */
+  private timelineOpen = false;
+
   /** Zone data loaded from ContentLoader for the active zone. */
   private zoneData!: ZoneData;
 
@@ -161,6 +170,8 @@ export class ZoneScene extends Phaser.Scene {
     this.transitioning = false;
     this.wasEDown = false;
     this.wasMDown = false;
+    this.wasTDown = false;
+    this.timelineOpen = false;
     // `player`, `interaction`, `deck`, `progression`, `cursors`, `wasd`,
     // `eKey`, `mKey`, `zoneData` are all reassigned unconditionally below —
     // no explicit reset needed (they are overwritten before first use).
@@ -218,6 +229,9 @@ export class ZoneScene extends Phaser.Scene {
     // M key — mute toggle for J2 (a settings UI with a volume slider is planned for J3+).
     this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
+    // T key — timeline frieze toggle (TASK-023)
+    this.tKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+
     // ---- Player ----
     const spawn = this.zoneData.spawn;
     this.player = new Player(this, spawn.x, spawn.y);
@@ -237,7 +251,13 @@ export class ZoneScene extends Phaser.Scene {
     if (savedDeckIds.length > 0) {
       this.deck.restoreFromIds(savedDeckIds, cl.getCards());
     } else {
+      // Fresh game: seed the initial deck and immediately persist it so
+      // TimelineScene.getDeckCardIds() sees the 4 starter cards on first open.
+      // (onCardAdded is not fired by init() — it only fires on add() — so we
+      // must write manually here. Zone transitions always hit the if-branch above
+      // because at least the initial cards were saved here, so earned cards are safe.)
       this.deck.init(cl.getInitialDeckCards());
+      save.saveDeck(this.deck.listIds());
     }
 
     // Persist deck changes immediately when a card is added
@@ -327,6 +347,20 @@ export class ZoneScene extends Phaser.Scene {
     this.wasMDown = mDown;
     if (mJustPressed) {
       AudioManager.getInstance().toggleMute();
+    }
+
+    // T key: toggle timeline frieze (single-press — rising edge only).
+    // Mirror the M-key guard pattern: rising-edge detection prevents
+    // repeated toggling while the key is held.
+    const tDown = this.tKey.isDown;
+    const tJustPressed = tDown && !this.wasTDown;
+    this.wasTDown = tDown;
+    if (tJustPressed && !this.timelineOpen) {
+      // Only open if no other overlay holds the lock (e.g. dialogue, deck)
+      if (!InputLock.isLocked()) {
+        this.timelineOpen = true;
+        this.game.events.emit(GameEvents.TIMELINE_OPEN, this.deck);
+      }
     }
 
     // InteractionSystem handles E for NPCs and doors (unlocked state only).
@@ -451,12 +485,19 @@ export class ZoneScene extends Phaser.Scene {
     ev.on(GameEvents.END_MENU, () => {
       this._unbindEvents();
       this.scene.stop('UIScene');
+      this.scene.stop('TimelineScene');
       this.scene.start('MainMenuScene');
     });
 
     // GAME_COMPLETE (final zone clear): show EndScreen via UIScene
     ev.on(GameEvents.GAME_COMPLETE, (payload: { message: string }) => {
       ev.emit(GameEvents.END_SCREEN_SHOW, payload);
+    });
+
+    // TIMELINE_CLOSE: the frieze was closed by T/ESC inside TimelineScene.
+    // Release the open flag so T can reopen it.
+    ev.on(GameEvents.TIMELINE_CLOSE, () => {
+      this.timelineOpen = false;
     });
   }
 
@@ -505,6 +546,9 @@ export class ZoneScene extends Phaser.Scene {
     // DIALOGUE_ADVANCE: Door adds one listener per door in its constructor.
     // Same leak pattern as DECK_CARD_PICKED — clean up here.
     ev.removeAllListeners(GameEvents.DIALOGUE_ADVANCE);
+
+    // TIMELINE_CLOSE: added by this ZoneScene instance in _bindEvents().
+    ev.removeAllListeners(GameEvents.TIMELINE_CLOSE);
   }
 
   // ---------------------------------------------------------------------------

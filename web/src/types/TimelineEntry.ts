@@ -35,4 +35,14 @@ export interface TimelineEntry {
    * Typically equals cardId but can differ for multi-stage unlocks.
    */
   unlockedBy: string;
+
+  /**
+   * Optional list of cardIds this language inherited from / was influenced by.
+   * When both this entry and a listed source entry are revealed, an arrow is
+   * drawn between them on the timeline frieze (TASK-023).
+   *
+   * Authored in /content/timeline.json — agent-contenu owns this field.
+   * Empty array or absent means no influence links for this entry.
+   */
+  influences?: string[];
 }
