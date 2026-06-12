@@ -135,5 +135,43 @@ Note : ces portraits sont des placeholders. Les portraits définitifs des PNJ Co
 
 - `neo_zero_*` : assets du prototype Unity Codyssey (Egor), usage interne au projet. Pas de licence tierce connue — à confirmer avec Arthur si redistribution publique prévue.
 - `zelda_portrait.png`, `link.png` : assets NES Zelda/Link issus de spritesheets publiques (gamebanana/spriters-resource). **Usage placeholder uniquement** — à remplacer par assets originaux avant toute publication.
-- Audio CC0 : non encore sourcé — tâche future.
+- Audio CC0 : voir section 8 ci-dessous (TASK-015, 2026-06-12).
+
+---
+
+## 8. Audio — TASK-015 (2026-06-12)
+
+All audio assets are **CC0** — sourced from Kenney.nl packs or synthesized.
+
+### 8.1 Manifest keys → files
+
+| Key | File (OGG) | File (MP3) | Duration | Status |
+|-----|------------|------------|----------|--------|
+| `music.ambient` | `audio/ambient.ogg` (80 KB) | `audio/ambient.mp3` (118 KB) | 30 s loop | **placeholder** (synthesized) |
+| `sfx.interact` | `audio/interact.ogg` (7.2 KB) | `audio/interact.mp3` (3.0 KB) | 0.24 s | final |
+| `sfx.correct` | `audio/correct.ogg` (8.8 KB) | `audio/correct.mp3` (3.0 KB) | 0.29 s | final |
+| `sfx.wrong` | `audio/wrong.ogg` (7.3 KB) | `audio/wrong.mp3` (3.2 KB) | 0.16 s | final |
+| `sfx.door` | `audio/door.ogg` (20 KB) | `audio/door.mp3` (7.2 KB) | 0.53 s | final |
+| `sfx.uiClick` | `audio/ui-click.ogg` (4.8 KB) | `audio/ui-click.mp3` (1.5 KB) | 0.10 s | final |
+
+### 8.2 Provenance & licences
+
+| Fichier web | Source originale | Licence | Pack Kenney |
+|-------------|-----------------|---------|-------------|
+| `interact.ogg/mp3` | `laserSmall_000.ogg` | **CC0** | [Sci-Fi Sounds](https://kenney.nl/assets/sci-fi-sounds) |
+| `correct.ogg/mp3` | `confirmation_001.ogg` | **CC0** | [Interface Sounds](https://kenney.nl/assets/interface-sounds) |
+| `wrong.ogg/mp3` | `error_001.ogg` | **CC0** | [Interface Sounds](https://kenney.nl/assets/interface-sounds) |
+| `door.ogg/mp3` | `doorOpen_000.ogg` | **CC0** | [Sci-Fi Sounds](https://kenney.nl/assets/sci-fi-sounds) |
+| `ui-click.ogg/mp3` | `click_001.ogg` | **CC0** | [Interface Sounds](https://kenney.nl/assets/interface-sounds) |
+| `ambient.ogg/mp3` | Synthétisé ffmpeg (`aevalsrc` drone+hum+shimmer + `aecho` + EQ) | **CC0** (généré) | N/A |
+
+Packs Kenney téléchargés depuis URLs directes (CC0 confirmé via `License.txt` dans chaque pack):
+- https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip
+- https://kenney.nl/media/pages/assets/sci-fi-sounds/6b296f9ecf-1677589334/kenney_sci-fi-sounds.zip
+
+### 8.3 Notes
+
+- `music.ambient` : placeholder synthétisé (drone basse 80 Hz + harmoniques 160/240/320 Hz, tremolo, echo, 30 s, fade in/out). À remplacer par une vraie piste cyberpunk CC0 si disponible.
+- OGG preferred for browsers with Vorbis support; MP3 fallback for Safari/Edge. Phaser `this.sound.add()` prend le premier format supporté.
+- Manifest : `web/content/audio.json` — clés TASK-016 (agent-moteur) directement lisibles.
 </content>

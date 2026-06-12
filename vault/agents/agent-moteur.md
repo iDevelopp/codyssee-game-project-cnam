@@ -2,13 +2,18 @@
 
 - **Domaine** : Phaser 3 / TypeScript. Scènes, boucle de jeu, déplacement, interaction (E), caméra, deck UI, dialogue, portes, écran de fin, menu. Garant de la boucle de gameplay.
 - **Modèle par défaut** : sonnet.
-- **Statut courant** : TASK-006→012 → `review`. Chaîne J1 complète livrée.
-- **Tâches assignées** : TASK-006 (review), TASK-007 (review), TASK-008 (review), TASK-009 (review), TASK-010 (review), TASK-011 (review), TASK-012 (review).
+- **Statut courant** : TASK-016 → `review`. BUG-02 fixé (double-fire E press). AudioManager + audio hook livrés.
+- **Tâches assignées** : TASK-006→012 (done), TASK-014 (done), TASK-016 (review).
 - **Blocages** : aucun.
 - **Todo perso** : —
 
 ## Notes
 Référence d'implémentation : `gdd/01-boucle-reference.md` (valeurs et seuils = contrat). Ne hardcode aucun contenu (ADR-002).
+
+**Note pour agent-contenu (TASK-017)** :
+- `web/content/zones/index.json` schéma : `{ "zones": string[], "version": number }`. Ajouter les ids de nouvelles zones dans le tableau (ordre = ordre de jeu). Le ContentLoader charge toutes les zones listées automatiquement, sans modif moteur.
+- `getZoneIds()` exposé sur ContentLoader pour itérer dans l'ordre d'authoring.
+- Nouvelles string keys ajoutées dans `strings.fr.json` : `menu.title`, `preload.loading`, `door.exitLabel`, `hud.interactPrompt`. Convention : `<contexte>.<token>`. Voir `vault/gdd/03-authoring.md` §4 pour la liste complète et les exemples.
 
 ## TASK-005 — résumé de livraison (2026-06-12)
 
@@ -93,3 +98,98 @@ Succès. Bundle 1.5MB (Phaser inclus, normal). Warning chunk size attendu.
 6. **Rejouer ne réinitialise pas le save** — comportement documenté dans SaveSystem.ts. Pour un vrai reset, appeler SaveSystem.getInstance().reset() (feature future).
 
 7. **DialogueSystem.ts non créé** — la fiche TASK-009 listait ce fichier comme artefact mais la logique de dialogue est inline dans DialogueBox.ts + NPC.ts (plus cohérent, pas de sur-abstraction inutile). Pas de comportement manquant.
+
+---
+
+## TASK-014 — résumé de livraison (2026-06-12)
+
+### Fichiers créés
+- `web/content/zones/index.json` — liste ordonnée des zones `{ "zones": ["zone_01"], "version": 1 }`
+
+### Fichiers modifiés
+- `web/src/systems/ContentLoader.ts` — `_loadAll()` charge les zones via `index.json` (plus de `'zone_01'` hardcodé) ; `ContentStore` + `zoneOrder: string[]` ; `getZones()` retourne dans l'ordre d'authoring ; `getZoneIds()` ajouté ; validation index en dev
+- `web/src/scenes/ZoneScene.ts` — utilise `cl.getZones()[0]` (premier zone de l'index, plus de `getZone('zone_01')`)
+- `web/src/entities/Door.ts` — label SORTIE via `getString('door.exitLabel')` (plus de `'🚪 SORTIE'` hardcodé)
+- `web/src/scenes/MainMenuScene.ts` — titre via `getString('menu.title')` (plus de `'Codyssey'` hardcodé)
+- `web/src/scenes/PreloadScene.ts` — `'Chargement…'` commenté : intentionnellement hardcodé (bootstrap, avant résolution ContentLoader)
+- `web/content/strings.fr.json` — nouvelles clés : `menu.title`, `preload.loading`, `door.exitLabel`, `hud.interactPrompt`
+- `vault/gdd/03-authoring.md` — guide d'authoring créé (schémas + exemples cartes/PNJ/zones/strings)
+
+### Audit hardcode (résultat final)
+- Strings déplacées vers `strings.fr.json` : `menu.title` (Codyssey), `door.exitLabel` (🚪 SORTIE)
+- Zone hardcodée éliminée : `'zone_01'` → `cl.getZones()[0]`
+- Seul `'Chargement…'` reste dans `PreloadScene` : bootstrap, justifié (ContentLoader pas encore résolu)
+- Re-grep final : 0 autre string FR player-facing dans `src/`
+
+### tsc --noEmit
+0 erreurs. Vert.
+
+### pnpm build
+Succès (7.11s). `dist/content/zones/index.json` présent.
+
+---
+
+## TASK-016 — résumé de livraison (2026-06-12)
+
+### Fichiers créés
+- `web/src/systems/AudioManager.ts` — singleton data-driven ; charge le manifest via ContentLoader ; preload deux passes (Phaser loader relancé après ContentLoader) ; init GameEvents→SFX ; autoplay unlock via Phaser 'unlocked' ; volume/mute persistés dans SaveSystem
+
+### Fichiers modifiés
+- `web/src/systems/GameEvents.ts` — 3 nouveaux events ajoutés : `PLAYER_INTERACT`, `ANSWER_WRONG`, `DOOR_OPEN`
+- `web/src/systems/ContentLoader.ts` — types `AudioEntry` + `AudioManifest` exportés ; `ContentStore.audio` ajouté ; `_loadAll()` fetch `audio.json` en parallèle (optional) ; `getAudioManifest()` exposé
+- `web/src/systems/SaveSystem.ts` — `SaveDataV1` : champs `masterVolume: number` et `muted: boolean` ajoutés ; `_empty()` mis à jour ; `_isValidV1()` backfill rétrocompat saves anciennes ; `getMasterVolume()`, `saveMasterVolume()`, `getMuted()`, `toggleMuted()` ajoutés
+- `web/src/entities/NPC.ts` — `_beginDialogue()` émet `PLAYER_INTERACT` ; `_onCardPicked()` émet `ANSWER_WRONG` sur mauvaise réponse
+- `web/src/entities/Door.ts` — `interact()` émet `PLAYER_INTERACT` sur message verrouillé ; `_unlock()` émet `DOOR_OPEN`
+- `web/src/scenes/PreloadScene.ts` — `_loadContentThenMenu()` appelle `_loadAudioAssets()` (2e passe loader Phaser, awaitable)
+- `web/src/scenes/MainMenuScene.ts` — `create()` : `SaveSystem.load()`, `AudioManager.init()`, `AudioManager.startAmbient()`
+- `web/src/scenes/ZoneScene.ts` — M key ajouté (mute toggle, single-press, persiste dans save) ; import AudioManager
+
+### Event → SFX wiring
+| GameEvent | SFX key | Déclencheur |
+|-----------|---------|-------------|
+| `PLAYER_INTERACT` | `sfx.interact` | NPC._beginDialogue() + Door.interact() (msg verrouillé) |
+| `NPC_RESOLVED` | `sfx.correct` | NPC._onCardPicked() bonne réponse (event existant) |
+| `ANSWER_WRONG` | `sfx.wrong` | NPC._onCardPicked() mauvaise réponse (nouveau event) |
+| `DOOR_OPEN` | `sfx.door` | Door._unlock() via ALL_NPCS_HELPED (nouveau event) |
+| `music.ambient` | loop | MainMenuScene.create() → startAmbient() → démarrage différé si AudioContext suspendu |
+
+### Autoplay policy
+- `MainMenuScene.create()` appelle `startAmbient()` avant toute interaction.
+- `AudioManager.startAmbient()` vérifie `AudioContext.state === 'running'` ; si suspendu, pose `ambientPending = true`.
+- Phaser émet `sound.once('unlocked', ...)` au 1er clic/touche → `_playAmbient()` déclenché sans spam console.
+
+### Mute toggle
+- Touche M en ZoneScene (single-press, edge rising). `AudioManager.toggleMute()` → `SaveSystem.toggleMuted()` persiste.
+- UI settings avec slider de volume planifiée J3+ (note dans SaveSystem.ts).
+
+### Save fields ajoutés
+- `masterVolume: number` (défaut 1.0)
+- `muted: boolean` (défaut false)
+- Backfill rétrocompat dans `_isValidV1()` : anciens saves sans ces champs restent valides.
+
+### tsc --noEmit
+0 erreurs. Vert.
+
+### pnpm build
+Succès (6.90s). `dist/assets/audio/` : 12 fichiers (6×OGG + 6×MP3). `dist/content/audio.json` présent.
+
+---
+
+## BUG-02 fix — revue J2 (2026-06-12)
+
+Voir `vault/handoffs/HANDOFF-001-bug02.md` pour le détail complet.
+
+### Cause racine
+Double edge-detector sur la touche E : `InteractionSystem` et `ZoneScene` avaient chacun leur propre `wasEDown`. Sur un seul press E (unlocked), InteractionSystem déclenchait `NPC.interact()` → `InputLock.lock()` dans le même frame, puis ZoneScene voyait son propre `eJustPressed=true` + `isLocked()=true` et entrait dans la boucle d'avance. `!npc.canInteract()` = `true` pour TOUS les NPCs idle (car `isLocked()`), donc `this.npcs[0]` (Léa) était toujours sélectionnée.
+
+### Fichiers modifiés
+- `web/src/entities/NPC.ts` — `isBusy(): boolean` ajouté (état seul, sans InputLock)
+- `web/src/systems/InteractionSystem.ts` — `update()` retourne `boolean`
+- `web/src/scenes/ZoneScene.ts` — guard `!interactionFired` + `npc.isBusy()` dans boucle avance
+- `web/src/systems/AudioManager.ts` — hook `window.__audioCalls` dans `play()` (DEV only)
+
+### tsc --noEmit
+0 erreurs. Vert.
+
+### pnpm build
+Succès (7.36s). Vert.
