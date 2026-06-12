@@ -26,5 +26,33 @@
     "description": "Langage de balisage pour structurer les pages web.",
     "usage": "Pages web",
     "era": "1990s"
+  },
+  {
+    "id": "sql",
+    "displayName": "SQL",
+    "description": "Langage de requêtes pour les bases de données relationnelles.",
+    "usage": "Bases de données, back-end",
+    "era": "1970s"
+  },
+  {
+    "id": "c",
+    "displayName": "C",
+    "description": "Langage bas niveau, proche du matériel, très performant.",
+    "usage": "Systèmes d'exploitation, embarqué",
+    "era": "1970s"
+  },
+  {
+    "id": "java",
+    "displayName": "Java",
+    "description": "Langage orienté objet, portable grâce à la JVM.",
+    "usage": "Applications d'entreprise, Android",
+    "era": "1990s"
+  },
+  {
+    "id": "rust",
+    "displayName": "Rust",
+    "description": "Langage système sûr et performant, sans ramasse-miettes.",
+    "usage": "WebAssembly, systèmes embarqués, CLI",
+    "era": "2010s"
   }
 ]

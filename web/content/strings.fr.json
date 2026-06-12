@@ -1,13 +1,17 @@
 {
+  "menu.title": "Codyssey",
   "menu.play": "Jouer",
   "menu.quit": "Quitter",
   "menu.tagline": "Explore l'histoire des langages de programmation.",
+
+  "preload.loading": "Chargement…",
 
   "deck.title": "Quelle carte répond à sa question ?",
   "deck.empty": "Ton deck est vide.",
 
   "door.locked": "Cette porte est verrouillée. Aide tous les personnages d'abord.",
   "door.exit": "Bien joué ! Tu as aidé tout le monde. La voie est libre !",
+  "door.exitLabel": "🚪 SORTIE",
 
   "end.replay": "Rejouer",
   "end.menu": "Menu principal",
@@ -20,6 +24,7 @@
 
   "hud.deck": "Deck",
   "hud.cards_collected": "Cartes collectées",
+  "hud.interactPrompt": "[E] Interagir",
 
   "zone.zone_01": "Zone 1 — Les pionniers du web"
 }

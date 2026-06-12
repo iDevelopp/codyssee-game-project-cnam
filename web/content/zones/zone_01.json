@@ -3,7 +3,7 @@
   "displayName": "Zone 1 — Les pionniers du web",
   "tilemap": "zone_01.json",
   "spawn": { "x": 160, "y": 300 },
-  "npcs": ["npc_lea", "npc_thomas"],
+  "npcs": ["npc_lea", "npc_thomas", "npc_clara"],
   "doors": [
     {
       "id": "door_exit",

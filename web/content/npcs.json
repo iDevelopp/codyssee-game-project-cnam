@@ -36,5 +36,24 @@
       "thanksLine": "Bien sûr, le C# ! Le langage de Microsoft, parfait pour Unity. Merci !",
       "hintLine": "C'est un langage orienté objet créé par Microsoft, très utilisé dans le développement de jeux…"
     }
+  },
+  {
+    "id": "npc_clara",
+    "name": "Clara",
+    "position": { "x": 900, "y": 180 },
+    "dialogueLines": [
+      "Bonjour voyageur ! Je travaille sur une base de données pour notre bibliothèque.",
+      "Il me faut un moyen d'interroger et de filtrer des milliers d'entrées efficacement.",
+      "Quel langage utilise-t-on pour interroger des bases de données relationnelles ?"
+    ],
+    "resolvedLines": [
+      "SQL ! Bien sûr, c'est exactement ce qu'il me faut.",
+      "Avec des SELECT et des JOIN, je vais pouvoir retrouver n'importe quel livre en un instant."
+    ],
+    "question": {
+      "expectedCardId": "sql",
+      "thanksLine": "SQL, le langage des bases de données ! Merci, mes requêtes vont enfin fonctionner.",
+      "hintLine": "C'est un langage déclaratif né dans les années 70, conçu pour interroger des tables de données…"
+    }
   }
 ]
