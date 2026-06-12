@@ -1,0 +1,25 @@
+{
+  "menu.play": "Jouer",
+  "menu.quit": "Quitter",
+  "menu.tagline": "Explore l'histoire des langages de programmation.",
+
+  "deck.title": "Quelle carte répond à sa question ?",
+  "deck.empty": "Ton deck est vide.",
+
+  "door.locked": "Cette porte est verrouillée. Aide tous les personnages d'abord.",
+  "door.exit": "Bien joué ! Tu as aidé tout le monde. La voie est libre !",
+
+  "end.replay": "Rejouer",
+  "end.menu": "Menu principal",
+  "end.quit": "Quitter",
+  "end.congrats": "Félicitations ! Tu as exploré les origines du web.",
+
+  "dialogue.continue": "Appuie sur E pour continuer…",
+
+  "npc.quest_resolved": "Merci pour ton aide !",
+
+  "hud.deck": "Deck",
+  "hud.cards_collected": "Cartes collectées",
+
+  "zone.zone_01": "Zone 1 — Les pionniers du web"
+}

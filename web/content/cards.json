@@ -1,0 +1,30 @@
+[
+  {
+    "id": "python",
+    "displayName": "Python",
+    "description": "Langage interprété, syntaxe lisible, polyvalent.",
+    "usage": "Scripts, data science, IA",
+    "era": "1990s"
+  },
+  {
+    "id": "javascript",
+    "displayName": "JavaScript",
+    "description": "Langage du web, exécuté dans le navigateur.",
+    "usage": "Sites web interactifs",
+    "era": "1990s"
+  },
+  {
+    "id": "csharp",
+    "displayName": "C#",
+    "description": "Langage orienté objet de Microsoft.",
+    "usage": "Unity, applications Windows",
+    "era": "2000s"
+  },
+  {
+    "id": "html",
+    "displayName": "HTML",
+    "description": "Langage de balisage pour structurer les pages web.",
+    "usage": "Pages web",
+    "era": "1990s"
+  }
+]

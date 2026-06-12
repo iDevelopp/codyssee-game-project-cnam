@@ -1,0 +1,40 @@
+[
+  {
+    "id": "npc_lea",
+    "name": "Léa",
+    "position": { "x": 320, "y": 240 },
+    "dialogueLines": [
+      "Bonjour ! Je construis des sites web depuis quelques mois.",
+      "J'aimerais rendre mes pages interactives, qu'elles réagissent aux clics.",
+      "Quel langage me permettrait de faire ça ?"
+    ],
+    "resolvedLines": [
+      "Merci à toi ! Grâce au JavaScript mes pages prennent vie.",
+      "C'est fou ce qu'on peut faire avec un simple script dans le navigateur !"
+    ],
+    "question": {
+      "expectedCardId": "javascript",
+      "thanksLine": "Exactement ! JavaScript s'exécute directement dans le navigateur. Tu m'as sauvé la mise !",
+      "hintLine": "Ce langage s'exécute dans le navigateur et permet de réagir aux actions de l'utilisateur…"
+    }
+  },
+  {
+    "id": "npc_thomas",
+    "name": "Thomas",
+    "position": { "x": 640, "y": 400 },
+    "dialogueLines": [
+      "Salut ! Je développe un jeu vidéo en ce moment.",
+      "J'ai entendu parler d'un moteur de jeu très populaire avec un langage dédié.",
+      "Quel langage dois-je apprendre pour créer des jeux avec Unity ?"
+    ],
+    "resolvedLines": [
+      "Super, merci ! Le C# avec Unity, c'est une combinaison redoutable.",
+      "Je vais pouvoir coder mes premières mécaniques de jeu !"
+    ],
+    "question": {
+      "expectedCardId": "csharp",
+      "thanksLine": "Bien sûr, le C# ! Le langage de Microsoft, parfait pour Unity. Merci !",
+      "hintLine": "C'est un langage orienté objet créé par Microsoft, très utilisé dans le développement de jeux…"
+    }
+  }
+]

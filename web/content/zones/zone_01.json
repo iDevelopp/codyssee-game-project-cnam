@@ -1,0 +1,17 @@
+{
+  "id": "zone_01",
+  "displayName": "Zone 1 — Les pionniers du web",
+  "tilemap": "zone_01.json",
+  "spawn": { "x": 160, "y": 300 },
+  "npcs": ["npc_lea", "npc_thomas"],
+  "doors": [
+    {
+      "id": "door_exit",
+      "position": { "x": 1100, "y": 360 },
+      "lockedMessageKey": "door.locked",
+      "exitMessageKey": "door.exit"
+    }
+  ],
+  "unlockCondition": "all_quest_npcs_helped",
+  "themeEra": "1990s"
+}
