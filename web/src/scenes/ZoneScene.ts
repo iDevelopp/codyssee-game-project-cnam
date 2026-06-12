@@ -9,6 +9,7 @@ import { ProgressionSystem } from '@/systems/ProgressionSystem';
 import { SaveSystem } from '@/systems/SaveSystem';
 import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
+import { AudioManager } from '@/systems/AudioManager';
 import type { CardData } from '@/types/CardData';
 import type { ZoneData } from '@/types/ZoneData';
 
@@ -26,8 +27,8 @@ import type { ZoneData } from '@/types/ZoneData';
  * UIScene runs in parallel (launched by MainMenuScene) and handles all overlays.
  * Cross-scene communication is via this.game.events (global event bus).
  *
- * Zone loaded: zone_01 (first and only zone in J1). Future zones driven by
- * a zones/index.json (ADR-002, agent-contenu to implement).
+ * Zone loaded: first zone from content/zones/index.json (ADR-002, data-driven).
+ * Multi-zone navigation will pass the target id via scene data (future task).
  */
 export class ZoneScene extends Phaser.Scene {
   // ---- Entities ----
@@ -53,6 +54,12 @@ export class ZoneScene extends Phaser.Scene {
   /** Flag: E was already processed last frame (single-press guard). */
   private wasEDown = false;
 
+  /** M key — mute toggle (single-press guard). */
+  private mKey!: Phaser.Input.Keyboard.Key;
+
+  /** Whether M was down last frame (single-press guard). */
+  private wasMDown = false;
+
   /** Zone data loaded from ContentLoader. */
   private zoneData!: ZoneData;
 
@@ -72,7 +79,14 @@ export class ZoneScene extends Phaser.Scene {
     save.load();
 
     // ---- Zone data ----
-    this.zoneData = cl.getZone('zone_01')!;
+    // Load the first zone from the index (data-driven, ADR-002).
+    // ZoneScene always starts at the first zone; multi-zone navigation will
+    // pass the target zone id via scene data when implemented (TASK-future).
+    const firstZone = cl.getZones()[0];
+    if (!firstZone) {
+      throw new Error('ZoneScene: no zones found. Add at least one id to content/zones/index.json.');
+    }
+    this.zoneData = firstZone;
     const { width, height } = this.scale;
 
     // ---- Background ----
@@ -90,6 +104,9 @@ export class ZoneScene extends Phaser.Scene {
       right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     this.eKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+    // M key — mute toggle for J2 (a settings UI with a volume slider is planned for J3+).
+    this.mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
     // ---- Player ----
     const spawn = this.zoneData.spawn;
@@ -179,34 +196,40 @@ export class ZoneScene extends Phaser.Scene {
     // Player movement — InputLock checked inside Player.move()
     this.player.move(this.cursors, this.wasd, InputLock.isLocked());
 
-    // InteractionSystem handles E for NPCs and doors
-    this.interaction.update(this.player.x, this.player.y);
+    // M key: toggle mute (single-press — rising edge only)
+    const mDown = this.mKey.isDown;
+    const mJustPressed = mDown && !this.wasMDown;
+    this.wasMDown = mDown;
+    if (mJustPressed) {
+      AudioManager.getInstance().toggleMute();
+    }
 
-    // Handle E press when input is locked — only for dialogue advance
-    // (UIScene needs to know E was pressed to advance a line)
+    // InteractionSystem handles E for NPCs and doors (unlocked state only).
+    // Returns true if it triggered an interaction this frame — used below to
+    // prevent the same E press from being consumed twice (single-press guarantee).
+    const interactionFired = this.interaction.update(this.player.x, this.player.y);
+
+    // Handle E press when input is locked — advance active dialogue or dismiss door message.
+    // We read the ZoneScene-local edge detector ONLY after InteractionSystem has updated its
+    // own wasEDown, so both detectors stay in sync on the same physical key object.
     const eDown = this.eKey.isDown;
     const eJustPressed = eDown && !this.wasEDown;
     this.wasEDown = eDown;
 
-    if (eJustPressed && InputLock.isLocked()) {
-      // Emit advance event — UIScene does NOT listen to this (it uses GameEvents.DIALOGUE_ADVANCE),
-      // but we emit it here so that:
-      //   - NPC.interact() is called when E pressed during ShowingLines
-      //   - Door locked-message is dismissed
-      // Actually the NPC state machine is driven by interact() which is blocked by InputLock
-      // in InteractionSystem. So for dialogue advance we need a different path.
-      // Solution: emit DIALOGUE_ADVANCE and let each entity handle it.
+    // Guard: skip if InteractionSystem already consumed this press (prevents double-fire).
+    // Also skip if input is not locked — when unlocked, InteractionSystem handles everything.
+    if (eJustPressed && InputLock.isLocked() && !interactionFired) {
+      // Emit DIALOGUE_ADVANCE for any listeners (e.g. UIScene door-message dismiss).
       this.game.events.emit(GameEvents.DIALOGUE_ADVANCE);
 
-      // Also: if an NPC is in ShowingLines state, we need to advance it.
-      // We do this by calling interact() directly on the NPC that is mid-dialogue.
-      // Find the NPC that currently has open dialogue (state != Idle)
+      // Advance the NPC that is currently mid-dialogue.
+      // Use isBusy() — independent of InputLock — so we correctly identify the
+      // active NPC even though InputLock is set (it was set by this very NPC's
+      // _beginDialogue() call moments ago). Using !canInteract() would be wrong
+      // here because !canInteract() returns true for ALL idle NPCs once locked.
       for (const npc of this.npcs) {
-        // We call interact() when E is pressed and dialogue is open
-        // The NPC's own state machine will determine what to do
-        // We bypass InteractionSystem here because InputLock is set
-        if (!npc.canInteract()) {
-          // NPC is mid-dialogue — call interact to advance
+        if (npc.isBusy()) {
+          // Bypass InteractionSystem (locked); drive the NPC's state machine directly.
           npc.interact();
           break; // only one NPC can be active at a time
         }

@@ -9,6 +9,8 @@
  *   deckCardIds: string[],          // Card ids in player deck
  *   helpedNpcIds: string[],         // NPC ids whose question was resolved
  *   unlockedDoorIds: string[],      // Door ids that were unlocked (for multi-zone future)
+ *   masterVolume: number,           // [0..1] master volume (added TASK-016)
+ *   muted: boolean,                 // global mute flag (added TASK-016)
  *   // timeline: [] — placeholder, not populated in J1
  * }
  *
@@ -23,6 +25,11 @@
  * Survive page reload: yes — localStorage persists across sessions.
  *
  * This is a new feature vs Unity (Unity prototype had no save — web addition).
+ *
+ * Audio fields (TASK-016):
+ *   masterVolume and muted are persisted in the same save so the player's
+ *   audio preferences survive page reloads. A dedicated Settings UI (J3+)
+ *   can expose sliders; for J2 only the M-key mute toggle is wired.
  */
 
 /** Shape of the v1 save file. */
@@ -31,6 +38,10 @@ interface SaveDataV1 {
   deckCardIds: string[];
   helpedNpcIds: string[];
   unlockedDoorIds: string[];
+  /** Master volume in [0, 1]. Default 1.0 (full volume). Added in TASK-016. */
+  masterVolume: number;
+  /** Global mute flag. Default false. Added in TASK-016. */
+  muted: boolean;
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -164,23 +175,78 @@ export class SaveSystem {
   }
 
   // ---------------------------------------------------------------------------
+  // Audio preferences (TASK-016)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns the persisted master volume (default 1.0 if not set).
+   */
+  getMasterVolume(): number {
+    return this.data.masterVolume;
+  }
+
+  /**
+   * Persist a new master volume value.
+   *
+   * @param volume - Clamped to [0, 1] by caller (AudioManager).
+   */
+  saveMasterVolume(volume: number): void {
+    this.data.masterVolume = volume;
+    this.save();
+  }
+
+  /** Returns the persisted mute flag (default false). */
+  getMuted(): boolean {
+    return this.data.muted;
+  }
+
+  /**
+   * Toggle the muted flag and persist.
+   *
+   * @returns The new muted state after toggling.
+   */
+  toggleMuted(): boolean {
+    this.data.muted = !this.data.muted;
+    this.save();
+    return this.data.muted;
+  }
+
+  // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
 
   /** Returns a fresh empty v1 save. */
   private static _empty(): SaveDataV1 {
-    return { version: 1, deckCardIds: [], helpedNpcIds: [], unlockedDoorIds: [] };
+    return {
+      version: 1,
+      deckCardIds: [],
+      helpedNpcIds: [],
+      unlockedDoorIds: [],
+      masterVolume: 1.0,
+      muted: false,
+    };
   }
 
   /** Type guard: validates that a parsed JSON value is a well-formed v1 save. */
   private static _isValidV1(v: unknown): v is SaveDataV1 {
     if (typeof v !== 'object' || v === null) return false;
     const obj = v as Record<string, unknown>;
-    return (
-      obj['version'] === 1 &&
-      Array.isArray(obj['deckCardIds']) &&
-      Array.isArray(obj['helpedNpcIds']) &&
-      Array.isArray(obj['unlockedDoorIds'])
-    );
+    if (
+      obj['version'] !== 1 ||
+      !Array.isArray(obj['deckCardIds']) ||
+      !Array.isArray(obj['helpedNpcIds']) ||
+      !Array.isArray(obj['unlockedDoorIds'])
+    ) {
+      return false;
+    }
+    // Audio fields were added in TASK-016 — backfill if an older save is found.
+    // This ensures the save remains valid without forcing a reset.
+    if (typeof obj['masterVolume'] !== 'number') {
+      (obj as Record<string, unknown>)['masterVolume'] = 1.0;
+    }
+    if (typeof obj['muted'] !== 'boolean') {
+      (obj as Record<string, unknown>)['muted'] = false;
+    }
+    return true;
   }
 }

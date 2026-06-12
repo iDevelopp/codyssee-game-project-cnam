@@ -67,23 +67,31 @@ export class InteractionSystem {
    * not locked by a UI overlay, finds the nearest canInteract() target within
    * RADIUS_PX and calls its interact() method.
    *
+   * Returns true if an interaction was triggered this frame. ZoneScene uses
+   * this to prevent the same E press from also being consumed by the
+   * dialogue-advance branch (single-press = single action guarantee).
+   *
    * @param playerX - Player's current world X position
    * @param playerY - Player's current world Y position
+   * @returns Whether an interaction was triggered this frame
    */
-  update(playerX: number, playerY: number): void {
+  update(playerX: number, playerY: number): boolean {
     const eDown = this.eKey.isDown;
     const eJustPressed = eDown && !this.wasEDown;
     this.wasEDown = eDown;
 
-    if (!eJustPressed) return;
+    if (!eJustPressed) return false;
 
     // Input frozen by UI overlay — ignore E while any overlay is open
-    if (InputLock.isLocked()) return;
+    if (InputLock.isLocked()) return false;
 
     const target = this._findNearest(playerX, playerY);
     if (target) {
       target.interact();
+      return true;
     }
+
+    return false;
   }
 
   // ---------------------------------------------------------------------------

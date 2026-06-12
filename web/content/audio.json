@@ -1,0 +1,32 @@
+{
+  "music.ambient": {
+    "files": ["assets/audio/ambient.ogg", "assets/audio/ambient.mp3"],
+    "loop": true,
+    "volume": 0.4
+  },
+  "sfx.interact": {
+    "files": ["assets/audio/interact.ogg", "assets/audio/interact.mp3"],
+    "loop": false,
+    "volume": 0.7
+  },
+  "sfx.correct": {
+    "files": ["assets/audio/correct.ogg", "assets/audio/correct.mp3"],
+    "loop": false,
+    "volume": 0.8
+  },
+  "sfx.wrong": {
+    "files": ["assets/audio/wrong.ogg", "assets/audio/wrong.mp3"],
+    "loop": false,
+    "volume": 0.8
+  },
+  "sfx.door": {
+    "files": ["assets/audio/door.ogg", "assets/audio/door.mp3"],
+    "loop": false,
+    "volume": 0.75
+  },
+  "sfx.uiClick": {
+    "files": ["assets/audio/ui-click.ogg", "assets/audio/ui-click.mp3"],
+    "loop": false,
+    "volume": 0.6
+  }
+}

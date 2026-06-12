@@ -43,12 +43,18 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
 
     scene.add.existing(this as unknown as Phaser.GameObjects.GameObject);
 
-    // "EXIT" label above the door
-    scene.add.text(doorData.position.x, doorData.position.y - 64 * 5 / 2 - 10, '🚪 SORTIE', {
-      fontFamily: 'monospace',
-      fontSize: '14px',
-      color: '#cccccc',
-    }).setOrigin(0.5, 1);
+    // Exit label above the door — text from strings.fr.json so it is never hardcoded
+    const cl = ContentLoader.getInstance();
+    scene.add.text(
+      doorData.position.x,
+      doorData.position.y - 64 * 5 / 2 - 10,
+      cl.getString('door.exitLabel'),
+      {
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        color: '#cccccc',
+      }
+    ).setOrigin(0.5, 1);
 
     // Subscribe to all-helped event to unlock and turn green
     scene.game.events.on(GameEvents.ALL_NPCS_HELPED, () => {
@@ -93,6 +99,10 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
     if (!this.isOpen) {
       // Show locked message — a single-line dialogue with no speaker name
       this.showingLockedMsg = true;
+
+      // Notify AudioManager that an interaction occurred (TASK-016).
+      this.gameScene.game.events.emit(GameEvents.PLAYER_INTERACT);
+
       this.gameScene.game.events.emit(GameEvents.DIALOGUE_OPEN, {
         speakerName: '',
         line: cl.getString(this.doorData.lockedMessageKey),
@@ -127,6 +137,9 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
     this.isOpen = true;
     // Open colour: (0.4, 1.0, 0.4) × 255 → #66ff66
     this.setFillStyle(0x66ff66);
+
+    // Notify AudioManager to play door SFX (TASK-016).
+    this.gameScene.game.events.emit(GameEvents.DOOR_OPEN, { doorId: this.doorData.id });
   }
 
   /** Restore open state from save (TASK-012). */

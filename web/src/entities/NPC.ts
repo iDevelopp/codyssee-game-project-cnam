@@ -139,6 +139,18 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
     return this.npcState === 'Idle' && !InputLock.isLocked();
   }
 
+  /**
+   * Returns true when the NPC is actively mid-dialogue (not Idle).
+   *
+   * Unlike canInteract(), this is independent of InputLock — it reflects only
+   * the NPC's own state machine. Used by ZoneScene's dialogue-advance loop to
+   * identify which NPC is currently active without being confused by the lock
+   * that the just-opened dialogue itself set.
+   */
+  isBusy(): boolean {
+    return this.npcState !== 'Idle';
+  }
+
   /** Current resolved state (read by ProgressionSystem and SaveSystem). */
   isResolved(): boolean {
     return this.resolved;
@@ -174,6 +186,10 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
 
     this.lineIndex = 0;
     this.npcState = 'ShowingLines';
+
+    // Notify AudioManager to play the interaction SFX (TASK-016).
+    this.gameScene.game.events.emit(GameEvents.PLAYER_INTERACT);
+
     this._showCurrentLine();
   }
 
@@ -253,6 +269,9 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
       // Wrong answer — show hint, mark for retry
       this.awaitingRetry = true;
       this.npcState = 'ShowingResponse';
+
+      // Notify AudioManager to play wrong-answer SFX (TASK-016).
+      this.gameScene.game.events.emit(GameEvents.ANSWER_WRONG, { npcId: this.npcContent.id });
 
       this.gameScene.game.events.emit(GameEvents.DIALOGUE_OPEN, {
         speakerName: this.npcContent.name,

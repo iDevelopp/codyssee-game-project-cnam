@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { ContentLoader } from '@/systems/ContentLoader';
+import { AudioManager } from '@/systems/AudioManager';
+import { SaveSystem } from '@/systems/SaveSystem';
 
 /**
  * MainMenuScene — title screen with Jouer and Quitter buttons.
@@ -17,10 +19,26 @@ export class MainMenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const cl = ContentLoader.getInstance();
 
+    // ---- Audio init ----
+    // SaveSystem must be loaded before AudioManager.init() so saved volume/mute
+    // are available. PreloadScene does not call save.load() — that happens in
+    // ZoneScene — so we do a lightweight load here just for audio prefs.
+    // If already loaded (e.g. Rejouer path), this is idempotent (reuses cache).
+    SaveSystem.getInstance().load();
+
+    // Initialize AudioManager: creates sound objects and binds GameEvents.
+    // Must happen after PreloadScene has loaded audio files into the cache.
+    AudioManager.getInstance().init(this);
+
+    // Request ambient music. Because this runs in create() (not a user gesture),
+    // the browser AudioContext may be suspended. AudioManager will defer the
+    // actual play() until 'unlocked' fires on the first pointer/key event.
+    AudioManager.getInstance().startAmbient();
+
     this.cameras.main.setBackgroundColor('#1a1a2e');
 
-    // Title
-    this.add.text(width / 2, height * 0.28, 'Codyssey', {
+    // Title — from strings.fr.json so it is never hardcoded in engine
+    this.add.text(width / 2, height * 0.28, cl.getString('menu.title'), {
       fontFamily: 'monospace',
       fontSize: '64px',
       color: '#e0e0ff',

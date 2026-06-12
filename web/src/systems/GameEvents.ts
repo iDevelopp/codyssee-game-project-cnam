@@ -60,4 +60,29 @@ export const GameEvents = {
    * Emitted when Menu principal is clicked. Any scene can listen.
    */
   END_MENU: 'end-menu',
+
+  // ---------------------------------------------------------------------------
+  // Audio events (added for TASK-016)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emitted by NPC._beginDialogue() and Door.interact() the moment the player
+   * triggers an E interaction that opens a dialogue.
+   * AudioManager plays sfx.interact on this event.
+   */
+  PLAYER_INTERACT: 'player-interact',
+
+  /**
+   * Emitted by NPC._onCardPicked() when the player picks the wrong card.
+   * AudioManager plays sfx.wrong on this event.
+   * Payload: { npcId: string }
+   */
+  ANSWER_WRONG: 'answer-wrong',
+
+  /**
+   * Emitted by Door._unlock() when ALL_NPCS_HELPED causes the door to open.
+   * AudioManager plays sfx.door on this event.
+   * Payload: { doorId: string }
+   */
+  DOOR_OPEN: 'door-open',
 } as const;

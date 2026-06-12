@@ -9,12 +9,32 @@ import type { Strings } from '@/types/Strings';
 // The engine uses the typed accessors below, never the raw arrays directly.
 // ---------------------------------------------------------------------------
 
+/**
+ * Shape of a single entry in audio.json.
+ * Keys match what agent-art defined in content/audio.json (TASK-015).
+ */
+export interface AudioEntry {
+  /** Ordered list of file paths (.ogg first, .mp3 fallback) for browser compatibility. */
+  files: string[];
+  /** Whether this sound loops (true for ambient music, false for SFX). */
+  loop: boolean;
+  /** Default volume in [0, 1] as authored by agent-art. */
+  volume: number;
+}
+
+/** The full audio manifest from content/audio.json — keyed by sound id. */
+export type AudioManifest = Record<string, AudioEntry>;
+
 interface ContentStore {
   cards: CardData[];
   npcs: NpcData[];
   zones: Map<string, ZoneData>;
+  /** Ordered zone id list from zones/index.json — used to preserve authoring order. */
+  zoneOrder: string[];
   timeline: TimelineEntry[];
   strings: Strings;
+  /** Audio manifest from content/audio.json — null if file is missing (graceful). */
+  audio: AudioManifest | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -210,10 +230,22 @@ export class ContentLoader {
   }
 
   /**
-   * Returns all loaded zones as an array.
+   * Returns all loaded zones in authoring order (as listed in zones/index.json).
    */
   getZones(): ZoneData[] {
-    return Array.from(this._require().zones.values());
+    const store = this._require();
+    // Preserve the order from index.json rather than Map insertion order
+    return store.zoneOrder
+      .map((id) => store.zones.get(id))
+      .filter((z): z is ZoneData => z !== undefined);
+  }
+
+  /**
+   * Returns the ordered list of zone ids from zones/index.json.
+   * Useful for multi-zone navigation and authoring tooling.
+   */
+  getZoneIds(): string[] {
+    return [...this._require().zoneOrder];
   }
 
   /**
@@ -236,6 +268,17 @@ export class ContentLoader {
       return key;
     }
     return s;
+  }
+
+  /**
+   * Returns the audio manifest from content/audio.json, or null if the file
+   * was missing at load time (graceful — audio is non-blocking).
+   *
+   * AudioManager calls this to discover sound keys and file paths without
+   * hardcoding any filename in engine code (ADR-002).
+   */
+  getAudioManifest(): AudioManifest | null {
+    return this._require().audio;
   }
 
   /**
@@ -279,13 +322,16 @@ export class ContentLoader {
   private async _loadAll(): Promise<void> {
     const base = import.meta.env.BASE_URL;
 
-    // Fetch all root-level JSON files in parallel for performance
-    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw] = await Promise.all([
+    // Fetch all root-level JSON files in parallel for performance.
+    // audio.json is optional — AudioManager degrades gracefully if missing.
+    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw] = await Promise.all([
       this._fetchJson(`${base}content/cards.json`),
       this._fetchJson(`${base}content/npcs.json`),
       // timeline.json is optional in J0 — returns empty array if missing
       this._fetchJsonOptional(`${base}content/timeline.json`, []),
       this._fetchJson(`${base}content/strings.fr.json`),
+      // audio.json is optional — returns null if missing so AudioManager can skip gracefully
+      this._fetchJsonOptional(`${base}content/audio.json`, null),
     ]);
 
     // --- Parse cards ---
@@ -317,24 +363,62 @@ export class ContentLoader {
     const strings = stringsRaw as Strings;
 
     // --- Load zones ---
-    // Zones are loaded individually. In J0 we know zone_01 exists; in future
-    // the zone list will be driven by a zones/index.json (agent-contenu to add).
-    // For now we load zone_01 directly and can be extended trivially.
+    // Zone list is driven by content/zones/index.json (ADR-002, data-driven).
+    // Fetching index first, then each zone in parallel for performance.
+    // Falls back to an empty list if index is missing (graceful degradation).
     const zones = new Map<string, ZoneData>();
     const npcIds = new Set(npcs.map((n) => n.id));
 
-    for (const zoneId of ['zone_01']) {
-      const zoneRaw = await this._fetchJsonOptional(`${base}content/zones/${zoneId}.json`, null);
-      if (zoneRaw !== null) {
-        if (import.meta.env.DEV) {
-          validateZone(zoneRaw, npcIds);
-        }
-        const zone = zoneRaw as ZoneData;
-        zones.set(zone.id, zone);
+    const zoneIndexRaw = await this._fetchJsonOptional(`${base}content/zones/index.json`, null);
+
+    // Validate index shape: must be { zones: string[], version: number }
+    let zoneIds: string[] = [];
+    if (zoneIndexRaw !== null) {
+      if (
+        typeof zoneIndexRaw !== 'object' ||
+        Array.isArray(zoneIndexRaw) ||
+        !Array.isArray((zoneIndexRaw as Record<string, unknown>)['zones'])
+      ) {
+        throw new Error(
+          'ContentLoader: content/zones/index.json must be { "zones": string[], "version": number }'
+        );
+      }
+      zoneIds = (zoneIndexRaw as { zones: string[] }).zones;
+
+      if (import.meta.env.DEV) {
+        // Each id must be a non-empty string — catch authoring typos early
+        zoneIds.forEach((id, i) => assertString(id, `zones/index.json zones[${i}]`));
       }
     }
 
-    this.store = { cards, npcs, zones, timeline, strings };
+    // Fetch all zone files in parallel (order preserved by Promise.all index)
+    const zoneRaws = await Promise.all(
+      zoneIds.map((id) => this._fetchJsonOptional(`${base}content/zones/${id}.json`, null))
+    );
+
+    for (let i = 0; i < zoneIds.length; i++) {
+      const zoneRaw = zoneRaws[i];
+      if (zoneRaw === null) {
+        // A listed zone file is missing — always throw (not a graceful case)
+        throw new Error(
+          `ContentLoader: zones/index.json lists "${zoneIds[i]}" but content/zones/${zoneIds[i]}.json was not found.`
+        );
+      }
+      if (import.meta.env.DEV) {
+        validateZone(zoneRaw, npcIds);
+      }
+      const zone = zoneRaw as ZoneData;
+      zones.set(zone.id, zone);
+    }
+
+    // Parse audio manifest — optional, null if missing or malformed.
+    // We accept any object shape here; AudioManager validates entries at runtime.
+    const audio: AudioManifest | null =
+      audioRaw !== null && typeof audioRaw === 'object' && !Array.isArray(audioRaw)
+        ? (audioRaw as AudioManifest)
+        : null;
+
+    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio };
   }
 
   /**

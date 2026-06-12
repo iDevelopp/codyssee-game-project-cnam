@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ContentLoader } from '@/systems/ContentLoader';
+import { AudioManager } from '@/systems/AudioManager';
 
 /**
  * PreloadScene — loads all assets and game content before gameplay starts.
@@ -29,6 +30,9 @@ export class PreloadScene extends Phaser.Scene {
     const bar = this.add.rectangle(width / 2 - 200, height / 2 + 40, 0, 18, 0x8888ff);
     bar.setOrigin(0, 0.5);
 
+    // Loading label: intentionally hardcoded here because ContentLoader has not
+    // resolved yet — this text is the bootstrap indicator shown while content
+    // is being fetched. It cannot come from strings.fr.json at this point.
     this.add.text(width / 2, height / 2, 'Chargement…', {
       fontFamily: 'monospace',
       fontSize: '20px',
@@ -88,6 +92,49 @@ export class PreloadScene extends Phaser.Scene {
       return;
     }
 
+    // Queue audio files from the manifest into a second Phaser load pass.
+    // We do this here (after ContentLoader resolves) because audio paths come
+    // from content/audio.json which is fetched at runtime, not known at preload() time.
+    // Graceful: AudioManager.queuePreload() is a no-op if audio.json is missing.
+    await this._loadAudioAssets();
+
     this.scene.start('MainMenuScene');
+  }
+
+  /**
+   * Second load pass: queue audio files from the manifest and await completion.
+   *
+   * Phaser's loader can be restarted after its initial run by calling
+   * this.load.start() again. We wrap the 'complete' event in a Promise so
+   * we can await it cleanly.
+   *
+   * If no audio files are queued (missing manifest), resolves immediately.
+   */
+  private _loadAudioAssets(): Promise<void> {
+    return new Promise((resolve) => {
+      // Queue all audio from the manifest into Phaser's loader.
+      AudioManager.getInstance().queuePreload(this);
+
+      // If nothing was queued, the loader won't fire 'complete' — resolve now.
+      if (!this.load.isLoading() && this.load.totalToLoad === 0) {
+        resolve();
+        return;
+      }
+
+      // Listen for loader completion — fires once all queued files are done.
+      this.load.once('complete', () => {
+        resolve();
+      });
+
+      // Guard: if loader errors out on all files, still resolve so the game continues.
+      this.load.once('loaderror', () => {
+        console.warn('PreloadScene: one or more audio files failed to load (non-fatal).');
+        // We don't resolve here — the 'complete' event still fires after errors.
+        // Each individual error is logged by Phaser's loader.
+      });
+
+      // Start the load pass.
+      this.load.start();
+    });
   }
 }
