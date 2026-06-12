@@ -1,0 +1,102 @@
+{
+  "date": "2026-06-12",
+  "task": "TASK-013",
+  "server": "dev (localhost:5173) — preview (4173) non fonctionnel (BUG-01)",
+  "results": [
+    {
+      "id": "C1",
+      "label": "Menu principal s'affiche ; Jouer lance la zone",
+      "result": "PASS",
+      "evidence": [
+        "screenshots/001-c1-main-menu.png — menu affiché : titre Codyssey, tagline, boutons Jouer + Quitter",
+        "screenshots/002-c1-zone-loaded.png — ZoneScene chargée : joueur, Léa, Thomas, porte visible",
+        "0 page errors sur serveur dev"
+      ]
+    },
+    {
+      "id": "C2",
+      "label": "Joueur se déplace (ZQSD+flèches), animé 4 dirs, caméra suit",
+      "result": "PASS",
+      "evidence": [
+        "screenshots/003 à 010 — joueur visible à différentes positions pour chaque direction",
+        "screenshots/020, 053, 055 — caméra a suivi le joueur (Léa hors champ quand joueur à droite)",
+        "sprite animé visible (frames différents entre screenshots de mouvement)",
+        "ZQSD (D=droite, Q=gauche, Z=haut, S=bas) + flèches testés"
+      ]
+    },
+    {
+      "id": "C3",
+      "label": "Près d'un PNJ, E avance le dialogue ligne par ligne puis ouvre le deck",
+      "result": "PASS",
+      "evidence": [
+        "screenshots/012 — ligne 1 Léa : 'J'aimerais rendre mes pages interactives...' + hint 'Appuie sur E pour continuer...'",
+        "screenshots/013 — ligne 3 Léa : 'Quel langage me permettrait de faire ça ?'",
+        "screenshots/015 — DeckPanel ouvert : 4 cartes (Python, JavaScript, C#, HTML) + titre 'Quelle carte répond à sa question ?'",
+        "screenshots/042-probe-4 — Thomas dialogue ligne 2 : 'J'ai entendu parler d'un moteur de jeu très populaire...'"
+      ]
+    },
+    {
+      "id": "C4",
+      "label": "Mauvaise carte → indice + retry ; bonne carte → remerciements + carte ajoutée",
+      "result": "PASS",
+      "evidence": [
+        "screenshots/016 — Python (mauvaise) → indice : 'Ce langage s'exécute dans le navigateur et permet de réagir aux actions de l'utilisateur…'",
+        "screenshots/017 — deck rouvert pour retry",
+        "screenshots/018 — JavaScript (correcte) → remerciement : 'Exactement ! JavaScript s'exécute directement dans le navigateur. Tu m'as sauvé la mise !'",
+        "localStorage après : deckCardIds=['python','html','javascript'], helpedNpcIds=['npc_lea']"
+      ]
+    },
+    {
+      "id": "C5",
+      "label": "Tous quest-NPCs aidés → porte verte → écran de fin (Rejouer/Menu/Quitter)",
+      "result": "PASS",
+      "evidence": [
+        "screenshots/052 — après reload avec save complet : porte VERTE immédiatement visible",
+        "screenshots/055 — joueur adjacent à la porte verte (label SORTIE visible)",
+        "screenshots/057 — écran de fin : 'Félicitations ! Tu as exploré les origines du web.' + boutons Rejouer, Menu principal, Quitter",
+        "localStorage : helpedNpcIds=['npc_lea','npc_thomas'], unlockedDoorIds=['door_exit'], deckCardIds=['python','html','javascript','csharp']"
+      ]
+    },
+    {
+      "id": "C6",
+      "label": "Progression survit au rechargement de page (localStorage)",
+      "result": "PASS",
+      "evidence": [
+        "saveBefore = saveAfterReload = saveAfterLeaVisit (identiques)",
+        "screenshots/059 — zone chargée après reload : porte VERTE d'emblée (restaurée depuis save)",
+        "screenshots/060 — Léa montre resolvedLines ('C'est fou ce qu'on peut faire...'), pas la question",
+        "screenshots/062 — aucun deck ouvert après dialogue résolu de Léa",
+        "deckCardIds préservé : ['python','html','javascript','csharp']"
+      ]
+    }
+  ],
+  "bugs": [
+    {
+      "id": "BUG-01",
+      "severity": "bloquant (production)",
+      "title": "web/content/ absent du build de production (dist/)",
+      "description": "pnpm preview (port 4173) → ContentLoader échoue : GET /codyssee/content/cards.json retourne text/html (fallback SPA index.html) au lieu du JSON. Cause : web/content/ n'est pas dans web/public/ → Vite ne le copie pas dans dist/.",
+      "repro": "pnpm build && pnpm preview → ouvrir http://localhost:4173/codyssee/ → console error 'ContentLoader failed'",
+      "fix": "Déplacer web/content/ → web/public/content/ OU ajouter vite-plugin-static-copy dans vite.config.ts",
+      "owner": "agent-infra"
+    }
+  ],
+  "observations": [
+    {
+      "id": "OBS-01",
+      "title": "Léa/Thomas parfois en compétition pour le rayon d'interaction",
+      "detail": "Distance Léa-Thomas ≈ 358px. Rayon 240px. Pas de vraie superposition. Mais si le joueur se positionne entre les deux PNJ, Léa (résolue, Idle) reste éligible et peut être ciblée plutôt que Thomas. Comportement correct (nearest-first) mais peut dérouter. Non bloquant."
+    },
+    {
+      "id": "OBS-02",
+      "title": "favicon 404",
+      "detail": "GET /favicon.ico → 404. Cosmétique."
+    }
+  ],
+  "consoleErrors": [
+    "[ERROR] ContentLoader: /codyssee/content/cards.json is not valid JSON @ preview server 4173 (BUG-01)",
+    "[ERROR] Failed to load resource: favicon.ico 404 (cosmétique)"
+  ],
+  "pageErrors": [],
+  "screenshots": "web/tests/e2e/screenshots/ — 62 fichiers PNG"
+}
