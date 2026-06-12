@@ -1,0 +1,19 @@
+{
+  "id": "zone_02",
+  "displayName": "Zone 2 — Les fondations (1950s–1970s)",
+  "tilemap": "zone_02.json",
+  "spawn": { "x": 160, "y": 300 },
+  "npcs": ["npc_ernst", "npc_grace", "npc_john"],
+  "doors": [
+    {
+      "id": "door_exit_02",
+      "position": { "x": 1100, "y": 360 },
+      "lockedMessageKey": "door.locked",
+      "exitMessageKey": "door.exit_02",
+      "leadsToZoneId": "zone_03"
+    }
+  ],
+  "unlockCondition": "all_quest_npcs_helped",
+  "nextZoneId": "zone_03",
+  "themeEra": "1950s"
+}

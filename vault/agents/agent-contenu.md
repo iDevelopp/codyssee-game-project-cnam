@@ -25,30 +25,47 @@ Final message = report for the orchestrator (files, what changed, open content q
 
 ## État courant
 
-- **Statut courant** : review (TASK-017 livrée)
-- **Tâches assignées** : TASK-017 (statut: review)
+- **Statut courant** : review (TASK-019 livrée)
+- **Tâches assignées** : TASK-019 (statut: review)
 - **Blocages** : aucun
-- **Dernière action** : 2026-06-12 — TASK-017 passe de contenu complète
+- **Dernière action** : 2026-06-12 — TASK-019 multi-zones complète
 
-## Artefacts livrés (TASK-017)
+## Artefacts livrés (TASK-019)
 
-### cards.json — 8 cartes (base 4 → 8)
-Ajoutées : `sql` (1970s), `c` (1970s), `java` (1990s), `rust` (2010s)
+### cards.json — 13 cartes (8 → 13)
+Ajoutées : `fortran` (1950s), `cobol` (1950s), `lisp` (1950s), `cpp` (1980s), `perl` (1980s)
 
-### npcs.json — 3 PNJ (base 2 → 3)
-Ajouté : `npc_clara` (Clara, zone_01, question → `sql`)
+### npcs.json — 9 PNJ (3 → 9)
+Zone 02 ajoutés :
+- `npc_ernst` (Ernst, zone_02, question → `fortran`, position 280,320)
+- `npc_grace` (Grace, zone_02, question → `cobol`, position 620,200)
+- `npc_john` (John, zone_02, question → `lisp`, position 950,400)
+
+Zone 03 ajoutés :
+- `npc_bjarne` (Bjarne, zone_03, question → `cpp`, position 300,260)
+- `npc_larry` (Larry, zone_03, question → `perl`, position 660,420)
+- `npc_ada` (Ada, zone_03, question → `c`, position 960,260)
 
 ### zones/zone_01.json
-npc_clara ajouté dans le tableau `npcs`.
+Ajout : `nextZoneId: "zone_02"`, `leadsToZoneId: "zone_02"` sur la porte.
+
+### zones/zone_02.json — NOUVEAU
+Thème 1950s–1970s (fondations). NPCs: ernst, grace, john. Porte → zone_03.
+
+### zones/zone_03.json — NOUVEAU
+Thème 1980s (systèmes). NPCs: bjarne, larry, ada. Porte finale (pas de nextZoneId → écran fin).
+
+### zones/index.json
+Mis à jour : ["zone_01", "zone_02", "zone_03"]
 
 ### strings.fr.json
-Audit complet. Toutes les clés référencées par le moteur sont présentes.
-Aucune clé manquante détectée (cross-check exhaustif des `getString()` dans src/).
+Ajoutées : `zone.zone_02`, `zone.zone_03`, `door.exit_02`, `door.exit_03`
 
 ### vault/gdd/04-content.md
-Inventaire complet (cartes, PNJ, zones) + plan d'extension J4 vers ~19 langages.
+Inventaire mis à jour (13 cartes, 9 PNJ, 3 zones).
 
 ## Notes
 Tous les textes affichés → `strings.fr.json`. Cohérence FR et piliers de conception.
-Plan d'extension frise : voir `vault/gdd/04-content.md`.
-Prochaine étape J4 : zone_02 + langages fondateurs (fortran, cobol, lisp, cpp, perl…).
+Chaining zone_01 → zone_02 → zone_03 → (fin). `unlockCondition: "all_quest_npcs_helped"` utilisé pour toutes les zones.
+agent-moteur (TASK-020) doit implémenter le chargement de la zone suivante via `nextZoneId`/`leadsToZoneId`.
+OBS-01 : espacement PNJ vérifié — minimum ~300px entre PNJ dans chaque zone.

@@ -52,11 +52,26 @@ export class MainMenuScene extends Phaser.Scene {
       color: '#9999bb',
     }).setOrigin(0.5);
 
-    // Jouer button
+    // Jouer button — resumes at the last zone reached (or zone_01 on first launch).
+    // currentZoneId from SaveSystem is the resume point written by ZoneScene.create()
+    // each time a new zone is entered. Falls back to the first zone in the index.
     this._makeButton(width / 2, height * 0.58, cl.getString('menu.play'), 0x4444aa, () => {
-      // Start the zone and launch the persistent UI overlay in parallel
-      this.scene.start('ZoneScene');
-      this.scene.launch('UIScene');
+      const save = SaveSystem.getInstance();
+      const currentZoneId = save.getCurrentZoneId();
+
+      // Determine which zone to start. If save has a currentZoneId we use it;
+      // otherwise start from the first zone in the index (first launch).
+      const startData = currentZoneId ? { zoneId: currentZoneId } : undefined;
+
+      // Start the zone and launch the persistent UI overlay in parallel.
+      // UIScene is not stopped between zones — it is launched once here and
+      // stays active across all zone transitions (ZoneScene handles it).
+      this.scene.start('ZoneScene', startData);
+      // Only launch UIScene if it is not already running (prevents duplicate overlays
+      // when returning to MainMenu via END_MENU from a live game).
+      if (!this.scene.isActive('UIScene')) {
+        this.scene.launch('UIScene');
+      }
     });
 
     // Quitter button — on web, returns to main menu (ADR-004; no Application.Quit)

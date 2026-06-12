@@ -1,0 +1,17 @@
+{
+  "id": "zone_03",
+  "displayName": "Zone 3 — L'ère des systèmes (1980s)",
+  "tilemap": "zone_03.json",
+  "spawn": { "x": 160, "y": 300 },
+  "npcs": ["npc_bjarne", "npc_larry", "npc_ada"],
+  "doors": [
+    {
+      "id": "door_exit_03",
+      "position": { "x": 1100, "y": 360 },
+      "lockedMessageKey": "door.locked",
+      "exitMessageKey": "door.exit_03"
+    }
+  ],
+  "unlockCondition": "all_quest_npcs_helped",
+  "themeEra": "1980s"
+}

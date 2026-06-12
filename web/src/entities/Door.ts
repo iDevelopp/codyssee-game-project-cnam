@@ -12,6 +12,12 @@ import { InputLock } from '@/systems/InputLock';
  * Always canInteract() = true; locked state is communicated inside interact()
  * via a dialogue message rather than blocking interaction.
  *
+ * On open door interaction:
+ *   - If doorData.leadsToZoneId is set: emits ZONE_TRANSITION with nextZoneId.
+ *     ZoneScene handles the fade-out/fade-in and calls scene.start() (TASK-020).
+ *   - If no leadsToZoneId: emits ZONE_TRANSITION with nextZoneId=undefined,
+ *     which ZoneScene interprets as "final zone" and shows EndScreen.
+ *
  * Colours (Unity Door.cs):
  *  - Locked: (0.3, 0.3, 0.3) → #4d4d4d
  *  - Open:   (0.4, 1.0, 0.4) → #66ff66
@@ -56,12 +62,16 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
       }
     ).setOrigin(0.5, 1);
 
-    // Subscribe to all-helped event to unlock and turn green
+    // Subscribe to all-helped event to unlock and turn green.
+    // Note: ZoneScene._unbindEvents() removes ALL_NPCS_HELPED listeners on zone
+    // change so this handler does not accumulate across transitions.
     scene.game.events.on(GameEvents.ALL_NPCS_HELPED, () => {
       this._unlock();
     });
 
-    // Listen for DIALOGUE_ADVANCE to close the locked-door single-line message
+    // Listen for DIALOGUE_ADVANCE to close the locked-door single-line message.
+    // Note: ZoneScene._unbindEvents() removes DIALOGUE_ADVANCE listeners on zone
+    // change so this handler does not accumulate across transitions.
     scene.game.events.on(GameEvents.DIALOGUE_ADVANCE, () => {
       if (this.showingLockedMsg) {
         this.showingLockedMsg = false;
@@ -89,7 +99,9 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
   /**
    * E pressed on door:
    * - Locked → show locked message via DialogueBox (one E to dismiss).
-   * - Open → show exit message then EndScreen.
+   * - Open → brief exit message then ZONE_TRANSITION.
+   *   ZoneScene handles the actual transition: fade + scene.start() for non-final
+   *   zones, or GAME_COMPLETE → EndScreen for the final zone.
    *
    * Unity reference: Door.OnInteract() — if locked → lockedMessage dialogue; if open → EndScreen.
    */
@@ -107,26 +119,20 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
         speakerName: '',
         line: cl.getString(this.doorData.lockedMessageKey),
       });
-      // Next E press (via DIALOGUE_ADVANCE listener) will close this
-      // We temporarily intercept E in a special way: we listen for DIALOGUE_ADVANCE
-      // which UIScene would normally forward from ZoneScene's E key handler.
-      // However, our Door canInteract() returns false while locked msg shows (InputLock),
-      // so InteractionSystem won't re-fire interact(). The close happens via
-      // the DIALOGUE_ADVANCE event emitted by the E-key handler in ZoneScene.
     } else {
-      // Show exit message then end screen
+      // Show brief exit message then trigger zone transition
       const exitMsg = cl.getString(this.doorData.exitMessageKey);
       this.gameScene.game.events.emit(GameEvents.DIALOGUE_OPEN, {
         speakerName: '',
         line: exitMsg,
       });
 
-      // After a brief delay, swap to end screen
-      // (player sees the exit message, then end screen appears on next E)
+      // After a brief delay, close dialogue and emit ZONE_TRANSITION.
+      // ZoneScene decides what happens next based on nextZoneId presence.
       this.gameScene.time.delayedCall(200, () => {
         this.gameScene.game.events.emit(GameEvents.DIALOGUE_CLOSE);
-        this.gameScene.game.events.emit(GameEvents.END_SCREEN_SHOW, {
-          message: ContentLoader.getInstance().getString('end.congrats'),
+        this.gameScene.game.events.emit(GameEvents.ZONE_TRANSITION, {
+          nextZoneId: this.doorData.leadsToZoneId,
         });
       });
     }

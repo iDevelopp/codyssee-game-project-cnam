@@ -2,9 +2,9 @@
 
 > Seule vue d'ensemble. Tenue par l'orchestrateur. Doit toujours refléter la réalité.
 
-**Dernière MAJ** : 2026-06-12
+**Dernière MAJ** : 2026-06-12 09:13 — J3 clos (BUG-03/04 re-testés live 5/5 PASS)
 **Branche** : `web` (depuis `main`, base propre). Unity intact sur `dev-Egor`.
-**Phase** : **J2 terminé** ✅ (QA 5/5 PASS après fix BUG-02). Data-driven complet (zones index, 8 cartes, 3 PNJ) + audio CC0 câblé. J0+J1 committés/déployés ; **J2 non committé / non redéployé** (attente feu vert). Prochain : J3.
+**Phase** : **J3 terminé** (multi-zones + progression). J0-J2 ✅ committés (12 commits, branche `web`, **pas de push**) ; J2 live sur ohvenus.fr/codyssee (audio + 3 PNJ + 8 cartes). J3 committé localement, **pas encore redéployé**. **J4 = prochain** (frise chronologique).
 
 ## État global
 
@@ -27,7 +27,7 @@
 | **J0** | Fondations : scaffold Vite+Phaser+TS, vault, agents, pipeline assets de base, build statique déployé nginx (page vide jouable) | ✅ terminé |
 | **J1** | Vertical slice parité Unity : 1 zone, joueur animé, 2 PNJ, deck 4 cartes, dialogue, Q/R, porte, écran de fin, menu, save localStorage | ✅ terminé |
 | **J2** | Moteur data-driven : tout le contenu en `/content` ; audio (musique+SFX) | ✅ terminé |
-| **J3** | Multi-zones + progression : zones enchaînées, déblocage, deck persistant, transitions | 🟡 prochain |
+| **J3** | Multi-zones + progression : zones enchaînées, déblocage, deck persistant, transitions | ✅ terminé |
 | **J4** | Frise chronologique : `timeline.json`, UI frise révélée, liens logiques langages | ⛔ |
 | **J5** | Narration & polish : trame cyberpunk, équilibrage, responsive, perf, déploiement final | ⛔ |
 
@@ -63,6 +63,9 @@
 | TASK-016 | AudioManager + câblage events | agent-moteur | done | J2 |
 | TASK-017 | Passe contenu (externalisation + extension) | agent-contenu | done | J2 |
 | TASK-018 | QA J2 (audio + extensibilité + non-régression) | agent-qa | done | J2 |
+| TASK-019 | Contenu multi-zones (zone_02/03, chaînage) | agent-contenu | done | J3 |
+| TASK-020 | ZoneManager (transitions, déblocage, cross-zone) | agent-moteur | done | J3 |
+| TASK-021 | QA J3 (multi-zones, persistance) + re-test BUG-03/04 | agent-qa | done | J3 |
 
 ## Décisions (ADR)
 

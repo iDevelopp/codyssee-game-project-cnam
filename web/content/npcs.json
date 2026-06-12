@@ -55,5 +55,119 @@
       "thanksLine": "SQL, le langage des bases de données ! Merci, mes requêtes vont enfin fonctionner.",
       "hintLine": "C'est un langage déclaratif né dans les années 70, conçu pour interroger des tables de données…"
     }
+  },
+  {
+    "id": "npc_ernst",
+    "name": "Ernst",
+    "position": { "x": 280, "y": 320 },
+    "dialogueLines": [
+      "Grüss Gott ! Je suis ingénieur à l'université, nous faisons des calculs de trajectoires.",
+      "En 1957, un nouveau langage a révolutionné le calcul scientifique sur ordinateur.",
+      "Quel est ce premier langage de haut niveau, né pour les mathématiques ?"
+    ],
+    "resolvedLines": [
+      "Fortran ! FORmula TRANslation — c'est exactement ça.",
+      "Grâce à lui, nos simulations s'exécutent en minutes plutôt qu'en jours."
+    ],
+    "question": {
+      "expectedCardId": "fortran",
+      "thanksLine": "Fortran ! Le premier grand langage scientifique. Tu connais bien l'histoire de l'informatique.",
+      "hintLine": "Son nom vient de FORmula TRANslation. Né en 1957 chez IBM pour le calcul numérique…"
+    }
+  },
+  {
+    "id": "npc_grace",
+    "name": "Grace",
+    "position": { "x": 620, "y": 200 },
+    "dialogueLines": [
+      "Bonjour ! Je suis administratrice dans une grande banque.",
+      "Nous gérons des millions de transactions chaque jour sur des mainframes.",
+      "Quel langage, créé en 1959, est encore utilisé dans les systèmes bancaires aujourd'hui ?"
+    ],
+    "resolvedLines": [
+      "COBOL ! Common Business-Oriented Language.",
+      "Des milliards de lignes de COBOL tournent encore dans les banques du monde entier."
+    ],
+    "question": {
+      "expectedCardId": "cobol",
+      "thanksLine": "COBOL, bien sûr ! Un langage aussi lisible qu'une phrase anglaise. Merci !",
+      "hintLine": "C'est un langage orienté gestion, créé pour les ordinateurs d'entreprise dans les années 50…"
+    }
+  },
+  {
+    "id": "npc_john",
+    "name": "John",
+    "position": { "x": 950, "y": 400 },
+    "dialogueLines": [
+      "Hello ! Je travaille au MIT sur des programmes d'intelligence artificielle.",
+      "Notre équipe utilise un langage basé sur les listes et la récursion, né en 1958.",
+      "Quel est ce langage pionnier de l'IA, ancêtre de nombreux langages fonctionnels ?"
+    ],
+    "resolvedLines": [
+      "Lisp ! LISt Processing — tu as du flair.",
+      "Avec ses parenthèses et sa puissance symbolique, Lisp a fondé le champ de l'IA."
+    ],
+    "question": {
+      "expectedCardId": "lisp",
+      "thanksLine": "Lisp ! Le langage qui a inventé le garbage collector et les fonctions de première classe. Bravo !",
+      "hintLine": "Son nom signifie LISt Processing. Inventé par John McCarthy au MIT en 1958…"
+    }
+  },
+  {
+    "id": "npc_bjarne",
+    "name": "Bjarne",
+    "position": { "x": 300, "y": 260 },
+    "dialogueLines": [
+      "Hej ! Je développe des logiciels complexes qui demandent vitesse et organisation.",
+      "En 1985, un langage a étendu le C en ajoutant les classes et l'orienté objet.",
+      "Quel est ce langage qui allie performance et abstraction, cousin du C ?"
+    ],
+    "resolvedLines": [
+      "C++ ! Exactement ce qu'il me fallait.",
+      "Avec les classes et l'héritage, je peux structurer mon code sans sacrifier la vitesse."
+    ],
+    "question": {
+      "expectedCardId": "cpp",
+      "thanksLine": "C++ ! La puissance du C avec l'orienté objet. Un choix excellent pour mes projets.",
+      "hintLine": "C'est une extension du C créée par Bjarne Stroustrup en 1985, avec les classes et l'héritage…"
+    }
+  },
+  {
+    "id": "npc_larry",
+    "name": "Larry",
+    "position": { "x": 660, "y": 420 },
+    "dialogueLines": [
+      "Hey ! Je suis administrateur système et je dois traiter des milliers de fichiers texte.",
+      "J'ai besoin d'un langage de script créé en 1987, célèbre pour ses expressions régulières.",
+      "Quel est ce langage couteau-suisse de l'administration Unix ?"
+    ],
+    "resolvedLines": [
+      "Perl ! Practical Extraction and Report Language.",
+      "Avec Perl, je peux écrire en une ligne ce qui prendrait un programme entier en C."
+    ],
+    "question": {
+      "expectedCardId": "perl",
+      "thanksLine": "Perl ! Le langage des sysadmins et des biologistes. Merci, tu m'as sauvé des heures de travail !",
+      "hintLine": "C'est un langage de scripts né en 1987, connu pour ses regex et son slogan 'There's more than one way to do it'…"
+    }
+  },
+  {
+    "id": "npc_ada",
+    "name": "Ada",
+    "position": { "x": 960, "y": 260 },
+    "dialogueLines": [
+      "Bonjour. Je travaille sur des systèmes embarqués pour l'aéronautique.",
+      "Mon équipe utilise un langage né en 1972, proche du matériel, sans abstraction superflue.",
+      "Quel langage, conçu par Dennis Ritchie, est la base de la plupart des systèmes d'exploitation ?"
+    ],
+    "resolvedLines": [
+      "Le C ! Oui, c'est notre colonne vertébrale.",
+      "Unix, Linux, le noyau de macOS — tout repose sur C."
+    ],
+    "question": {
+      "expectedCardId": "c",
+      "thanksLine": "Le C ! Conçu aux Bell Labs, il a changé le monde. Tu sais reconnaître un classique.",
+      "hintLine": "Né en 1972 aux Bell Labs, ce langage bas niveau a permis d'écrire Unix. Initiale unique…"
+    }
   }
 ]

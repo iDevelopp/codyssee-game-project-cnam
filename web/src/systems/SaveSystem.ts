@@ -7,20 +7,22 @@
  * {
  *   version: 1,
  *   deckCardIds: string[],          // Card ids in player deck
- *   helpedNpcIds: string[],         // NPC ids whose question was resolved
- *   unlockedDoorIds: string[],      // Door ids that were unlocked (for multi-zone future)
+ *   helpedNpcIds: string[],         // NPC ids whose question was resolved (global — persists across zones)
+ *   unlockedDoorIds: string[],      // Door ids that were unlocked
+ *   unlockedZoneIds: string[],      // Zone ids that have been reached/unlocked (added TASK-020)
+ *   currentZoneId: string | null,   // Last zone reached — resume point on reload (added TASK-020)
  *   masterVolume: number,           // [0..1] master volume (added TASK-016)
  *   muted: boolean,                 // global mute flag (added TASK-016)
  *   // timeline: [] — placeholder, not populated in J1
  * }
  *
- * Rejouer behaviour (TASK-011 requirement):
- *   "Rejouer" reloads the ZoneScene but does NOT clear the save. The player
- *   keeps their deck and resolved NPCs persist — this means the zone loads
- *   with the door already open if it was previously unlocked.
- *   Rationale: matches the "keep your progress, explore again" feel of the
- *   prototype. A separate "Nouvelle partie" reset feature can be added later
- *   (call SaveSystem.reset() from a Settings menu).
+ * Rejouer behaviour (TASK-020 update):
+ *   "Rejouer" on the end screen restarts the CURRENT zone (not zone_01).
+ *   The player keeps their deck, resolved NPCs persist globally, and the
+ *   door is shown open if it was previously unlocked.
+ *   Deck and helpedNpcIds are GLOBAL across zones — a card earned in zone_01
+ *   stays in the deck when zone_02 loads.
+ *   For a true new game, call SaveSystem.reset() (exposed via settings menu).
  *
  * Survive page reload: yes — localStorage persists across sessions.
  *
@@ -30,6 +32,11 @@
  *   masterVolume and muted are persisted in the same save so the player's
  *   audio preferences survive page reloads. A dedicated Settings UI (J3+)
  *   can expose sliders; for J2 only the M-key mute toggle is wired.
+ *
+ * Zone fields (TASK-020):
+ *   unlockedZoneIds tracks which zones have been reached.
+ *   currentZoneId is the last zone the player entered — used to resume on reload.
+ *   Both fields are backfilled to defaults in old saves (migration-safe).
  */
 
 /** Shape of the v1 save file. */
@@ -38,6 +45,10 @@ interface SaveDataV1 {
   deckCardIds: string[];
   helpedNpcIds: string[];
   unlockedDoorIds: string[];
+  /** Zone ids that have been unlocked/reached. Default []. Added in TASK-020. */
+  unlockedZoneIds: string[];
+  /** Last zone id the player entered — resume point. Null = never started. Added in TASK-020. */
+  currentZoneId: string | null;
   /** Master volume in [0, 1]. Default 1.0 (full volume). Added in TASK-016. */
   masterVolume: number;
   /** Global mute flag. Default false. Added in TASK-016. */
@@ -212,6 +223,50 @@ export class SaveSystem {
   }
 
   // ---------------------------------------------------------------------------
+  // Zone progression (TASK-020)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns ids of all zones that have been unlocked/reached.
+   */
+  getUnlockedZoneIds(): string[] {
+    return [...this.data.unlockedZoneIds];
+  }
+
+  /**
+   * Record that a zone has been reached and persist.
+   * Idempotent — safe to call multiple times for the same zone.
+   *
+   * @param zoneId - ZoneData.id of the reached zone
+   */
+  recordZoneUnlocked(zoneId: string): void {
+    if (!this.data.unlockedZoneIds.includes(zoneId)) {
+      this.data.unlockedZoneIds.push(zoneId);
+    }
+    // Always update currentZoneId when a zone is reached
+    this.data.currentZoneId = zoneId;
+    this.save();
+  }
+
+  /**
+   * Returns the last zone id the player entered, or null if never started.
+   * Used by MainMenuScene to resume at the correct zone on reload.
+   */
+  getCurrentZoneId(): string | null {
+    return this.data.currentZoneId;
+  }
+
+  /**
+   * Explicitly set the current zone (used when starting from MainMenu to resume).
+   *
+   * @param zoneId - Zone to mark as current
+   */
+  setCurrentZoneId(zoneId: string): void {
+    this.data.currentZoneId = zoneId;
+    this.save();
+  }
+
+  // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
 
@@ -222,6 +277,8 @@ export class SaveSystem {
       deckCardIds: [],
       helpedNpcIds: [],
       unlockedDoorIds: [],
+      unlockedZoneIds: [],
+      currentZoneId: null,
       masterVolume: 1.0,
       muted: false,
     };
@@ -240,12 +297,18 @@ export class SaveSystem {
       return false;
     }
     // Audio fields were added in TASK-016 — backfill if an older save is found.
-    // This ensures the save remains valid without forcing a reset.
     if (typeof obj['masterVolume'] !== 'number') {
       (obj as Record<string, unknown>)['masterVolume'] = 1.0;
     }
     if (typeof obj['muted'] !== 'boolean') {
       (obj as Record<string, unknown>)['muted'] = false;
+    }
+    // Zone fields were added in TASK-020 — backfill for saves created before this task.
+    if (!Array.isArray(obj['unlockedZoneIds'])) {
+      (obj as Record<string, unknown>)['unlockedZoneIds'] = [];
+    }
+    if (obj['currentZoneId'] === undefined) {
+      (obj as Record<string, unknown>)['currentZoneId'] = null;
     }
     return true;
   }

@@ -85,4 +85,20 @@ export const GameEvents = {
    * Payload: { doorId: string }
    */
   DOOR_OPEN: 'door-open',
+
+  // ---------------------------------------------------------------------------
+  // Zone navigation events (added for TASK-020)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emitted by ZoneScene when the player interacts with an open exit door.
+   * Payload: { nextZoneId: string } — ZoneScene handles the transition.
+   */
+  ZONE_TRANSITION: 'zone-transition',
+
+  /**
+   * Emitted by ZoneScene when there is no nextZoneId (final zone).
+   * ZoneScene shows the EndScreen (game complete).
+   */
+  GAME_COMPLETE: 'game-complete',
 } as const;

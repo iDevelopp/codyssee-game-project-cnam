@@ -54,5 +54,40 @@
     "description": "Langage système sûr et performant, sans ramasse-miettes.",
     "usage": "WebAssembly, systèmes embarqués, CLI",
     "era": "2010s"
+  },
+  {
+    "id": "fortran",
+    "displayName": "Fortran",
+    "description": "Premier langage de haut niveau, dédié au calcul scientifique.",
+    "usage": "Calcul scientifique, simulations",
+    "era": "1950s"
+  },
+  {
+    "id": "cobol",
+    "displayName": "COBOL",
+    "description": "Langage orienté gestion, lisible, conçu pour le monde des affaires.",
+    "usage": "Banques, administration, mainframes",
+    "era": "1950s"
+  },
+  {
+    "id": "lisp",
+    "displayName": "Lisp",
+    "description": "Langage fonctionnel pionnier, basé sur les listes et la récursion.",
+    "usage": "Intelligence artificielle, recherche",
+    "era": "1950s"
+  },
+  {
+    "id": "cpp",
+    "displayName": "C++",
+    "description": "Extension de C avec la programmation orientée objet.",
+    "usage": "Jeux vidéo, logiciels haute performance",
+    "era": "1980s"
+  },
+  {
+    "id": "perl",
+    "displayName": "Perl",
+    "description": "Langage de scripts puissant pour le traitement de texte.",
+    "usage": "Administration système, bioinformatique",
+    "era": "1980s"
   }
 ]

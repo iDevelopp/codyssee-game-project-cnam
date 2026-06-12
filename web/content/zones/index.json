@@ -1,4 +1,4 @@
 {
-  "zones": ["zone_01"],
+  "zones": ["zone_01", "zone_02", "zone_03"],
   "version": 1
 }

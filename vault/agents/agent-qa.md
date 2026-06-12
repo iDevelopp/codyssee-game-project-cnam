@@ -2,9 +2,9 @@
 
 - **Domaine** : tests E2E Playwright (lancer le build, piloter le clavier, asserter les critères d'acceptation, captures), non-régression.
 - **Modèle par défaut** : sonnet.
-- **Statut courant** : TASK-018 livrée → `review`.
-- **Tâches assignées** : TASK-013 (QA J1 — done), TASK-018 (QA J2 — review).
-- **Blocages** : BUG-02 (InteractionSystem) bloquant A2/A3/A4 — owner agent-moteur.
+- **Statut courant** : TASK-021 livrée → `review`.
+- **Tâches assignées** : TASK-013 (QA J1 — done), TASK-018 (QA J2 — done), TASK-021 (QA J3 — review).
+- **Blocages** : aucun.
 
 ## Session 2026-06-12 — QA J1
 
@@ -158,6 +158,51 @@
 - Navigation Clara : UP 1800ms avant RIGHT 1600ms — évite rayon 240px de la porte (door.canInteract() = !InputLock.isLocked(), toujours vrai quand déverrouillé).
 - music.ambient via `ambientTrack.play()` ne passe pas par `play(key)` → absent de __audioCalls. Comportement attendu, documenté dans HANDOFF-001.
 - Zigzag A4/R2 (600ms chaque direction) pour reset position sans pousser aux bounds.
+
+---
+
+## Session 2026-06-12 — QA J3 (TASK-021)
+
+### Méthode
+
+- Build : `pnpm build` ✓ (dist/content/zones/ contient zone_01/02/03 + index.json).
+- Preview : port 4176 (`pnpm preview --port 4176`).
+- Spec : `web/tests/e2e/j3-multizone.spec.js` (Node.js Playwright headless Chromium).
+- 82 screenshots `j3-*.png` dans `web/tests/e2e/screenshots/`.
+- Rapport JSON : `web/tests/e2e/qa-report-j3-2026-06-12.json`.
+- Techniques clés :
+  - `addInitScript` + `Object.defineProperty(window,'Phaser',{set})` pour capturer l'instance de jeu avant que le bundle n'appelle `new Phaser.Game()`.
+  - Navigation dynamique vers la porte : `__getPlayerPos()` → calcul du delta → hold arrow keys.
+  - Off-screen cards : `deckPanel.close()` via accès runtime JS puis injection directe de `deck-card-picked` sur `game.events`.
+  - `localStorage.clear()` avant navigation (pas après chargement) pour éviter que le jeu lise un save périmé.
+  - Positions NPC calibrées pour rester à > 240px de la porte (éviter déclenchement accidentel).
+
+### Résultats
+
+| ID | Critère | Résultat |
+|----|---------|---------|
+| C8 | Build intégrité | **PASS** |
+| C1 | zone_01→zone_02 transition | **PASS** |
+| C2 | Deck persist cross-zones | **PASS** |
+| C3 | zone_02→zone_03 transition | **PASS** |
+| C4 | zone_03→écran de fin, pas zone_04 | **PASS** |
+| C5 | Reprise après reload | **PASS** |
+| C6 | themeEra différenciation visuelle | **PASS** |
+| C7 | Non-régression J1/J2 | **PASS** |
+
+**8/8 PASS.**
+
+### Bugs découverts
+
+**BUG-03 (non-bloquant) — ProgressionSystem.restoreResolved() global vs zone-local**
+- Tous les `helpedNpcIds` historiques sont comptés contre le `questNPCCount` de la zone courante.
+- zone_01 (3 NPCs) → zone_02 (questNPCCount=3) → porte verte immédiate dès entrée.
+- Owner : agent-moteur. Source : `ProgressionSystem.ts` restoreResolved().
+
+**BUG-04 (non-bloquant) — ZoneScene.npcs[] non réinitialisé entre transitions**
+- `this.npcs` s'accumule (constructeur TS, pas dans create()). Phaser réutilise l'instance.
+- Le loop InputLock E-press itère sur des NPCs zombies des zones précédentes.
+- Owner : agent-moteur. Fix : `this.npcs = []` au début de `ZoneScene.create()`.
 
 ---
 

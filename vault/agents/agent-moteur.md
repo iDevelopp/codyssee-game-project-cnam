@@ -2,8 +2,8 @@
 
 - **Domaine** : Phaser 3 / TypeScript. Scènes, boucle de jeu, déplacement, interaction (E), caméra, deck UI, dialogue, portes, écran de fin, menu. Garant de la boucle de gameplay.
 - **Modèle par défaut** : sonnet.
-- **Statut courant** : TASK-016 → `review`. BUG-02 fixé (double-fire E press). AudioManager + audio hook livrés.
-- **Tâches assignées** : TASK-006→012 (done), TASK-014 (done), TASK-016 (review).
+- **Statut courant** : TASK-021 → `review`. BUG-03 + BUG-04 corrigés (ZoneScene field resets, ProgressionSystem zone-scoped whitelist). tsc ✓, build ✓.
+- **Tâches assignées** : TASK-006→012 (done), TASK-014 (done), TASK-016 (done), TASK-020 (done), TASK-021 bugs (done — voir HANDOFF-002).
 - **Blocages** : aucun.
 - **Todo perso** : —
 
