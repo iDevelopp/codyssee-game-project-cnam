@@ -1,8 +1,23 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
+import { PreloadScene } from './scenes/PreloadScene';
+import { MainMenuScene } from './scenes/MainMenuScene';
+import { ZoneScene } from './scenes/ZoneScene';
+import { UIScene } from './scenes/UIScene';
 
 /**
  * Entry point — configures and launches the Phaser 3 game instance.
+ *
+ * Scene registration order matters for Phaser's scene manager:
+ *  1. BootScene    — immediate boot, transitions to PreloadScene
+ *  2. PreloadScene — loads assets + ContentLoader; transitions to MainMenuScene
+ *  3. MainMenuScene — title screen; starts ZoneScene + launches UIScene
+ *  4. ZoneScene    — main gameplay scene
+ *  5. UIScene      — persistent overlay (dialogue, deck, end screen); always on top
+ *
+ * UIScene is launched (not started) from MainMenuScene so it renders above
+ * ZoneScene in the scene stack. All scenes are registered here so they can
+ * be referenced by key string from any scene.
  *
  * Pixel-art config: pixelArt + render.antialias = false ensures nearest-neighbour
  * scaling everywhere; critical for the sprite style inherited from the Unity prototype.
@@ -38,7 +53,17 @@ const config: Phaser.Types.Core.GameConfig = {
 
   backgroundColor: '#000000',
 
-  scene: [BootScene],
+  // Arcade physics for player movement (no gravity needed for top-down)
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { x: 0, y: 0 },
+      debug: false,
+    },
+  },
+
+  // All scenes registered here. Start with BootScene; others activated by scene manager.
+  scene: [BootScene, PreloadScene, MainMenuScene, ZoneScene, UIScene],
 };
 
 // Instantiate game — stored so the browser doesn't GC it
