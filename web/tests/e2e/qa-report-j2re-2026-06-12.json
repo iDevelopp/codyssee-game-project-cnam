@@ -1,0 +1,139 @@
+{
+  "date": "2026-06-12",
+  "task": "TASK-018",
+  "retest": true,
+  "results": [
+    {
+      "id": "A5",
+      "label": "Prod build integrity: dist/content + dist/assets/audio present",
+      "result": "PASS",
+      "evidence": [
+        "Content: 5/5 present",
+        "Audio:   12/12 present"
+      ]
+    },
+    {
+      "id": "A1",
+      "label": "Audio wiring: sfx.interact + sfx.wrong + sfx.correct in __audioCalls",
+      "result": "PASS",
+      "evidence": [
+        "window.__audioCalls before: 0 entries",
+        "sfx.interact present: true",
+        "sfx.wrong present: true",
+        "sfx.correct present: true",
+        "Full __audioCalls: [sfx.interact, sfx.wrong, sfx.correct]",
+        "Note: music.ambient played via ambientTrack.play() (not play(key)) so not in __audioCalls — expected",
+        "Page errors: 0"
+      ]
+    },
+    {
+      "id": "A2",
+      "label": "Mute persists: M→true; reload→still true; M again→false",
+      "result": "PASS",
+      "evidence": [
+        "muted before (expected false): false",
+        "muted after M press (expected true): true → toggled: true",
+        "muted after reload (expected true): true → persisted: true",
+        "muted after M again (expected false): false → unmuted: true",
+        "localStorage after reload: {\"version\":1,\"deckCardIds\":[],\"helpedNpcIds\":[],\"unlockedDoorIds\":[],\"masterVolume\":1,\"muted\":true}",
+        "No page errors: true"
+      ]
+    },
+    {
+      "id": "A3",
+      "label": "Extended 3-NPC: Léa+Thomas+Clara each resolve + door → end screen",
+      "result": "PASS",
+      "evidence": [
+        "Léa (javascript) helped: true, card: true",
+        "Thomas (csharp) helped: true, card: true",
+        "Clara (sql) helped: true, card: true",
+        "All 3 helped: true",
+        "door_exit unlocked in save: true",
+        "Final helpedNpcIds: [\"npc_lea\",\"npc_thomas\",\"npc_clara\"]",
+        "Final deckCardIds: [\"python\",\"html\",\"c\",\"java\",\"rust\",\"javascript\",\"csharp\",\"sql\"]",
+        "Speaker-name screenshots (BUG-02 visual proof): j2re-*-a3-lea-line1, j2re-*-a3-thomas-line1, j2re-*-a3-clara-line1",
+        "No page errors during A3: true"
+      ]
+    },
+    {
+      "id": "A4",
+      "label": "J1 non-regression: 6-criterion core loop",
+      "result": "PASS",
+      "evidence": [
+        "R1 Menu→Zone (canvas present): true",
+        "R2 Movement 4 directions (ZQSD+arrows): true",
+        "R3 Dialogue line-by-line + deck opens: true",
+        "R4 Wrong→hint, correct→thanks, card in deck: true (deck_js=true, lea_helped=true)",
+        "R5 All 3 helped → door → end screen: true (allHelped=true, door=true)",
+        "R6 Persistence: npcs=true, deck=true, door=true",
+        "   Before: [\"npc_lea\",\"npc_thomas\",\"npc_clara\"] / After: [\"npc_lea\",\"npc_thomas\",\"npc_clara\"]",
+        "No new page errors during A4: true"
+      ]
+    }
+  ],
+  "consoleErrors": [],
+  "consoleWarnings": [
+    "[warning] [.WebGL-0x75400155400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x75400155400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x75400155400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x75400155400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "[warning] [.WebGL-0x366c00154800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x366c00154800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x366c00154800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x366c00154800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+  ],
+  "pageErrors": [],
+  "screenshots": [
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-001-a1-zone-dev-launched.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-002-a1-interact-dialogue.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-003-a1-wrong-sfx.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-004-a1-correct-sfx.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-005-a2-muted-state.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-006-a2-after-reload.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-007-a3-zone-loaded.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-008-a3-approaching-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-008-a3-near-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-009-a3-lea-dialogue-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-009-a3-lea-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-010-a3-lea-deck-open.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-010-a3-lea-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-011-a3-lea-correct-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-011-a3-lea-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-012-a3-approaching-thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-012-a3-near-thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-013-a3-thomas-dialogue-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-013-a3-thomas-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-014-a3-thomas-deck-open.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-014-a3-thomas-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-015-a3-thomas-correct-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-015-a3-thomas-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-016-a3-approaching-clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-016-a3-near-clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-017-a3-clara-dialogue-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-017-a3-clara-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-018-a3-clara-deck-open.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-018-a3-clara-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-019-a3-clara-correct-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-019-a3-clara-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-020-a3-after-all-helped.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-021-a3-at-door.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-022-a3-end-screen.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-023-a4-r1-zone-loaded.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-024-a4-r2-move-right.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-025-a4-r2-movement-done.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-026-a4-r3-dialogue-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-027-a4-r3-deck-open.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-028-a4-r4-wrong-hint.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-029-a4-r4-correct-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-030-a4-r5-end-screen.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-030-a4-thomas-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-031-a4-r6-after-reload.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-031-a4-thomas-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-032-a4-thomas-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-033-a4-clara-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-034-a4-clara-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-035-a4-clara-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-036-a4-r5-end-screen.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2re-037-a4-r6-after-reload.png"
+  ]
+}

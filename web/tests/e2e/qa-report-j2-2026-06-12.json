@@ -1,0 +1,145 @@
+{
+  "date": "2026-06-12",
+  "task": "TASK-018",
+  "results": [
+    {
+      "id": "A5",
+      "label": "Prod build integrity: dist/content + dist/assets/audio present",
+      "result": "PASS",
+      "evidence": [
+        "dist/content files checked: 5",
+        "Missing content: none",
+        "dist/assets/audio files checked: 12",
+        "Missing audio: none",
+        "Build integrity: OK"
+      ]
+    },
+    {
+      "id": "A1",
+      "label": "Audio wired: SFX play() calls triggered on game events",
+      "result": "FAIL",
+      "evidence": [
+        "Monkey-patch method: AudioBufferSourceNode.prototype.start + HTMLAudioElement.prototype.play",
+        "Play calls before any event: 0",
+        "After PLAYER_INTERACT (E key): 0 calls (+0) — interact triggered: false",
+        "After ANSWER_WRONG (wrong card): 0 calls (+0) — wrong SFX triggered: false",
+        "After NPC_RESOLVED (correct card): 0 calls (+0) — correct SFX triggered: false",
+        "Total AudioBufferSourceNode.start() calls: 0",
+        "Total HTMLAudioElement.play() calls: 0",
+        "Phaser cache audio keys (if exposed): not exposed via global",
+        "Interact SFX screenshot: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-002-a1-interact-sfx.png",
+        "Wrong SFX screenshot: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-003-a1-wrong-sfx.png",
+        "Correct SFX screenshot: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-004-a1-correct-sfx.png",
+        "No page errors: false"
+      ]
+    },
+    {
+      "id": "A2",
+      "label": "Volume/mute persisted: M toggle survives page reload",
+      "result": "FAIL",
+      "evidence": [
+        "muted before toggle (expected false): false",
+        "muted after M key press (expected true): false",
+        "Toggle changed correctly (was false → false): false",
+        "muted after full page reload: null",
+        "Persisted correctly (false === null): false",
+        "localStorage dump after reload: null",
+        "Screenshot with mute on: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-005-a2-muted-state.png",
+        "Screenshot after reload (menu): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-006-a2-after-reload.png",
+        "No page errors: false"
+      ]
+    },
+    {
+      "id": "A3",
+      "label": "Extended content: 3 NPCs (Léa+Thomas+Clara) + 8 cards + door opens",
+      "result": "FAIL",
+      "evidence": [
+        "Léa (javascript) helped: true, card in deck: true",
+        "Thomas (csharp) helped: false, card in deck: false",
+        "Clara (sql) helped: false, card in deck: false",
+        "All 3 quest NPCs helped: false",
+        "door_exit unlocked in save: false",
+        "helpedNpcIds: [\"npc_lea\"]",
+        "deckCardIds: [\"python\",\"html\",\"c\",\"java\",\"rust\",\"javascript\"]",
+        "Near Léa: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-008-a3-near-lea.png",
+        "Léa deck (8 cards visible): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-009-a3-lea-deck.png",
+        "Léa correct: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-010-a3-lea-correct.png",
+        "Near Thomas: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-011-a3-near-thomas.png",
+        "Thomas deck: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-012-a3-thomas-deck.png",
+        "Thomas correct: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-013-a3-thomas-correct.png",
+        "Near Clara: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-014-a3-near-clara.png",
+        "Clara deck (sql card at x=920): /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-015-a3-clara-deck.png",
+        "Clara correct: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-016-a3-clara-correct.png",
+        "All helped + door green: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-017-a3-all-helped.png",
+        "At door: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-018-a3-at-door.png",
+        "End screen: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-019-a3-end-screen.png",
+        "No page errors: false"
+      ]
+    },
+    {
+      "id": "A4",
+      "label": "J1 non-regression: core 6-criterion loop still passing",
+      "result": "FAIL",
+      "evidence": [
+        "R1 Menu→Zone (canvas present, no errors): true — /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-020-a4-r1-menu-to-zone.png",
+        "R2 Movement 4 directions: true — /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-021-a4-r2-move-right.png",
+        "R3 Dialogue line-by-line + deck opens: true — /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-024-a4-r3-deck-open.png",
+        "R4 Wrong hint + correct thanks + card in deck: true",
+        "   deck has javascript: true, npc_lea helped: true",
+        "   Screenshots: wrong=/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-025-a4-r4-wrong-hint.png, correct=/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-026-a4-r4-correct-thanks.png",
+        "R5 All 3 NPCs helped → door → end screen: false",
+        "   helpedNpcIds(3): false, door_exit unlocked: false",
+        "   End screen: /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-027-a4-r5-end-screen.png",
+        "R6 Persistence: helpedNpcs=true, deck=true, door=true — /home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-028-a4-r6-after-reload.png",
+        "   Save before: [\"npc_lea\"]",
+        "   Save after reload: [\"npc_lea\"]",
+        "No new page errors during J1 regression: true"
+      ]
+    }
+  ],
+  "consoleErrors": [],
+  "consoleWarnings": [
+    "[warning] WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost",
+    "[warning] WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost",
+    "[warning] WebGL Context lost. Renderer disabled",
+    "[warning] WebGL Context restored. Renderer running again.",
+    "[warning] [.WebGL-0x3ad400154800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x3ad400154e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x3ad400154e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x3ad400154e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+  ],
+  "pageErrors": [
+    "Framebuffer status: Framebuffer Unsupported"
+  ],
+  "totalPlayCalls": null,
+  "screenshots": [
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-001-a1-zone-launched.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-002-a1-interact-sfx.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-003-a1-wrong-sfx.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-004-a1-correct-sfx.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-005-a2-muted-state.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-006-a2-after-reload.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-007-a3-zone-loaded.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-008-a3-near-lea.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-009-a3-lea-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-010-a3-lea-correct.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-011-a3-near-thomas.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-012-a3-thomas-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-013-a3-thomas-correct.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-014-a3-near-clara.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-015-a3-clara-deck.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-016-a3-clara-correct.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-017-a3-all-helped.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-018-a3-at-door.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-019-a3-end-screen.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-020-a4-r1-menu-to-zone.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-021-a4-r2-move-right.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-022-a4-r2-movement-done.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-023-a4-r3-dialogue-line1.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-024-a4-r3-deck-open.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-025-a4-r4-wrong-hint.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-026-a4-r4-correct-thanks.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-027-a4-r5-end-screen.png",
+    "/home/ubuntu/dev/codyssee/web/tests/e2e/screenshots/j2-028-a4-r6-after-reload.png"
+  ]
+}
