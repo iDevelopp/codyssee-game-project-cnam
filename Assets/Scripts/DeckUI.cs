@@ -119,6 +119,7 @@ public class DeckUI : MonoBehaviour
         onCardPicked = null;
         panel.SetActive(false);
         dimOverlay.SetActive(false);
+        UnityEngine.EventSystems.EventSystem.current?.SetSelectedGameObject(null);
     }
 
     private void BuildCardButtons(IReadOnlyList<CardData> cards)

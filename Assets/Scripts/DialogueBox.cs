@@ -200,6 +200,7 @@ public class DialogueBox : MonoBehaviour
         SetPortrait(null);
         CurrentOwner = null;
         panel.SetActive(false);
+        UnityEngine.EventSystems.EventSystem.current?.SetSelectedGameObject(null);
     }
 
     private void HideChoiceButtons()

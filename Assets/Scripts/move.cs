@@ -35,9 +35,14 @@ public class move : MonoBehaviour
     private float vertical;
     private float speed = 5f;
 
+    private BoxCollider2D boxCollider;
+    private ContactFilter2D wallFilter;
+
     private void Awake()
     {
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        boxCollider = GetComponent<BoxCollider2D>();
+        wallFilter = new ContactFilter2D { useTriggers = false, useLayerMask = false };
     }
 
     private void Update()
@@ -51,34 +56,45 @@ public class move : MonoBehaviour
             return;
         }
 
-        if (Keyboard.current.leftArrowKey.isPressed || Keyboard.current.aKey.isPressed)
-        {
-            horizontal = -1f;
-            facing = Facing.Droite;
-        }
-        else if (Keyboard.current.rightArrowKey.isPressed || Keyboard.current.dKey.isPressed)
-        {
-            horizontal = 1f;
-            facing = Facing.Gauche;
-        }
-        else if (Keyboard.current.upArrowKey.isPressed || Keyboard.current.wKey.isPressed)
-        {
-            vertical = 1f;
-            facing = Facing.Haut;
-        }
-        else if (Keyboard.current.downArrowKey.isPressed || Keyboard.current.sKey.isPressed)
-        {
-            vertical = -1f;
-            facing = Facing.Bas;
-        }
+        horizontal = Input.GetAxisRaw("Horizontal");
+        vertical = Input.GetAxisRaw("Vertical");
 
+        if (horizontal < 0) facing = Facing.Droite;
+        else if (horizontal > 0) facing = Facing.Gauche;
+        else if (vertical > 0) facing = Facing.Haut;
+        else if (vertical < 0) facing = Facing.Bas;
+
+        Vector2 delta = new Vector2(horizontal, vertical) * speed * Time.deltaTime;
+        delta = ClampToWalls(delta);
+        transform.position += new Vector3(delta.x, delta.y, 0);
         Animate(horizontal != 0f || vertical != 0f);
     }
 
-    private void FixedUpdate()
+    private void FixedUpdate() { }
+
+    private Vector2 ClampToWalls(Vector2 delta)
     {
-        rb.linearVelocity = new Vector2(horizontal * speed, vertical * speed);
+        if (boxCollider == null) return delta;
+        const float skin = 0.05f;
+        var hits = new RaycastHit2D[1];
+
+        if (delta.x != 0)
+        {
+            int n = Physics2D.BoxCast(rb.position, boxCollider.size * transform.lossyScale, 0f,
+                                      new Vector2(delta.x, 0), wallFilter, hits, Mathf.Abs(delta.x) + skin);
+            if (n > 0) delta.x = 0;
+        }
+
+        if (delta.y != 0)
+        {
+            int n = Physics2D.BoxCast(rb.position, boxCollider.size * transform.lossyScale, 0f,
+                                      new Vector2(0, delta.y), wallFilter, hits, Mathf.Abs(delta.y) + skin);
+            if (n > 0) delta.y = 0;
+        }
+
+        return delta;
     }
+
 
     private void Animate(bool isMoving)
     {
