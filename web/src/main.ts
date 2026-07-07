@@ -69,4 +69,8 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 // Instantiate game — stored so the browser doesn't GC it
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+// Expose the game instance for QA / debug tooling (Playwright introspection).
+// Kept in prod builds intentionally: read-only inspection, no gameplay impact.
+(window as any).__game = game;

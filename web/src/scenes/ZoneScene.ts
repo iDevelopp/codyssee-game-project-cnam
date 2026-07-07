@@ -504,6 +504,11 @@ export class ZoneScene extends Phaser.Scene {
     // Release the open flag so T can reopen it.
     ev.on(GameEvents.TIMELINE_CLOSE, () => {
       this.timelineOpen = false;
+      // Race guard: the T keydown that closed the frieze can land between our
+      // update and TimelineScene's update. Without this, the NEXT frame would
+      // see that same press as a fresh rising edge here and instantly reopen
+      // the frieze. Marking T as already-down requires a release + new press.
+      this.wasTDown = true;
     });
   }
 

@@ -59,15 +59,52 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     // Clear previous buttons
     this._clearButtons();
 
-    // Layout cards horizontally centered, wrapping if needed
-    const totalW = cards.length * (DeckPanel.CARD_W + DeckPanel.CARD_GAP) - DeckPanel.CARD_GAP;
-    // Center the row; if it overflows 1200px wide we still render (scroll not needed for J1 with 4 cards)
-    const startX = Math.max(40, (1280 - totalW) / 2);
-    const cardY = 360;
+    // ---- Responsive grid layout (BUG-06) ----
+    // The full card base can reach 19+ cards: a single row overflows 1280px.
+    // Pick the column count that maximises card scale while keeping the whole
+    // grid inside the panel area (below the title, above the bottom margin).
+    const count = cards.length;
+    const AREA_W = 1200;                    // 40px side margins
+    const AREA_TOP = 130;                   // below the title at y=80
+    const AREA_BOTTOM = 690;                // bottom margin
+    const AREA_H = AREA_BOTTOM - AREA_TOP;
+    const W = DeckPanel.CARD_W;
+    const H = DeckPanel.CARD_H;
+    const G = DeckPanel.CARD_GAP;
+
+    // Try every column count; keep the one yielding the largest card scale.
+    // Strict improvement test keeps the fewest columns on ties (more compact).
+    let best = { cols: Math.max(count, 1), scale: 0 };
+    for (let cols = 1; cols <= count; cols++) {
+      const rows = Math.ceil(count / cols);
+      const gridW = cols * W + (cols - 1) * G;
+      const gridH = rows * H + (rows - 1) * G;
+      const scale = Math.min(1, AREA_W / gridW, AREA_H / gridH);
+      if (scale > best.scale + 1e-6) {
+        best = { cols, scale };
+      }
+    }
+
+    const { cols, scale } = best;
+    const rows = Math.ceil(count / cols) || 1;
+    const cellW = (W + G) * scale;
+    const cellH = (H + G) * scale;
+    const gridH = rows * cellH - G * scale;
+    // Vertically centre the grid inside the panel area
+    const top = AREA_TOP + (AREA_H - gridH) / 2;
 
     cards.forEach((card, i) => {
-      const cx = startX + i * (DeckPanel.CARD_W + DeckPanel.CARD_GAP);
-      const btn = this._makeCardButton(cx, cardY, card);
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      // Last row may be partial — centre each row independently
+      const colsInRow = Math.min(cols, count - row * cols);
+      const rowW = colsInRow * cellW - G * scale;
+      const startX = (1280 - rowW) / 2 + (W * scale) / 2;
+
+      const cx = startX + col * cellW;
+      const cy = top + row * cellH + (H * scale) / 2;
+      const btn = this._makeCardButton(cx, cy, card);
+      btn.setScale(scale);
       this.cardButtons.push(btn);
       this.add(btn);
     });
@@ -121,11 +158,15 @@ export class DeckPanel extends Phaser.GameObjects.Container {
       align: 'center',
     }).setOrigin(0.5, 0);
 
-    const usageTxt = this.scene.add.text(0, H / 2 - 12, card.usage, {
+    // wordWrap keeps long usage strings inside the card instead of bleeding
+    // over the neighbouring grid cells (anchored bottom, grows upward).
+    const usageTxt = this.scene.add.text(0, H / 2 - 8, card.usage, {
       fontFamily: 'monospace',
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#8888aa',
       fontStyle: 'italic',
+      wordWrap: { width: W - 16 },
+      align: 'center',
     }).setOrigin(0.5, 1);
 
     bg.on('pointerover', () => bg.setFillStyle(0x3333aa));

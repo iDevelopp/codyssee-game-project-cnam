@@ -25,12 +25,13 @@ const AXIS_WIDTH = 1280 - AXIS_LEFT - AXIS_RIGHT;
 /** Radius of each entry node circle. */
 const NODE_RADIUS = 18;
 
-/** Y offset for entry label text above/below node (alternating to avoid overlap). */
-const LABEL_OFFSET_ABOVE = 90;
-const LABEL_OFFSET_BELOW = 60;
-
-/** Decade tick mark height. */
-const DECADE_TICK_H = 14;
+/**
+ * Vertical node offsets from the axis, cycled by entry index (BUG-07).
+ * Four tiers (far-above, near-below, near-above, far-below) so that even
+ * entries sharing the same year (e.g. Java/JavaScript/PHP/Ruby ~1995) get
+ * labels at different heights and stay readable.
+ */
+const NODE_TIERS = [-150, 60, -80, 130];
 
 /** Depth of the frieze overlay — must be above ZoneScene (0) + UIScene (300). */
 const DEPTH_BASE = 400;
@@ -47,8 +48,13 @@ const COLOR_AXIS = 0x88aacc;
 /** Color for influence arrows between revealed nodes. */
 const COLOR_INFLUENCE = 0xffcc44;
 
-/** Background overlay alpha. */
-const BG_ALPHA = 0.93;
+/**
+ * Background overlay alpha — fully opaque (BUG-07).
+ * At 0.93 the bright placeholder NPCs/zone bled through the backdrop and the
+ * frieze looked like floating labels over the game. Solid black-blue reads
+ * as a proper full-screen overlay.
+ */
+const BG_ALPHA = 1;
 
 /**
  * TimelineScene — full-screen overlay showing the chronological frieze of
@@ -219,10 +225,22 @@ export class TimelineScene extends Phaser.Scene {
   private _open(deck: DeckSystem | null): void {
     if (this.isOpen) return;
 
+    // Ensure this scene renders above ZoneScene/UIScene regardless of how the
+    // scene list was reordered by previous start/stop cycles (BUG-07 hardening).
+    this.scene.bringToTop();
+
     this._refreshDeckIds();
     this._rebuild();
     this._setVisible(true);
     this.isOpen = true;
+
+    // Race guard: the T keydown that triggered this open can land between
+    // ZoneScene.update (emits TIMELINE_OPEN) and our update on the same frame.
+    // Without this, our rising-edge check would see that same press as a fresh
+    // edge and close the frieze instantly. Marking the key as already-down
+    // forces a release + new press before T can close.
+    this.wasTDown = true;
+
     InputLock.lock();
 
     // Live reveal: when a card is added while the frieze is open, pulse it.
@@ -304,18 +322,6 @@ export class TimelineScene extends Phaser.Scene {
       return;
     }
 
-    // ---- Compute year range ----
-    const minYear = entries[0].year;
-    const maxYear = entries[entries.length - 1].year;
-    const yearSpan = Math.max(maxYear - minYear, 1); // guard div/0
-
-    /**
-     * Maps a year to an X pixel coordinate on the axis.
-     * Uses a linear mapping from [minYear, maxYear] → [AXIS_LEFT, 1280-AXIS_RIGHT].
-     */
-    const yearToX = (year: number): number =>
-      AXIS_LEFT + ((year - minYear) / yearSpan) * AXIS_WIDTH;
-
     // ---- Draw axis line ----
     this.gfx.lineStyle(2, COLOR_AXIS, 0.8);
     this.gfx.beginPath();
@@ -323,34 +329,19 @@ export class TimelineScene extends Phaser.Scene {
     this.gfx.lineTo(1280 - AXIS_RIGHT, AXIS_Y);
     this.gfx.strokePath();
 
-    // ---- Draw decade markers ----
-    const firstDecade = Math.ceil(minYear / 10) * 10;
-    const lastDecade = Math.floor(maxYear / 10) * 10;
-    this.gfx.lineStyle(1, COLOR_AXIS, 0.5);
-    for (let decade = firstDecade; decade <= lastDecade; decade += 10) {
-      const x = yearToX(decade);
-      this.gfx.beginPath();
-      this.gfx.moveTo(x, AXIS_Y - DECADE_TICK_H);
-      this.gfx.lineTo(x, AXIS_Y + DECADE_TICK_H);
-      this.gfx.strokePath();
-
-      // Decade label
-      const decLabel = this.add.text(x, AXIS_Y + DECADE_TICK_H + 6, String(decade), {
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#556677',
-      }).setOrigin(0.5, 0).setDepth(DEPTH_BASE + 2);
-      this.nodeLabelTexts.push(decLabel);
-    }
-
-    // ---- Compute node positions (X by year, Y alternating above/below axis) ----
-    // Precompute to use for influence arrows
+    // ---- Compute node positions (BUG-07: uniform spacing + 4-tier stagger) ----
+    // X is uniform by sorted index, NOT proportional to year: with 19 entries a
+    // year-linear mapping stacks same-year languages (1995 cluster) on one pixel
+    // column and makes labels unreadable. Chronological order is preserved and
+    // each label carries its year, so no information is lost.
+    // Y cycles through NODE_TIERS so neighbouring labels never share a row.
     const nodePositions: Map<string, { x: number; y: number }> = new Map();
+    const step = total > 1 ? AXIS_WIDTH / (total - 1) : 0;
     for (let i = 0; i < entries.length; i++) {
       const e = entries[i];
-      const x = yearToX(e.year);
-      // Alternate: even-indexed entries go above axis, odd below
-      const y = i % 2 === 0 ? AXIS_Y - LABEL_OFFSET_ABOVE : AXIS_Y + LABEL_OFFSET_BELOW;
+      // Single entry: centre it on the axis
+      const x = total > 1 ? AXIS_LEFT + i * step : AXIS_LEFT + AXIS_WIDTH / 2;
+      const y = AXIS_Y + NODE_TIERS[i % NODE_TIERS.length];
       nodePositions.set(e.cardId, { x, y });
     }
 
@@ -510,5 +501,15 @@ export class TimelineScene extends Phaser.Scene {
     this.counterText.setVisible(visible);
     this.hintText.setVisible(visible);
     this.detailPanel.setVisible(false); // always hide detail on toggle
+
+    // Per-node objects are created in _rebuild() (on open) and must be hidden
+    // on close too — otherwise labels and hit zones linger over the game zone
+    // after the frieze is dismissed (BUG-07: "floating labels" symptom).
+    for (const zone of this.nodeZones) {
+      zone.setVisible(visible);
+    }
+    for (const t of this.nodeLabelTexts) {
+      t.setVisible(visible);
+    }
   }
 }

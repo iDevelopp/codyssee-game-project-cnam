@@ -19,6 +19,12 @@ export class MainMenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const cl = ContentLoader.getInstance();
 
+    // Defensive reset (BUG-08): the scene singleton is reused when returning
+    // to the menu (END_MENU / Quitter). Restore camera visibility and input,
+    // which are disabled below while the intro overlay is shown.
+    this.cameras.main.setVisible(true);
+    this.input.enabled = true;
+
     // ---- Audio init ----
     // SaveSystem must be loaded before AudioManager.init() so saved volume/mute
     // are available. PreloadScene does not call save.load() — that happens in
@@ -81,6 +87,13 @@ export class MainMenuScene extends Phaser.Scene {
         // the intro is dismissed (not alongside it).
         // Small delay ensures UIScene.create() has completed before we emit.
         this.time.delayedCall(100, () => {
+          // BUG-08: hide the menu and disable its buttons while the intro
+          // overlay is up. Otherwise the title/buttons bleed through the
+          // overlay AND clicks meant to advance the intro can re-trigger
+          // the menu buttons underneath. scene.start('ZoneScene') in the
+          // callback shuts this scene down; create() re-enables on return.
+          this.cameras.main.setVisible(false);
+          this.input.enabled = false;
           this.game.events.emit('intro-show', {
             onComplete: () => {
               this.scene.start('ZoneScene', startData);

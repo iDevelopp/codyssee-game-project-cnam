@@ -66,18 +66,24 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
     super(scene, npcContent.position.x, npcContent.position.y, 32, 48, 0xffcc00);
     this.setScale(5);
 
+    // Top-down y-sort (BUG-09): depth = feet Y (centre + half display height).
+    // The player uses the same rule, so it renders in front of this NPC when
+    // standing south of it instead of disappearing behind the placeholder.
+    this.setDepth(npcContent.position.y + (48 * 5) / 2);
+
     this.gameScene = scene;
     this.npcContent = npcContent;
 
     // Rectangle extends GameObject — add to scene display list
     scene.add.existing(this as unknown as Phaser.GameObjects.GameObject);
 
-    // Name label floated above the sprite
+    // Name label floated above the sprite — same depth as the NPC so it stays
+    // attached to it in the y-sorted world.
     scene.add.text(npcContent.position.x, npcContent.position.y - 48 * 5 / 2 - 10, npcContent.name, {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffffaa',
-    }).setOrigin(0.5, 1);
+    }).setOrigin(0.5, 1).setDepth(npcContent.position.y + (48 * 5) / 2);
 
     // Listen for deck picks on the global bus — filter to our npcId
     scene.game.events.on(

@@ -43,6 +43,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setSize(8, 8);
     body.setCollideWorldBounds(true);
 
+    // Top-down y-sort (BUG-09): depth = feet Y so the player renders in front
+    // of NPCs when standing south of them and behind when north. Kept in sync
+    // every frame in move().
+    this.setDepth(this.y + this.displayHeight / 2);
+
     // Register animations on first creation; safe to call multiple times
     // (Phaser skips registration if key already exists in global anim manager)
     Player._registerAnims(scene);
@@ -62,6 +67,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     frozen: boolean,
   ): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
+
+    // Top-down y-sort (BUG-09): keep depth in sync with the feet position
+    // so NPC/player overlap resolves correctly while moving.
+    this.setDepth(this.y + this.displayHeight / 2);
 
     if (frozen) {
       // Freeze in place and show idle frame — don't let physics drift
