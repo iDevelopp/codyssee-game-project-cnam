@@ -7,7 +7,7 @@ import { ZoneBanner } from '@/ui/ZoneBanner';
 import { Hud } from '@/ui/Hud';
 import { JournalPanel, type JournalEntry } from '@/ui/JournalPanel';
 import { SaveSystem } from '@/systems/SaveSystem';
-import type { XpChange } from '@/systems/XpSystem';
+import { XpSystem, type XpChange } from '@/systems/XpSystem';
 import type { ProgressSnapshot } from '@/types/Progress';
 import { GameEvents } from '@/systems/GameEvents';
 import type { CardData } from '@/types/CardData';
@@ -47,6 +47,13 @@ export class UIScene extends Phaser.Scene {
   private scope!: EventScope;
   /** Question journal (J). */
   private journalPanel!: JournalPanel;
+  /** XP wallet for the hint shop. */
+  private xp!: XpSystem;
+  /**
+   * Hint-shop purchases per NPC for this session, so closing and reopening
+   * the deck does not make the player pay twice for the same question.
+   */
+  private purchases: Map<string, { eliminated: string[]; answer: boolean }> = new Map();
 
   constructor() {
     super({ key: 'UIScene' });
@@ -88,6 +95,9 @@ export class UIScene extends Phaser.Scene {
     this.hud.setXp(SaveSystem.getInstance().getXp(), 0);
     // Hidden during the intro overlay — revealed on the first zone progress event.
     this.hud.setVisible(false);
+
+    this.xp = new XpSystem(this.game.events);
+    this.purchases = new Map();
 
     this.journalPanel = new JournalPanel(this, {
       title: cl.getString('journal.title'),
@@ -150,6 +160,7 @@ export class UIScene extends Phaser.Scene {
       this.deckPanel.setSubtitle(
         data.question ? `« ${data.question} »   ${cl.getString('deck.backHint')}` : '',
       );
+      this._setupShop(data.npcId, data.cards);
     });
 
     // ← / Backspace from the card selection: back to the question line
@@ -185,6 +196,7 @@ export class UIScene extends Phaser.Scene {
 
     this.scope.on(GameEvents.XP_CHANGED, (change: XpChange) => {
       this.hud.setXp(change.xp, change.delta);
+      this._refreshBalance();
     });
 
     this.scope.on(GameEvents.PROGRESS_CHANGED, (snapshot: ProgressSnapshot) => {
@@ -210,6 +222,71 @@ export class UIScene extends Phaser.Scene {
       const lines = narrative.zoneIntros[payload.zoneId] ?? [];
       this.zoneBanner.show(lines);
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Hint shop (feat/hint-shop)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Wire the deck panel's shop for the NPC being answered and re-apply what
+   * was already bought for that question.
+   */
+  private _setupShop(npcId: string, cards: CardData[]): void {
+    const cl = ContentLoader.getInstance();
+    const expected = cl.getNpc(npcId)?.question?.expectedCardId;
+    if (!expected) {
+      this.deckPanel.configureShop(null);
+      return;
+    }
+    const { shop } = cl.getEconomy();
+    const bought = this.purchases.get(npcId) ?? { eliminated: [], answer: false };
+    this.purchases.set(npcId, bought);
+
+    this.deckPanel.configureShop({
+      hintLabel: cl.getString('shop.hint').replace('{cost}', String(shop.hintCost)),
+      answerLabel: cl.getString('shop.answer').replace('{cost}', String(shop.answerCost)),
+      hintBought: bought.eliminated.length > 0,
+      answerBought: bought.answer,
+      onHint: () => {
+        if (bought.eliminated.length > 0 || bought.answer) return; // already useless / bought
+        if (!this.xp.spend(shop.hintCost, 'shop-hint')) {
+          this._denied('hint');
+          return;
+        }
+        // Grey out a random share of the wrong cards
+        const wrong = Phaser.Utils.Array.Shuffle(cards.filter((c) => c.id !== expected).map((c) => c.id));
+        bought.eliminated = wrong.slice(0, Math.floor(wrong.length * shop.hintEliminateRatio));
+        this.deckPanel.eliminate(bought.eliminated);
+        this.deckPanel.setShopBought(true, bought.answer);
+      },
+      onAnswer: () => {
+        if (bought.answer) return; // already bought
+        if (!this.xp.spend(shop.answerCost, 'shop-answer')) {
+          this._denied('answer');
+          return;
+        }
+        bought.answer = true;
+        this.deckPanel.revealAnswer(expected);
+        this.deckPanel.setShopBought(true, true);
+      },
+    });
+
+    this._refreshBalance();
+    if (bought.eliminated.length > 0) this.deckPanel.eliminate(bought.eliminated);
+    if (bought.answer) this.deckPanel.revealAnswer(expected);
+  }
+
+  /** Update the XP balance shown in the deck's shop corner. */
+  private _refreshBalance(): void {
+    const cl = ContentLoader.getInstance();
+    this.deckPanel.setBalance(cl.getString('shop.balance').replace('{xp}', String(this.xp.get())));
+  }
+
+  /** Purchase refused (not enough XP): red flash, "denied" cue, HUD notice. */
+  private _denied(which: 'hint' | 'answer'): void {
+    this.deckPanel.flashDenied(which);
+    this.game.events.emit(GameEvents.ACTION_DENIED);
   }
 
   /**

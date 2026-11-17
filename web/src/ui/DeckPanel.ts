@@ -25,6 +25,16 @@ export class DeckPanel extends Phaser.GameObjects.Container {
   private readonly closeBg: Phaser.GameObjects.Rectangle;
   private readonly closeText: Phaser.GameObjects.Text;
   private cardButtons: Phaser.GameObjects.Container[] = [];
+  /** Per-card handles, so the shop can grey out or highlight a card. */
+  private cardMeta: Map<string, { container: Phaser.GameObjects.Container; bg: Phaser.GameObjects.Rectangle }> = new Map();
+
+  /** Shop buttons (top-left): buy a hint / the answer with XP. */
+  private readonly hintBtn: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text };
+  private readonly answerBtn: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text };
+  /** Player's XP balance under the shop buttons (the HUD is covered). */
+  private readonly balanceText: Phaser.GameObjects.Text;
+  private onBuyHint: (() => void) | null = null;
+  private onBuyAnswer: (() => void) | null = null;
   private onCardPicked: ((card: CardData) => void) | null = null;
   private onClose: (() => void) | null = null;
 
@@ -70,7 +80,18 @@ export class DeckPanel extends Phaser.GameObjects.Container {
       wordWrap: { width: 1000 },
     }).setOrigin(0.5);
 
-    this.add([this.bg, this.titleText, this.subtitleText, this.closeBg, this.closeText]);
+    this.hintBtn = this._makeShopButton(40, () => this.onBuyHint?.());
+    this.answerBtn = this._makeShopButton(260, () => this.onBuyAnswer?.());
+    this.balanceText = scene.add.text(40, 64, '', {
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      color: '#ffd166',
+    }).setVisible(false);
+
+    this.add([
+      this.bg, this.titleText, this.subtitleText, this.closeBg, this.closeText,
+      this.hintBtn.bg, this.hintBtn.text, this.answerBtn.bg, this.answerBtn.text, this.balanceText,
+    ]);
     // Modal: above the zone banner (200-201) and the HUD bar (250)
     this.setDepth(300);
     this.setVisible(false);
@@ -166,6 +187,98 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     this.subtitleText.setText(text);
   }
 
+  /**
+   * Configure the shop buttons for this opening (call after open()).
+   * Pass null to hide the shop (e.g. no question).
+   */
+  configureShop(shop: {
+    hintLabel: string;
+    answerLabel: string;
+    hintBought: boolean;
+    answerBought: boolean;
+    onHint: () => void;
+    onAnswer: () => void;
+  } | null): void {
+    const show = shop !== null;
+    for (const part of [this.hintBtn.bg, this.hintBtn.text, this.answerBtn.bg, this.answerBtn.text, this.balanceText]) {
+      part.setVisible(show);
+    }
+    if (!shop) {
+      this.onBuyHint = this.onBuyAnswer = null;
+      return;
+    }
+    this.hintBtn.text.setText(shop.hintLabel);
+    this.answerBtn.text.setText(shop.answerLabel);
+    this.onBuyHint = shop.onHint;
+    this.onBuyAnswer = shop.onAnswer;
+    this.setShopBought(shop.hintBought, shop.answerBought);
+  }
+
+  /** Show the XP balance under the shop (e.g. "★ 80 XP disponibles"). */
+  setBalance(text: string): void {
+    this.balanceText.setText(text);
+  }
+
+  /** Grey out (and disable) the shop buttons already used for this question. */
+  setShopBought(hintBought: boolean, answerBought: boolean): void {
+    const apply = (btn: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text }, bought: boolean): void => {
+      btn.bg.setAlpha(bought ? 0.35 : 1);
+      btn.text.setAlpha(bought ? 0.35 : 1);
+      if (bought) btn.bg.disableInteractive();
+      else btn.bg.setInteractive({ useHandCursor: true });
+    };
+    // Once the answer is shown, a hint is pointless
+    apply(this.hintBtn, hintBought || answerBought);
+    apply(this.answerBtn, answerBought);
+  }
+
+  /** Grey out and disable the given cards (hint purchase). */
+  eliminate(cardIds: string[]): void {
+    for (const id of cardIds) {
+      const meta = this.cardMeta.get(id);
+      if (!meta) continue;
+      meta.container.setAlpha(0.22);
+      meta.bg.disableInteractive();
+    }
+  }
+
+  /** Highlight the right card (answer purchase). */
+  revealAnswer(cardId: string): void {
+    const meta = this.cardMeta.get(cardId);
+    if (!meta) return;
+    meta.bg.setStrokeStyle(4, 0x66ff66);
+    this.scene.tweens.add({
+      targets: meta.container,
+      scale: meta.container.scale * 1.08,
+      duration: 220,
+      yoyo: true,
+      repeat: 2,
+    });
+  }
+
+  /** Brief red flash on a shop button (purchase refused: not enough XP). */
+  flashDenied(which: 'hint' | 'answer'): void {
+    const btn = which === 'hint' ? this.hintBtn : this.answerBtn;
+    btn.bg.setFillStyle(0x993333);
+    this.scene.time.delayedCall(250, () => btn.bg.setFillStyle(0x333355));
+  }
+
+  private _makeShopButton(x: number, onClick: () => void): { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text } {
+    const bg = this.scene.add.rectangle(x, 40, 210, 36, 0x333355)
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true })
+      .setVisible(false);
+    const text = this.scene.add.text(x + 105, 40, '', {
+      fontFamily: 'monospace',
+      fontSize: '13px',
+      color: '#ffd166',
+    }).setOrigin(0.5).setVisible(false);
+    bg.on('pointerover', () => bg.setFillStyle(0x4a4a7a));
+    bg.on('pointerout', () => bg.setFillStyle(0x333355));
+    bg.on('pointerdown', onClick);
+    return { bg, text };
+  }
+
   /** Hide the panel and release input lock. */
   close(): void {
     this._clearButtons();
@@ -240,6 +353,7 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     });
 
     container.add([bg, notch, nameTxt, descTxt, usageTxt]);
+    this.cardMeta.set(card.id, { container, bg });
     return container;
   }
 
@@ -249,5 +363,6 @@ export class DeckPanel extends Phaser.GameObjects.Container {
       this.remove(b, true);
     });
     this.cardButtons = [];
+    this.cardMeta.clear();
   }
 }

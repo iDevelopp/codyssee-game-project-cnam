@@ -14,6 +14,14 @@ export interface EconomyData {
     /** Bonus XP when the last quest NPC of a zone is helped (door opens). */
     zoneCleared: number;
   };
+  shop: {
+    /** XP cost of a hint: greys out part of the wrong cards. */
+    hintCost: number;
+    /** Share of the wrong cards a hint removes (0..1). */
+    hintEliminateRatio: number;
+    /** XP cost of revealing the right card. */
+    answerCost: number;
+  };
 }
 
 export const ECONOMY_DEFAULT: EconomyData = {
@@ -21,5 +29,10 @@ export const ECONOMY_DEFAULT: EconomyData = {
     correctFirstTry: 50,
     correctAfterRetry: 25,
     zoneCleared: 100,
+  },
+  shop: {
+    hintCost: 20,
+    hintEliminateRatio: 0.5,
+    answerCost: 60,
   },
 };

@@ -3,5 +3,10 @@
     "correctFirstTry": 50,
     "correctAfterRetry": 25,
     "zoneCleared": 100
+  },
+  "shop": {
+    "hintCost": 20,
+    "hintEliminateRatio": 0.5,
+    "answerCost": 60
   }
 }
