@@ -349,7 +349,8 @@
       "[J] ouvre ton journal : toutes les questions qu'on t'a posées, et les réponses trouvées.",
       "Bloqué devant les cartes ? [←] pour relire la question, ou achète un indice avec ton XP.",
       "Et surveille ton énergie ⚡ : à zéro, tu ralentis et tu perds de l'XP. Un café, et ça repart !",
-      "Tu as de l'XP en trop ? [B] ouvre la boutique de tenues. Certaines se paient même en énergie !"
+      "Tu as de l'XP en trop ? [B] ouvre la boutique de tenues. Certaines se paient même en énergie !",
+      "Et si tu préfères écouter plutôt que lire : [V] active la lecture vocale des dialogues."
     ],
     "resolvedLines": []
   },

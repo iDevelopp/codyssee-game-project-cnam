@@ -8,6 +8,7 @@ import { Hud } from '@/ui/Hud';
 import { Toast } from '@/ui/Toast';
 import { CharacterCreator } from '@/ui/CharacterCreator';
 import { personalize } from '@/systems/Personalize';
+import { SpeechSystem } from '@/systems/SpeechSystem';
 import { EnergySystem, type EnergyChange } from '@/systems/EnergySystem';
 import { ShopPanel, type ShopItem } from '@/ui/ShopPanel';
 import type { CosmeticStyle } from '@/types/Profile';
@@ -162,12 +163,15 @@ export class UIScene extends Phaser.Scene {
     this.scope.on(GameEvents.DIALOGUE_OPEN, (data: { speakerName: string; line: string; portrait?: string; hint?: string; npcId?: string }) => {
       // NPC lines come straight from npcs.json: personalize them here
       // ({player}, "·e" agreement) — getString() already does it for UI strings.
+      const line = personalize(data.line);
       this.dialogueBox.show(
         personalize(data.speakerName),
-        personalize(data.line),
+        line,
         data.hint ?? cl.getString('dialogue.continue'),
         data.npcId,
       );
+      // Read the line aloud when text-to-speech is on (V)
+      SpeechSystem.getInstance().speak(line);
     });
 
     // Close dialogue box (used by locked-door single-line messages after E press)
@@ -175,11 +179,13 @@ export class UIScene extends Phaser.Scene {
       if (this.dialogueBox.isOpen()) {
         this.dialogueBox.hide();
       }
+      SpeechSystem.getInstance().stop();
     });
 
     // ESC / close button: the conversation was aborted — hide whichever
     // conversation overlay is open (dialogue line or card selection).
     this.scope.on(GameEvents.DIALOGUE_CANCEL, () => {
+      SpeechSystem.getInstance().stop();
       if (this.dialogueBox.isOpen()) this.dialogueBox.hide();
       if (this.deckPanel.isOpen()) this.deckPanel.close();
     });
@@ -232,6 +238,17 @@ export class UIScene extends Phaser.Scene {
     this.scope.on(GameEvents.END_MENU, () => {
       this.endScreen.hide();
       // UIScene shuts down when ZoneScene stops; no extra cleanup needed
+    });
+
+    // ---- Text-to-speech toggle (feat/tts-dialogues) ----
+    this.scope.on(GameEvents.TTS_TOGGLE, () => {
+      if (!SpeechSystem.isSupported()) {
+        this.toast.show(cl.getString('tts.unsupported'), '#ff6666');
+        return;
+      }
+      const on = SpeechSystem.getInstance().toggle();
+      this.toast.show(cl.getString(on ? 'tts.on' : 'tts.off'), on ? '#66ff66' : '#c0c0e8');
+      if (on) SpeechSystem.getInstance().speak(cl.getString('tts.on'));
     });
 
     // ---- Skins shop (feat/skins-shop) ----

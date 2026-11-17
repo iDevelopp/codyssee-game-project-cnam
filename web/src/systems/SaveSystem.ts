@@ -69,6 +69,8 @@ interface SaveDataV1 {
   profile: PlayerProfile | null;
   /** Premium style ids bought in the shop (free styles are always owned). */
   ownedStyleIds: string[];
+  /** Read dialogue lines aloud (Web Speech API). Default false. */
+  ttsEnabled: boolean;
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -386,6 +388,18 @@ export class SaveSystem {
     this.save();
   }
 
+  /** Whether dialogue lines are read aloud. */
+  getTtsEnabled(): boolean {
+    return this.data.ttsEnabled;
+  }
+
+  /** Toggle text-to-speech and persist. Returns the new state. */
+  toggleTts(): boolean {
+    this.data.ttsEnabled = !this.data.ttsEnabled;
+    this.save();
+    return this.data.ttsEnabled;
+  }
+
   /** Premium styles bought in the shop. */
   getOwnedStyleIds(): string[] {
     return [...this.data.ownedStyleIds];
@@ -430,6 +444,7 @@ export class SaveSystem {
       lastStoryZoneId: null,
       profile: null,
       ownedStyleIds: [],
+      ttsEnabled: false,
     };
   }
 
@@ -468,6 +483,9 @@ export class SaveSystem {
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;
+    }
+    if (typeof obj['ttsEnabled'] !== 'boolean') {
+      (obj as Record<string, unknown>)['ttsEnabled'] = false;
     }
     if (!Array.isArray(obj['ownedStyleIds'])) {
       (obj as Record<string, unknown>)['ownedStyleIds'] = [];

@@ -236,4 +236,7 @@ export const GameEvents = {
 
   /** Emitted when the equipped style changes. Payload: styleId. ZoneScene re-tints. */
   STYLE_CHANGED: 'style-changed',
+
+  /** Emitted by ZoneScene (V key): toggle dialogue text-to-speech. */
+  TTS_TOGGLE: 'tts-toggle',
 } as const;

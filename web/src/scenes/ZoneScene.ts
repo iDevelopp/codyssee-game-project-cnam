@@ -150,6 +150,10 @@ export class ZoneScene extends Phaser.Scene {
   /** Whether the journal panel is open (blocks ESC-cancel and re-open). */
   private journalOpen = false;
 
+  /** V key — text-to-speech toggle (feat/tts-dialogues). */
+  private vKey!: Phaser.Input.Keyboard.Key;
+  private wasVDown = false;
+
   /** B key — outfit shop toggle (feat/skins-shop). */
   private bKey!: Phaser.Input.Keyboard.Key;
   private wasBDown = false;
@@ -207,6 +211,7 @@ export class ZoneScene extends Phaser.Scene {
     this.wasJDown = false;
     this.journalOpen = false;
     this.wasBDown = false;
+    this.wasVDown = false;
     this.shopOpen = false;
     this.timelineOpen = false;
     // `player`, `interaction`, `deck`, `progression`, `cursors`, `wasd`,
@@ -292,6 +297,9 @@ export class ZoneScene extends Phaser.Scene {
 
     // B key — outfit shop
     this.bKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+
+    // V key — read dialogues aloud (works anytime, even mid-dialogue)
+    this.vKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.V);
 
     // ---- Player ----
     const spawn = this.zoneData.spawn;
@@ -532,6 +540,11 @@ export class ZoneScene extends Phaser.Scene {
       this.game.events.emit(GameEvents.UI_CLICK);
       this.game.events.emit(GameEvents.JOURNAL_OPEN, this._buildJournal());
     }
+
+    // V: toggle text-to-speech (allowed mid-dialogue: it is not an overlay)
+    const vDown = this.vKey.isDown;
+    if (vDown && !this.wasVDown) this.game.events.emit(GameEvents.TTS_TOGGLE);
+    this.wasVDown = vDown;
 
     // B: open the outfit shop (closing is handled by the panel itself)
     const bDown = this.bKey.isDown;
