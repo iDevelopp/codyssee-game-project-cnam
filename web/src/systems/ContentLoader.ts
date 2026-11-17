@@ -313,7 +313,8 @@ export class ContentLoader {
   }
 
   /**
-   * Returns all loaded zones in authoring order (as listed in zones/index.json).
+   * Returns the story zones in authoring order (zones/index.json "zones").
+   * Hub zones ("hubs") are excluded — fetch them with getZone(id).
    */
   getZones(): ZoneData[] {
     const store = this._require();
@@ -518,6 +519,8 @@ export class ContentLoader {
 
     // Validate index shape: must be { zones: string[], version: number }
     let zoneIds: string[] = [];
+    /** Hub zones (cafeteria…): loaded like zones but outside the story order. */
+    let hubIds: string[] = [];
     if (zoneIndexRaw !== null) {
       if (
         typeof zoneIndexRaw !== 'object' ||
@@ -529,6 +532,8 @@ export class ContentLoader {
         );
       }
       zoneIds = (zoneIndexRaw as { zones: string[] }).zones;
+      const hubs = (zoneIndexRaw as { hubs?: unknown }).hubs;
+      if (Array.isArray(hubs)) hubIds = hubs.filter((h): h is string => typeof h === 'string');
 
       if (import.meta.env.DEV) {
         // Each id must be a non-empty string — catch authoring typos early
@@ -536,17 +541,19 @@ export class ContentLoader {
       }
     }
 
-    // Fetch all zone files in parallel (order preserved by Promise.all index)
+    // Fetch all zone files in parallel (order preserved by Promise.all index).
+    // Hubs are fetched with the story zones but kept out of zoneOrder.
+    const allZoneIds = [...zoneIds, ...hubIds];
     const zoneRaws = await Promise.all(
-      zoneIds.map((id) => this._fetchJsonOptional(`${base}content/zones/${id}.json`, null))
+      allZoneIds.map((id) => this._fetchJsonOptional(`${base}content/zones/${id}.json`, null))
     );
 
-    for (let i = 0; i < zoneIds.length; i++) {
+    for (let i = 0; i < allZoneIds.length; i++) {
       const zoneRaw = zoneRaws[i];
       if (zoneRaw === null) {
         // A listed zone file is missing — always throw (not a graceful case)
         throw new Error(
-          `ContentLoader: zones/index.json lists "${zoneIds[i]}" but content/zones/${zoneIds[i]}.json was not found.`
+          `ContentLoader: zones/index.json lists "${allZoneIds[i]}" but content/zones/${allZoneIds[i]}.json was not found.`
         );
       }
       if (import.meta.env.DEV) {

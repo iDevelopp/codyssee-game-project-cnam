@@ -21,6 +21,15 @@
       "lockedMessageKey": "door.locked",
       "exitMessageKey": "door.exit",
       "leadsToZoneId": "zone_02"
+    },
+    {
+      "id": "door_cafeteria_01",
+      "position": { "x": 420, "y": 650 },
+      "lockedMessageKey": "door.locked",
+      "exitMessageKey": "door.toCafeteria",
+      "labelKey": "door.cafeteriaLabel",
+      "alwaysOpen": true,
+      "leadsToZoneId": "cafeteria"
     }
   ],
   "props": [

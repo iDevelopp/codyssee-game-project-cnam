@@ -1,0 +1,51 @@
+{
+  "id": "cafeteria",
+  "displayName": "☕ La Cafétéria",
+  "tilemap": "cafeteria.json",
+  "hub": true,
+  "spawn": {
+    "x": 160,
+    "y": 360
+  },
+  "npcs": [
+    "npc_momo",
+    "npc_octet",
+    "npc_lina"
+  ],
+  "doors": [
+    {
+      "id": "door_cafeteria_return",
+      "position": {
+        "x": 1100,
+        "y": 360
+      },
+      "lockedMessageKey": "door.locked",
+      "exitMessageKey": "door.fromCafeteria",
+      "labelKey": "door.returnLabel",
+      "alwaysOpen": true,
+      "leadsToZoneId": "@return"
+    }
+  ],
+  "props": [
+    {
+      "id": "coffee_cafeteria_a",
+      "type": "coffee",
+      "position": {
+        "x": 200,
+        "y": 620
+      }
+    },
+    {
+      "id": "coffee_cafeteria_b",
+      "type": "coffee",
+      "position": {
+        "x": 900,
+        "y": 620
+      }
+    }
+  ],
+  "unlockCondition": "none",
+  "themeEra": "cafeteria",
+  "theme": { "background": "2a1a10", "ambient": "3a2010", "ambientAlpha": 0.12, "accent": "ffb366" },
+  "music": "music.menu"
+}

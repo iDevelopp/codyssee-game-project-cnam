@@ -29,7 +29,16 @@ export interface DoorData {
    * shows the end screen (single-zone builds, J0).
    */
   leadsToZoneId?: string;
+
+  /** Optional strings key for the label above the door (default "door.exitLabel"). */
+  labelKey?: string;
+
+  /** Open from the start, never locked (e.g. the cafeteria door). */
+  alwaysOpen?: boolean;
 }
+
+/** Special `leadsToZoneId`: back to the last story zone the player was in. */
+export const RETURN_ZONE_ID = '@return';
 
 /**
  * Zone visual theme (phase 2 art overhaul).
@@ -200,6 +209,14 @@ export interface ZoneData {
    * floor in that case (content and engine work lands in parallel).
    */
   map?: ZoneMap;
+
+  /**
+   * Hub zone (e.g. the cafeteria): reachable from every strate but not part
+   * of the story — no strate number, no progress, no clear bonus.
+   * Listed under "hubs" in zones/index.json.
+   */
+  hub?: boolean;
+
   /** Optional world props (coffee machines…). */
   props?: PropData[];
 }

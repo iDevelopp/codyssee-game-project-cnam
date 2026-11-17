@@ -5,6 +5,8 @@
  * computed by ZoneScene from content + save (the HUD stays dumb).
  */
 export interface ProgressSnapshot {
+  /** True in a hub zone (cafeteria): no strate number, no zone progress. */
+  hub: boolean;
   /** 1-based position of the current zone in zones/index.json. */
   zoneIndex: number;
   /** Number of zones in the game. */

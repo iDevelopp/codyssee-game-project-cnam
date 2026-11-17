@@ -136,9 +136,12 @@ export class Hud {
   setProgress(p: ProgressSnapshot): void {
     // Same vocabulary as the narration: "Strate 2/5 · Les fondations (1950s)"
     const shortName = p.zoneName.replace(/^Zone\s+\d+\s*[—-]\s*/, '');
-    this.zoneText.setText(
-      `${this.labels.strata} ${p.zoneIndex}/${p.zoneCount} · ${shortName}  ·  ${this.labels.zoneProgress} ${p.zoneHelped}/${p.zoneTotal}`,
+    this.zoneText.setText(p.hub
+      ? shortName
+      : `${this.labels.strata} ${p.zoneIndex}/${p.zoneCount} · ${shortName}  ·  ${this.labels.zoneProgress} ${p.zoneHelped}/${p.zoneTotal}`,
     );
+    this.zoneBarBg.setVisible(!p.hub);
+    this.zoneBarFill.setVisible(!p.hub);
     const barX = this.zoneText.x + this.zoneText.width + 12;
     this.zoneBarBg.setX(barX);
     this.zoneBarFill.setX(barX);

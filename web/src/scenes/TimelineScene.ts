@@ -509,7 +509,10 @@ export class TimelineScene extends Phaser.Scene {
     const save = SaveSystem.getInstance();
     const reached = new Set(save.getUnlockedZoneIds());
     const helped = new Set(save.getHelpedNpcIds());
-    const current = save.getCurrentZoneId();
+    // In a hub (cafeteria) "Tu es ici" points at the strate the player came from
+    const current = cl.getZone(save.getCurrentZoneId() ?? '')?.hub
+      ? save.getLastStoryZoneId()
+      : save.getCurrentZoneId();
     const zones = cl.getZones();
     this.strataZoneIds = zones.map((z) => z.id);
     if (zones.length === 0) return;

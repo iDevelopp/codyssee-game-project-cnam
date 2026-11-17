@@ -36,6 +36,13 @@ export interface NpcQuestion {
  * Authored in /content/npcs.json.
  */
 export interface NpcData {
+  /**
+   * Hint giver (cafeteria): after `dialogueLines`, the NPC talks about every
+   * question still open in the strate the player came from, using each quest
+   * NPC's `hintLine`. Optional, default false.
+   */
+  hintGiver?: boolean;
+
   /** Unique identifier, e.g. "npc_alice". Lowercase, no spaces. */
   id: string;
 

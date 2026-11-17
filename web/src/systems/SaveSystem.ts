@@ -61,6 +61,8 @@ interface SaveDataV1 {
   seenQuestionNpcIds: string[];
   /** Current energy, or null before the first zone (= economy.energy.start). */
   energy: number | null;
+  /** Last story (non-hub) zone entered — where the cafeteria "Retour" door leads. */
+  lastStoryZoneId: string | null;
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -355,6 +357,16 @@ export class SaveSystem {
     this.save();
   }
 
+  /** Last story zone entered (cafeteria return target). */
+  getLastStoryZoneId(): string | null {
+    return this.data.lastStoryZoneId;
+  }
+
+  setLastStoryZoneId(zoneId: string): void {
+    this.data.lastStoryZoneId = zoneId;
+    this.save();
+  }
+
   /** Returns a fresh empty v1 save. */
   private static _empty(): SaveDataV1 {
     return {
@@ -369,6 +381,7 @@ export class SaveSystem {
       xp: 0,
       seenQuestionNpcIds: [],
       energy: null,
+      lastStoryZoneId: null,
     };
   }
 
@@ -407,6 +420,9 @@ export class SaveSystem {
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;
+    }
+    if (typeof obj['lastStoryZoneId'] !== 'string') {
+      (obj as Record<string, unknown>)['lastStoryZoneId'] = obj['currentZoneId'] ?? null;
     }
     return true;
   }

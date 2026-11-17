@@ -16,7 +16,8 @@ import { EventScope } from '@/systems/EventScope';
 import { EnergySystem } from '@/systems/EnergySystem';
 import { CoffeeMachine } from '@/entities/CoffeeMachine';
 import type { CardData } from '@/types/CardData';
-import type { ZoneData, ZoneTheme } from '@/types/ZoneData';
+import { RETURN_ZONE_ID, type ZoneData, type ZoneTheme } from '@/types/ZoneData';
+import type { NpcData } from '@/types/NpcData';
 import type { ProgressSnapshot } from '@/types/Progress';
 import type { JournalEntry } from '@/ui/JournalPanel';
 
@@ -238,6 +239,8 @@ export class ZoneScene extends Phaser.Scene {
 
     // ---- Record current zone in save (resume point for page reloads) ----
     save.recordZoneUnlocked(this.zoneData.id);
+    // Story zones are where the cafeteria's "Retour" door leads back to
+    if (!this.zoneData.hub) save.setLastStoryZoneId(this.zoneData.id);
 
     // ---- Zone music ----
     // init() is idempotent — needed here for the direct-to-zone path (page
@@ -296,7 +299,7 @@ export class ZoneScene extends Phaser.Scene {
       worldHeight = built.worldHeight;
     } else {
       const { width, height } = this.scale;
-      this._drawPlaceholderMap(width, height, this.zoneData.themeEra);
+      this._drawPlaceholderMap(width, height, this.zoneData.themeEra, this.zoneData.theme);
       worldWidth = width * 2;
       worldHeight = height * 2;
     }
@@ -373,7 +376,9 @@ export class ZoneScene extends Phaser.Scene {
         npcData = { ...npcData, position: { ...override } };
       }
 
-      const npc = new NPC(this, npcData, this.scope);
+      // Cafeteria hint givers talk about the questions still open back home
+      const content = npcData.hintGiver ? this._withHintLines(npcData) : npcData;
+      const npc = new NPC(this, content, this.scope);
       this.npcs.push(npc);
       this.interaction.register(npc);
 
@@ -648,6 +653,7 @@ export class ZoneScene extends Phaser.Scene {
 
     const zoneQuest = this.zoneData.npcs.filter(isQuest);
     const snapshot: ProgressSnapshot = {
+      hub: !!this.zoneData.hub,
       zoneIndex: zones.findIndex((z) => z.id === this.zoneData.id) + 1,
       zoneCount: zones.length,
       zoneName: this.zoneData.displayName,
@@ -658,6 +664,37 @@ export class ZoneScene extends Phaser.Scene {
       globalTotal,
     };
     this.game.events.emit(GameEvents.PROGRESS_CHANGED, snapshot);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — cafeteria hints
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Copy of a hint-giver NPC whose lines end with one hint per question still
+   * open in the player's last story zone (reusing each quest NPC's hintLine),
+   * or a "nothing left" line when everything there is solved.
+   */
+  private _withHintLines(npc: NpcData): NpcData {
+    const cl = ContentLoader.getInstance();
+    const save = SaveSystem.getInstance();
+    const home = cl.getZone(save.getLastStoryZoneId() ?? '');
+    const helped = new Set(save.getHelpedNpcIds());
+
+    const hints: string[] = [];
+    for (const id of home?.npcs ?? []) {
+      const quest = cl.getNpc(id);
+      if (!quest?.question || helped.has(id)) continue;
+      hints.push(
+        cl.getString('cafeteria.hint')
+          .replace('{name}', quest.name)
+          .replace('{question}', NPC.questionPrompt(quest))
+          .replace('{hint}', quest.question.hintLine),
+      );
+    }
+    if (hints.length === 0) hints.push(cl.getString('cafeteria.noHint'));
+
+    return { ...npc, dialogueLines: [...npc.dialogueLines, ...hints], resolvedLines: [] };
   }
 
   // ---------------------------------------------------------------------------
@@ -810,8 +847,10 @@ export class ZoneScene extends Phaser.Scene {
     // door is already in the save (ProgressionSystem re-emits this event from
     // restoreResolved), so no XP is granted twice.
     this.scope.on(GameEvents.ALL_NPCS_HELPED, () => {
+      if (this.zoneData.hub) return; // hubs have no quest: nothing to clear
       let firstClear = false;
       for (const doorData of this.zoneData.doors) {
+        if (doorData.alwaysOpen) continue;
         if (!save.isDoorUnlocked(doorData.id)) firstClear = true;
         save.recordDoorUnlocked(doorData.id);
       }
@@ -822,7 +861,12 @@ export class ZoneScene extends Phaser.Scene {
 
     // Door exit triggered: transition to next zone (or end screen if final zone)
     this.scope.on(GameEvents.ZONE_TRANSITION, (payload: { nextZoneId: string | undefined }) => {
-      this._triggerZoneTransition(payload.nextZoneId);
+      let target = payload.nextZoneId;
+      if (target === RETURN_ZONE_ID) {
+        // Cafeteria "Retour": back to the strate the player came from
+        target = save.getLastStoryZoneId() ?? cl.getZones()[0]?.id;
+      }
+      this._triggerZoneTransition(target);
     });
 
     // Rejouer: restart the CURRENT zone (keep save — progress is preserved).
@@ -951,17 +995,27 @@ export class ZoneScene extends Phaser.Scene {
    * @param height  - Scene display height
    * @param seed    - String used to derive deterministic checkerboard shades (zone's themeEra)
    */
-  private _drawPlaceholderMap(width: number, height: number, seed: string): void {
+  private _drawPlaceholderMap(width: number, height: number, seed: string, theme?: ZoneTheme): void {
     const mapW = width * 2;
     const mapH = height * 2;
     const tileSize = 32;
 
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) {
-      h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
+    let shade0: number;
+    let shade1: number;
+    if (theme) {
+      // Zones without a tilemap but with a theme (cafeteria, mazes): a calm
+      // checkerboard in two lighter steps of the theme background.
+      const base = Phaser.Display.Color.HexStringToColor(_normalizeHex(theme.background));
+      shade0 = base.clone().lighten(14).color;
+      shade1 = base.clone().lighten(9).color;
+    } else {
+      let h = 0;
+      for (let i = 0; i < seed.length; i++) {
+        h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
+      }
+      shade0 = 0x101010 + (Math.abs(h) % 0x1a1a1a);
+      shade1 = 0x0a0a0a + (Math.abs(h >> 4) % 0x141414);
     }
-    const shade0 = 0x101010 + (Math.abs(h) % 0x1a1a1a);
-    const shade1 = 0x0a0a0a + (Math.abs(h >> 4) % 0x141414);
 
     for (let ty = 0; ty < mapH / tileSize; ty++) {
       for (let tx = 0; tx < mapW / tileSize; tx++) {

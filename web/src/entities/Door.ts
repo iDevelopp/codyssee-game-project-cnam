@@ -64,7 +64,7 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
     scene.add.text(
       doorData.position.x,
       doorData.position.y - this.displayHeight / 2 - 10,
-      cl.getString('door.exitLabel'),
+      cl.getString(doorData.labelKey ?? 'door.exitLabel'),
       {
         fontFamily: 'monospace',
         fontSize: '14px',
@@ -77,6 +77,13 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
 
     // Subscribe to all-helped event to unlock and turn green.
     // Registered on the zone scope, so it is removed on zone exit.
+    // Always-open doors (cafeteria) start open, without the unlock sound
+    if (doorData.alwaysOpen) {
+      this.isOpen = true;
+      this.setFrame(1); // open gate frame
+      this.setTint(0x88bbff); // blue: a passage, not the strate exit
+    }
+
     scope.on(GameEvents.ALL_NPCS_HELPED, () => {
       this._unlock();
     });
@@ -168,6 +175,7 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
 
   /** Open the door: switch to the open frame and start a green glow pulse. */
   private _unlock(): void {
+    if (this.doorData.alwaysOpen) return; // already open, keeps its own colour
     this.isOpen = true;
     this.setFrame(1); // 1 = open
 
