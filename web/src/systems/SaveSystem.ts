@@ -59,6 +59,8 @@ interface SaveDataV1 {
   xp: number;
   /** NPC ids whose question has been asked, in first-asked order. Default []. */
   seenQuestionNpcIds: string[];
+  /** Current energy, or null before the first zone (= economy.energy.start). */
+  energy: number | null;
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -338,6 +340,21 @@ export class SaveSystem {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Energy (feat/energy-coffee) — use EnergySystem, which notifies the HUD.
+  // ---------------------------------------------------------------------------
+
+  /** Persisted energy, or null if never set (new game). */
+  getEnergy(): number | null {
+    return this.data.energy;
+  }
+
+  /** Persist the energy value. */
+  setEnergy(energy: number): void {
+    this.data.energy = energy;
+    this.save();
+  }
+
   /** Returns a fresh empty v1 save. */
   private static _empty(): SaveDataV1 {
     return {
@@ -351,6 +368,7 @@ export class SaveSystem {
       muted: false,
       xp: 0,
       seenQuestionNpcIds: [],
+      energy: null,
     };
   }
 
@@ -383,6 +401,9 @@ export class SaveSystem {
     if (!Array.isArray(obj['seenQuestionNpcIds'])) {
       // Old saves: every helped NPC has necessarily been asked its question
       (obj as Record<string, unknown>)['seenQuestionNpcIds'] = [...(obj['helpedNpcIds'] as string[])];
+    }
+    if (typeof obj['energy'] !== 'number' || !Number.isFinite(obj['energy'])) {
+      (obj as Record<string, unknown>)['energy'] = null;
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;

@@ -23,6 +23,9 @@
       "leadsToZoneId": "zone_03"
     }
   ],
+  "props": [
+    { "id": "coffee_02", "type": "coffee", "position": { "x": 140, "y": 620 } }
+  ],
   "unlockCondition": "all_quest_npcs_helped",
   "nextZoneId": "zone_03",
   "themeEra": "1950s",

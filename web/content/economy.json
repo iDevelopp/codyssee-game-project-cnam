@@ -8,5 +8,18 @@
     "hintCost": 20,
     "hintEliminateRatio": 0.5,
     "answerCost": 60
+  },
+  "energy": {
+    "max": 100,
+    "start": 100,
+    "drainPerSecondMoving": 0.5,
+    "questionCost": 4,
+    "wrongAnswerCost": 8,
+    "coffeeGain": 40,
+    "coffeeCooldownSec": 45,
+    "lowThreshold": 25,
+    "exhaustedXpPenalty": 5,
+    "exhaustedPenaltyIntervalSec": 8,
+    "exhaustedSpeedFactor": 0.5
   }
 }

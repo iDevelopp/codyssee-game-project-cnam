@@ -13,6 +13,8 @@ import { GameEvents } from '@/systems/GameEvents';
 import { AudioManager } from '@/systems/AudioManager';
 import { XpSystem } from '@/systems/XpSystem';
 import { EventScope } from '@/systems/EventScope';
+import { EnergySystem } from '@/systems/EnergySystem';
+import { CoffeeMachine } from '@/entities/CoffeeMachine';
 import type { CardData } from '@/types/CardData';
 import type { ZoneData, ZoneTheme } from '@/types/ZoneData';
 import type { ProgressSnapshot } from '@/types/Progress';
@@ -84,6 +86,19 @@ export class ZoneScene extends Phaser.Scene {
   private deck!: DeckSystem;
   private progression!: ProgressionSystem;
   private xp!: XpSystem;
+
+  /** Coffee-fuelled stamina (feat/energy-coffee). */
+  private energy!: EnergySystem;
+
+  /** Walking drain not yet applied (applied in whole-second batches). */
+  private pendingDrain = 0;
+  private drainClock = 0;
+
+  /** Milliseconds spent at 0 energy since the last XP penalty. */
+  private exhaustedClock = 0;
+
+  /** Whether the "low energy" toast was already shown for this dip. */
+  private lowWarned = false;
 
   /** Global-bus listeners owned by this zone run (cleared on exit). */
   private scope!: EventScope;
@@ -294,6 +309,11 @@ export class ZoneScene extends Phaser.Scene {
     // ---- Systems ----
     this.interaction = new InteractionSystem(this);
     this.xp = new XpSystem(this.game.events);
+    this.energy = new EnergySystem(this.game.events);
+    this.pendingDrain = 0;
+    this.drainClock = 0;
+    this.exhaustedClock = 0;
+    this.lowWarned = false;
 
     // Deck: initialise from save or from ContentLoader default.
     // Deck is GLOBAL across zones — cards earned in zone_01 carry over to zone_02.
@@ -381,6 +401,15 @@ export class ZoneScene extends Phaser.Scene {
       }
     }
 
+    // ---- Props (coffee machines…) ----
+    for (const prop of this.zoneData.props ?? []) {
+      if (prop.type === 'coffee') {
+        this.interaction.register(new CoffeeMachine(this, prop, this.energy));
+      } else {
+        console.warn(`ZoneScene: unknown prop type "${prop.type}" (${prop.id})`);
+      }
+    }
+
     // ---- Event wiring ----
     this._bindEvents();
 
@@ -407,12 +436,17 @@ export class ZoneScene extends Phaser.Scene {
 
     // ---- HUD initial state (XP total + progress bars) ----
     this.xp.refresh();
+    this.energy.refresh();
     this._emitProgress();
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
     // Player movement — InputLock checked inside Player.move()
+    this.player.speedFactor = this.energy.isExhausted()
+      ? ContentLoader.getInstance().getEconomy().energy.exhaustedSpeedFactor
+      : 1;
     this.player.move(this.cursors, this.wasd, InputLock.isLocked());
+    this._updateEnergy(delta);
 
     // M key: toggle mute (single-press — rising edge only)
     const mDown = this.mKey.isDown;
@@ -542,6 +576,49 @@ export class ZoneScene extends Phaser.Scene {
    */
   getPlayerPosition(): { x: number; y: number } {
     return { x: this.player.x, y: this.player.y };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — energy
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Walking drains energy (applied once per second to keep saves cheap);
+   * at 0 energy the player periodically loses XP until they drink a coffee.
+   */
+  private _updateEnergy(deltaMs: number): void {
+    const { energy: cfg } = ContentLoader.getInstance().getEconomy();
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+
+    if (!InputLock.isLocked() && body.speed > 0) {
+      this.pendingDrain += (cfg.drainPerSecondMoving * deltaMs) / 1000;
+    }
+    this.drainClock += deltaMs;
+    if (this.drainClock >= 1000) {
+      this.drainClock = 0;
+      if (this.pendingDrain > 0) {
+        this.energy.drain(this.pendingDrain);
+        this.pendingDrain = 0;
+      }
+    }
+
+    // Exhausted: XP penalty every interval (not while reading a dialogue)
+    if (this.energy.isExhausted() && !InputLock.isLocked()) {
+      this.exhaustedClock += deltaMs;
+      if (this.exhaustedClock >= cfg.exhaustedPenaltyIntervalSec * 1000) {
+        this.exhaustedClock = 0;
+        const lost = this.xp.lose(cfg.exhaustedXpPenalty, 'exhausted');
+        const cl = ContentLoader.getInstance();
+        this.game.events.emit(GameEvents.TOAST, {
+          text: lost > 0
+            ? cl.getString('energy.exhausted').replace('{n}', String(lost))
+            : cl.getString('energy.low'),
+          color: '#ff6666',
+        });
+      }
+    } else {
+      this.exhaustedClock = 0;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -771,9 +848,30 @@ export class ZoneScene extends Phaser.Scene {
       ev.emit(GameEvents.END_SCREEN_SHOW, payload);
     });
 
-    // A question was put to the player → remember it for the journal
+    // A question was put to the player → remember it for the journal,
+    // and thinking costs a little energy
     this.scope.on(GameEvents.QUESTION_ASKED, (npcId: string) => {
       save.recordQuestionSeen(npcId);
+      this.energy.drain(cl.getEconomy().energy.questionCost);
+    });
+
+    // A wrong card costs extra energy
+    this.scope.on(GameEvents.ANSWER_WRONG, () => {
+      this.energy.drain(cl.getEconomy().energy.wrongAnswerCost);
+    });
+
+    // Back above the warning threshold → re-arm the low-energy toast
+    this.scope.on(GameEvents.ENERGY_CHANGED, (change: { energy: number; delta: number }) => {
+      const { lowThreshold } = cl.getEconomy().energy;
+      if (change.energy <= 0 && change.delta < 0) {
+        ev.emit(GameEvents.TOAST, { text: cl.getString('energy.empty'), color: '#ff6666' });
+        return;
+      }
+      if (change.energy > lowThreshold) this.lowWarned = false;
+      else if (!this.lowWarned && change.energy > 0) {
+        this.lowWarned = true;
+        ev.emit(GameEvents.TOAST, { text: cl.getString('energy.low'), color: '#ffaa44' });
+      }
     });
 
     // Journal closed (J / ESC): re-arm J, and make sure the closing press is

@@ -29,6 +29,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    */
   static readonly SPEED = 240;
 
+  /** Speed multiplier (1 = normal). Lowered when out of energy. */
+  speedFactor = 1;
+
   /** Sprite display scale — pixel-art ×5 (02-assets.md §Animations Phaser). */
   static readonly SCALE = 5;
 
@@ -90,10 +93,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     let vx = 0;
     let vy = 0;
 
-    if (cursors.left.isDown || wasd.left.isDown) vx = -Player.SPEED;
-    if (cursors.right.isDown || wasd.right.isDown) vx = Player.SPEED;
-    if (cursors.up.isDown || wasd.up.isDown) vy = -Player.SPEED;
-    if (cursors.down.isDown || wasd.down.isDown) vy = Player.SPEED;
+    const speed = Player.SPEED * this.speedFactor;
+    if (cursors.left.isDown || wasd.left.isDown) vx = -speed;
+    if (cursors.right.isDown || wasd.right.isDown) vx = speed;
+    if (cursors.up.isDown || wasd.up.isDown) vy = -speed;
+    if (cursors.down.isDown || wasd.down.isDown) vy = speed;
 
     // Normalise diagonal to avoid faster diagonal movement
     if (vx !== 0 && vy !== 0) {

@@ -106,6 +106,17 @@ export interface ZoneMap {
  *
  * Authored in /content/zones/zone_XX.json — one file per zone.
  */
+/**
+ * A world object that is neither an NPC nor a door (feat/energy-coffee).
+ * `type` selects the entity class; unknown types are ignored with a warning.
+ */
+export interface PropData {
+  id: string;
+  /** "coffee" = coffee machine (restores energy). */
+  type: string;
+  position: { x: number; y: number };
+}
+
 export interface ZoneData {
   /** Unique identifier, e.g. "zone_01". Used as the Phaser scene key suffix. */
   id: string;
@@ -189,4 +200,6 @@ export interface ZoneData {
    * floor in that case (content and engine work lands in parallel).
    */
   map?: ZoneMap;
+  /** Optional world props (coffee machines…). */
+  props?: PropData[];
 }

@@ -412,6 +412,9 @@ export class AudioManager {
     // Any UI button (menu, end screen, deck close…) → click (file-based)
     ev.on(GameEvents.UI_CLICK, () => this.play('sfx.uiClick'));
 
+    // Coffee → warm rising bubble
+    ev.on(GameEvents.COFFEE_DRUNK, () => this.play('sfx.coffee'));
+
     // Action refused (e.g. not enough XP) → double low beep
     ev.on(GameEvents.ACTION_DENIED, () => this.play('sfx.denied'));
   }

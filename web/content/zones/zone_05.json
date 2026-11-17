@@ -22,6 +22,9 @@
       "exitMessageKey": "door.exit_05"
     }
   ],
+  "props": [
+    { "id": "coffee_05", "type": "coffee", "position": { "x": 140, "y": 620 } }
+  ],
   "unlockCondition": "all_quest_npcs_helped",
   "themeEra": "2010s",
   "theme": {

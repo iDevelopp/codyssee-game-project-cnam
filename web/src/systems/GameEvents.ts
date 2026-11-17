@@ -196,4 +196,20 @@ export const GameEvents = {
 
   /** Emitted by the journal panel when it closes (J / ESC). */
   JOURNAL_CLOSE: 'journal-close',
+
+  // ---------------------------------------------------------------------------
+  // Energy (feat/energy-coffee)
+  // ---------------------------------------------------------------------------
+
+  /** Emitted by EnergySystem. Payload: EnergyChange { energy, max, delta }. */
+  ENERGY_CHANGED: 'energy-changed',
+
+  /** Emitted by a coffee machine when the player drinks. AudioManager: sfx.coffee. */
+  COFFEE_DRUNK: 'coffee-drunk',
+
+  /**
+   * Short non-blocking message for the player (UIScene toast).
+   * Payload: { text: string; color?: string }
+   */
+  TOAST: 'toast',
 } as const;

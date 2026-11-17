@@ -5,6 +5,8 @@ import { EndScreen } from '@/ui/EndScreen';
 import { NarrativeOverlay } from '@/ui/NarrativeOverlay';
 import { ZoneBanner } from '@/ui/ZoneBanner';
 import { Hud } from '@/ui/Hud';
+import { Toast } from '@/ui/Toast';
+import type { EnergyChange } from '@/systems/EnergySystem';
 import { JournalPanel, type JournalEntry } from '@/ui/JournalPanel';
 import { SaveSystem } from '@/systems/SaveSystem';
 import { XpSystem, type XpChange } from '@/systems/XpSystem';
@@ -47,6 +49,8 @@ export class UIScene extends Phaser.Scene {
   private scope!: EventScope;
   /** Question journal (J). */
   private journalPanel!: JournalPanel;
+  /** Short non-blocking messages under the HUD. */
+  private toast!: Toast;
   /** XP wallet for the hint shop. */
   private xp!: XpSystem;
   /**
@@ -98,6 +102,7 @@ export class UIScene extends Phaser.Scene {
 
     this.xp = new XpSystem(this.game.events);
     this.purchases = new Map();
+    this.toast = new Toast(this);
 
     this.journalPanel = new JournalPanel(this, {
       title: cl.getString('journal.title'),
@@ -197,6 +202,14 @@ export class UIScene extends Phaser.Scene {
     this.scope.on(GameEvents.XP_CHANGED, (change: XpChange) => {
       this.hud.setXp(change.xp, change.delta);
       this._refreshBalance();
+    });
+
+    this.scope.on(GameEvents.ENERGY_CHANGED, (change: EnergyChange) => {
+      this.hud.setEnergy(change.energy, change.max, cl.getEconomy().energy.lowThreshold);
+    });
+
+    this.scope.on(GameEvents.TOAST, (msg: { text: string; color?: string }) => {
+      this.toast.show(msg.text, msg.color);
     });
 
     this.scope.on(GameEvents.PROGRESS_CHANGED, (snapshot: ProgressSnapshot) => {
