@@ -47,6 +47,18 @@ const COLOR_LOCKED = COLORS.inkDim;
 /** Color for the axis line. */
 const COLOR_AXIS = COLORS.cyan;
 
+/**
+ * One colour per strate (zone), in zone order; cycles if there are more zones.
+ * None equals COLOR_REVEALED, which stays for starter-deck languages.
+ */
+const STRATA_COLORS = [0xff6b9a, 0xff8844, 0xbb77ff, 0x66dd88, 0xffcc44];
+
+/** Strata strip layout (between the title and the highest node labels). */
+const STRATA_TOP = 66;
+const STRATA_H = 116;
+const STRATA_LEFT = 40;
+const STRATA_GAP = 10;
+
 /** Color for influence arrows between revealed nodes. */
 const COLOR_INFLUENCE = COLORS.cyan;
 
@@ -127,6 +139,18 @@ export class TimelineScene extends Phaser.Scene {
   /** Single-press guard for T key. */
   private wasTDown = false;
 
+  /** Strata strip objects (rebuilt on each open). */
+  private strataObjects: Phaser.GameObjects.GameObject[] = [];
+
+  /** cardId → strate index, for colouring nodes by the zone that restores them. */
+  private strataOfCard: Map<string, number> = new Map();
+
+  /** Whether travelling is allowed (false when opened from the end screen). */
+  private canTravel = false;
+
+  /** Zone ids in strate order, for the 1..9 travel keys. */
+  private strataZoneIds: string[] = [];
+
   constructor() {
     super({ key: 'TimelineScene' });
   }
@@ -199,6 +223,10 @@ export class TimelineScene extends Phaser.Scene {
     // "Jouer" — the scope keeps a single TIMELINE_OPEN handler alive.
     const scope = new EventScope(this.game.events);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scope.clear());
+    // Digit keys travel between strata while the frieze is open
+    const digitHandler = (e: KeyboardEvent): void => this._onDigit(e);
+    this.input.keyboard!.on('keydown', digitHandler);
+
     scope.on(GameEvents.TIMELINE_OPEN, (deck: DeckSystem | null) => {
       this._open(deck);
     });
@@ -220,6 +248,33 @@ export class TimelineScene extends Phaser.Scene {
     }
   }
 
+  /** Digit keys 1..9 → travel to that strate (registered once in create()). */
+  private _onDigit(event: KeyboardEvent): void {
+    if (!this.isOpen) return;
+    const n = Number.parseInt(event.key, 10);
+    if (Number.isNaN(n) || n < 1) return;
+    const zoneId = this.strataZoneIds[n - 1];
+    if (zoneId) this._travelTo(zoneId);
+  }
+
+  /**
+   * Leave the frieze and go to another strate already reached. Refused
+   * (with the "denied" cue) for locked strata, the current one, or when the
+   * frieze was opened from the end screen.
+   */
+  private _travelTo(zoneId: string): void {
+    const save = SaveSystem.getInstance();
+    const reachable = save.getUnlockedZoneIds().includes(zoneId);
+    if (!this.canTravel || !reachable || zoneId === save.getCurrentZoneId()) {
+      this.game.events.emit(GameEvents.ACTION_DENIED);
+      return;
+    }
+    this.game.events.emit(GameEvents.UI_CLICK);
+    this._close();
+    // Same path as walking through a door: ZoneScene fades out and loads it.
+    this.game.events.emit(GameEvents.ZONE_TRANSITION, { nextZoneId: zoneId });
+  }
+
   // ---------------------------------------------------------------------------
   // Open / Close
   // ---------------------------------------------------------------------------
@@ -239,6 +294,9 @@ export class TimelineScene extends Phaser.Scene {
     this.scene.bringToTop();
 
     this._refreshDeckIds();
+    // Travel only from live gameplay (ZoneScene passes its deck); the end
+    // screen passes null and stays on top, so travelling would hide nothing.
+    this.canTravel = deck !== null;
     this._rebuild();
     this._setVisible(true);
     this.isOpen = true;
@@ -310,6 +368,8 @@ export class TimelineScene extends Phaser.Scene {
     this.gfx.clear();
     this.detailPanel.setVisible(false);
 
+    this._buildStrata(cl);
+
     const entries = this.entries;
     const total = entries.length;
     const revealed = entries.filter((e) => this.deckIds.has(e.cardId)).length;
@@ -379,7 +439,11 @@ export class TimelineScene extends Phaser.Scene {
       const isRevealed = this.deckIds.has(entry.cardId);
 
       // Node circle (interactive invisible zone)
-      const nodeColor = isRevealed ? COLOR_REVEALED : COLOR_LOCKED;
+      // Revealed nodes take the colour of the strate that restores them, so
+      // the frieze shows at a glance what was recovered where.
+      const strate = this.strataOfCard.get(entry.cardId);
+      const revealedColor = strate !== undefined ? STRATA_COLORS[strate % STRATA_COLORS.length] : COLOR_REVEALED;
+      const nodeColor = isRevealed ? revealedColor : COLOR_LOCKED;
       this.gfx.fillStyle(nodeColor, 1);
       this.gfx.fillCircle(pos.x, pos.y, NODE_RADIUS);
 
@@ -431,6 +495,66 @@ export class TimelineScene extends Phaser.Scene {
 
       this.nodeLabelTexts.push(nameLbl, yearLbl);
     }
+  }
+
+  /**
+   * Strata strip: one box per zone, in game order — where the player is,
+   * what each strate restored, and which ones can be travelled back to.
+   */
+  private _buildStrata(cl: ContentLoader): void {
+    for (const o of this.strataObjects) o.destroy();
+    this.strataObjects = [];
+    this.strataOfCard = new Map();
+
+    const save = SaveSystem.getInstance();
+    const reached = new Set(save.getUnlockedZoneIds());
+    const helped = new Set(save.getHelpedNpcIds());
+    const current = save.getCurrentZoneId();
+    const zones = cl.getZones();
+    this.strataZoneIds = zones.map((z) => z.id);
+    if (zones.length === 0) return;
+
+    const boxW = (1280 - STRATA_LEFT * 2 - STRATA_GAP * (zones.length - 1)) / zones.length;
+
+    zones.forEach((zone, i) => {
+      const color = STRATA_COLORS[i % STRATA_COLORS.length];
+      const quest = zone.npcs.map((id) => cl.getNpc(id)).filter((n) => n?.question);
+      for (const npc of quest) this.strataOfCard.set(npc!.question!.expectedCardId, i);
+      const restored = quest.filter((n) => helped.has(n!.id)).length;
+
+      const isCurrent = zone.id === current;
+      const isReached = reached.has(zone.id);
+      const isCleared = isReached && quest.length > 0 && restored === quest.length;
+      const status = isCurrent
+        ? cl.getString('strata.here')
+        : isCleared ? cl.getString('strata.cleared')
+        : isReached ? cl.getString('strata.visited')
+        : cl.getString('strata.locked');
+
+      const x = STRATA_LEFT + i * (boxW + STRATA_GAP);
+      const box = this.add.rectangle(x, STRATA_TOP, boxW, STRATA_H, isCurrent ? 0x1c2238 : 0x10101c, 1)
+        .setOrigin(0)
+        .setStrokeStyle(isCurrent ? 3 : 1, color, isReached ? 1 : 0.35)
+        .setDepth(DEPTH_BASE + 2);
+      const shortName = zone.displayName.replace(/^Zone\s+\d+\s*[—-]\s*/, '');
+      const text = this.add.text(x + 10, STRATA_TOP + 8,
+        `${cl.getString('strata.label')} ${i + 1} · ${zone.themeEra}\n${shortName}\n${status}\n${cl.getString('strata.languages')} ${restored}/${quest.length}`, {
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          color: isReached ? '#e0e8ff' : '#556070',
+          lineSpacing: 4,
+          wordWrap: { width: boxW - 20 },
+        }).setDepth(DEPTH_BASE + 3);
+
+      const travellable = this.canTravel && isReached && !isCurrent;
+      if (travellable) {
+        box.setInteractive({ useHandCursor: true });
+        box.on('pointerover', () => box.setFillStyle(0x24304c));
+        box.on('pointerout', () => box.setFillStyle(0x10101c));
+        box.on('pointerdown', () => this._travelTo(zone.id));
+      }
+      this.strataObjects.push(box, text);
+    });
   }
 
   /**
@@ -531,6 +655,9 @@ export class TimelineScene extends Phaser.Scene {
     }
     for (const t of this.nodeLabelTexts) {
       t.setVisible(visible);
+    }
+    for (const o of this.strataObjects) {
+      (o as unknown as Phaser.GameObjects.Components.Visible).setVisible(visible);
     }
   }
 }

@@ -80,6 +80,7 @@ export class UIScene extends Phaser.Scene {
     const cl = ContentLoader.getInstance();
     this.hud = new Hud(this, {
       xp: cl.getString('hud.xp'),
+      strata: cl.getString('strata.label'),
       zoneProgress: cl.getString('hud.zoneProgress'),
       globalProgress: cl.getString('hud.globalProgress'),
     });

@@ -5,6 +5,8 @@ import type { ProgressSnapshot } from '@/types/Progress';
 export interface HudLabels {
   /** Unit after the XP number, e.g. "XP". */
   xp: string;
+  /** Word for a zone in the story, e.g. "Strate". */
+  strata: string;
   /** Label before the zone NPC counter, e.g. "PNJ aidés". */
   zoneProgress: string;
   /** Label of the whole-game bar, e.g. "Progression". */
@@ -120,7 +122,11 @@ export class Hud {
 
   /** Redraw zone label and both progress bars. */
   setProgress(p: ProgressSnapshot): void {
-    this.zoneText.setText(`${p.zoneName}  ·  ${this.labels.zoneProgress} ${p.zoneHelped}/${p.zoneTotal}`);
+    // Same vocabulary as the narration: "Strate 2/5 · Les fondations (1950s)"
+    const shortName = p.zoneName.replace(/^Zone\s+\d+\s*[—-]\s*/, '');
+    this.zoneText.setText(
+      `${this.labels.strata} ${p.zoneIndex}/${p.zoneCount} · ${shortName}  ·  ${this.labels.zoneProgress} ${p.zoneHelped}/${p.zoneTotal}`,
+    );
     const barX = this.zoneText.x + this.zoneText.width + 12;
     this.zoneBarBg.setX(barX);
     this.zoneBarFill.setX(barX);
