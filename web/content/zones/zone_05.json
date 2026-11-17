@@ -23,7 +23,7 @@
     },
     {
       "id": "door_cafeteria_05",
-      "position": { "x": 420, "y": 650 },
+      "position": { "x": 96, "y": 288 },
       "lockedMessageKey": "door.locked",
       "exitMessageKey": "door.toCafeteria",
       "labelKey": "door.cafeteriaLabel",
@@ -32,8 +32,8 @@
     }
   ],
   "props": [
-    { "id": "coffee_05", "type": "coffee", "position": { "x": 140, "y": 620 } },
-    { "id": "terminal_05", "type": "terminal", "position": { "x": 1180, "y": 660 } }
+    { "id": "coffee_05", "type": "coffee", "position": { "x": 96, "y": 928 } },
+    { "id": "terminal_05", "type": "terminal", "position": { "x": 2464, "y": 736 } }
   ],
   "unlockCondition": "all_quest_npcs_helped",
   "themeEra": "2010s",
