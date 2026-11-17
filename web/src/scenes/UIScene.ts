@@ -12,6 +12,7 @@ import { GameEvents } from '@/systems/GameEvents';
 import type { CardData } from '@/types/CardData';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { createScanlineOverlay } from '@/ui/uiKit';
+import { EventScope } from '@/systems/EventScope';
 
 /** Scanline overlay depth — above every other UIScene display object. */
 const SCANLINE_DEPTH = 10000;
@@ -41,6 +42,8 @@ export class UIScene extends Phaser.Scene {
   private zoneBanner!: ZoneBanner;
   /** Top bar: XP counter + zone / game progress (feat/xp-progress). */
   private hud!: Hud;
+  /** Global-bus listeners of this UIScene run — removed on SHUTDOWN. */
+  private scope!: EventScope;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -82,6 +85,10 @@ export class UIScene extends Phaser.Scene {
     // Hidden during the intro overlay — revealed on the first zone progress event.
     this.hud.setVisible(false);
 
+    // UIScene is stopped on "Menu principal" and launched again on "Jouer":
+    // without this, every round trip stacked one more copy of each handler.
+    this.scope = new EventScope(this.game.events);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scope.clear());
     this._bindEvents();
   }
 
@@ -90,18 +97,17 @@ export class UIScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private _bindEvents(): void {
-    const ev = this.game.events;
     const cl = ContentLoader.getInstance();
 
     // ---- Dialogue ----
 
     // Open dialogue box with given payload
-    ev.on(GameEvents.DIALOGUE_OPEN, (data: { speakerName: string; line: string; portrait?: string; hint?: string; npcId?: string }) => {
+    this.scope.on(GameEvents.DIALOGUE_OPEN, (data: { speakerName: string; line: string; portrait?: string; hint?: string; npcId?: string }) => {
       this.dialogueBox.show(data.speakerName, data.line, data.hint ?? cl.getString('dialogue.continue'), data.npcId);
     });
 
     // Close dialogue box (used by locked-door single-line messages after E press)
-    ev.on(GameEvents.DIALOGUE_CLOSE, () => {
+    this.scope.on(GameEvents.DIALOGUE_CLOSE, () => {
       if (this.dialogueBox.isOpen()) {
         this.dialogueBox.hide();
       }
@@ -109,7 +115,7 @@ export class UIScene extends Phaser.Scene {
 
     // ESC / close button: the conversation was aborted — hide whichever
     // conversation overlay is open (dialogue line or card selection).
-    ev.on(GameEvents.DIALOGUE_CANCEL, () => {
+    this.scope.on(GameEvents.DIALOGUE_CANCEL, () => {
       if (this.dialogueBox.isOpen()) this.dialogueBox.hide();
       if (this.deckPanel.isOpen()) this.deckPanel.close();
     });
@@ -117,7 +123,7 @@ export class UIScene extends Phaser.Scene {
     // ---- Deck ----
 
     // Open deck panel — payload: { cards, npcId }
-    ev.on(GameEvents.DECK_OPEN, (data: { cards: CardData[]; npcId: string }) => {
+    this.scope.on(GameEvents.DECK_OPEN, (data: { cards: CardData[]; npcId: string }) => {
       this.deckPanel.open(
         data.cards,
         cl.getString('deck.title'),
@@ -133,7 +139,7 @@ export class UIScene extends Phaser.Scene {
 
     // ---- End screen ----
 
-    ev.on(GameEvents.END_SCREEN_SHOW, (data: { message: string }) => {
+    this.scope.on(GameEvents.END_SCREEN_SHOW, (data: { message: string }) => {
       this.endScreen.show(data.message);
     });
 
@@ -141,22 +147,22 @@ export class UIScene extends Phaser.Scene {
     // and handled by ZoneScene / the scene manager — UIScene itself doesn't need to re-route.
 
     // When the zone restarts or we go to menu, stop UIScene cleanly
-    ev.on(GameEvents.END_REPLAY, () => {
+    this.scope.on(GameEvents.END_REPLAY, () => {
       this.endScreen.hide();
     });
 
-    ev.on(GameEvents.END_MENU, () => {
+    this.scope.on(GameEvents.END_MENU, () => {
       this.endScreen.hide();
       // UIScene shuts down when ZoneScene stops; no extra cleanup needed
     });
 
     // ---- HUD (feat/xp-progress) ----
 
-    ev.on(GameEvents.XP_CHANGED, (change: XpChange) => {
+    this.scope.on(GameEvents.XP_CHANGED, (change: XpChange) => {
       this.hud.setXp(change.xp, change.delta);
     });
 
-    ev.on(GameEvents.PROGRESS_CHANGED, (snapshot: ProgressSnapshot) => {
+    this.scope.on(GameEvents.PROGRESS_CHANGED, (snapshot: ProgressSnapshot) => {
       this.hud.setVisible(true);
       this.hud.setProgress(snapshot);
     });
@@ -166,7 +172,7 @@ export class UIScene extends Phaser.Scene {
     // INTRO_SHOW: new game only — show fullscreen intro slides before zone_01.
     // Payload: { onComplete: () => void } — MainMenuScene passes the callback
     // that launches ZoneScene once the intro is dismissed.
-    ev.on(GameEvents.INTRO_SHOW, (payload: { onComplete: () => void }) => {
+    this.scope.on(GameEvents.INTRO_SHOW, (payload: { onComplete: () => void }) => {
       const narrative = cl.getNarrative();
       const hint = cl.getString('narrative.hint');
       this.narrativeOverlay.show(narrative.intro, hint, payload.onComplete);
@@ -174,7 +180,7 @@ export class UIScene extends Phaser.Scene {
 
     // ZONE_BANNER_SHOW: non-blocking banner on each zone entry (TASK-026).
     // Payload: { zoneId: string } — ZoneScene emits this in create().
-    ev.on(GameEvents.ZONE_BANNER_SHOW, (payload: { zoneId: string }) => {
+    this.scope.on(GameEvents.ZONE_BANNER_SHOW, (payload: { zoneId: string }) => {
       const narrative = cl.getNarrative();
       const lines = narrative.zoneIntros[payload.zoneId] ?? [];
       this.zoneBanner.show(lines);

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GameEvents } from '@/systems/GameEvents';
+import type { EventScope } from '@/systems/EventScope';
 
 /**
  * ProgressionSystem — tracks NPC resolution and emits the all-helped event.
@@ -51,13 +52,14 @@ export class ProgressionSystem {
     gameEvents: Phaser.Events.EventEmitter,
     questNPCCount: number,
     zoneQuestNpcIds: Set<string>,
+    scope: EventScope,
   ) {
     this.gameEvents = gameEvents;
     this.questNPCCount = questNPCCount;
     this.zoneQuestNpcIds = zoneQuestNpcIds;
 
     // Listen for NPC resolution events
-    gameEvents.on(GameEvents.NPC_RESOLVED, (npcId: string) => {
+    scope.on(GameEvents.NPC_RESOLVED, (npcId: string) => {
       this._onNpcResolved(npcId);
     });
   }

@@ -4,6 +4,7 @@ import { DeckSystem } from '@/systems/DeckSystem';
 import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
 import { SaveSystem } from '@/systems/SaveSystem';
+import { EventScope } from '@/systems/EventScope';
 import type { TimelineEntry } from '@/types/TimelineEntry';
 import { COLORS, FONTS } from '@/ui/theme';
 
@@ -194,7 +195,11 @@ export class TimelineScene extends Phaser.Scene {
     // DeckSystem is passed so live-reveal is wired. When opened from EndScreen
     // the scene may not have an active DeckSystem reference — null is accepted
     // and live-reveal is skipped (safe: EndScreen is shown after play ends).
-    this.game.events.on(GameEvents.TIMELINE_OPEN, (deck: DeckSystem | null) => {
+    // Scoped: TimelineScene is stopped on "Menu principal" and relaunched on
+    // "Jouer" — the scope keeps a single TIMELINE_OPEN handler alive.
+    const scope = new EventScope(this.game.events);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scope.clear());
+    scope.on(GameEvents.TIMELINE_OPEN, (deck: DeckSystem | null) => {
       this._open(deck);
     });
 

@@ -5,6 +5,7 @@ import type { CardData } from '@/types/CardData';
 import { GameEvents } from '@/systems/GameEvents';
 import { InputLock } from '@/systems/InputLock';
 import { createInteractHighlight } from '@/ui/uiKit';
+import type { EventScope } from '@/systems/EventScope';
 
 /**
  * NPC state machine values.
@@ -72,8 +73,9 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
   /**
    * @param scene      - Parent scene that owns this NPC (ZoneScene)
    * @param npcContent - NPC content data loaded from npcs.json
+   * @param scope      - Zone-lifetime listener scope (cleared on zone exit)
    */
-  constructor(scene: Phaser.Scene, npcContent: NpcData) {
+  constructor(scene: Phaser.Scene, npcContent: NpcData, scope: EventScope) {
     // `npc_<id>` sheet: 96×96, 3×3 frames of 32×32 (same layout as player.png).
     // Frame 1 = idle-down — the default resting pose.
     super(scene, npcContent.position.x, npcContent.position.y, `npc_${npcContent.id}`, 1);
@@ -112,7 +114,7 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
     this.highlight = createInteractHighlight(scene, this, -34);
 
     // Listen for deck picks on the global bus — filter to our npcId
-    scene.game.events.on(
+    scope.on(
       GameEvents.DECK_CARD_PICKED,
       (payload: { cardId: string; npcId: string }) => {
         if (payload.npcId === this.npcContent.id) {

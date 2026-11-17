@@ -6,6 +6,7 @@ import { GameEvents } from '@/systems/GameEvents';
 import { InputLock } from '@/systems/InputLock';
 import { COLORS } from '@/ui/theme';
 import { createInteractHighlight } from '@/ui/uiKit';
+import type { EventScope } from '@/systems/EventScope';
 
 /**
  * Door entity — interactable zone exit point.
@@ -42,8 +43,9 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
   /**
    * @param scene    - Parent scene (ZoneScene)
    * @param doorData - Door configuration from zone JSON
+   * @param scope    - Zone-lifetime listener scope (cleared on zone exit)
    */
-  constructor(scene: Phaser.Scene, doorData: DoorData) {
+  constructor(scene: Phaser.Scene, doorData: DoorData, scope: EventScope) {
     // `gate` sheet: 64×96 frames. Frame 0 = locked. Display scale ×2.5 → 160×240.
     super(scene, doorData.position.x, doorData.position.y, 'gate', 0);
     this.setScale(2.5);
@@ -74,16 +76,14 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
     this.highlight = createInteractHighlight(scene, this, -34);
 
     // Subscribe to all-helped event to unlock and turn green.
-    // Note: ZoneScene._unbindEvents() removes ALL_NPCS_HELPED listeners on zone
-    // change so this handler does not accumulate across transitions.
-    scene.game.events.on(GameEvents.ALL_NPCS_HELPED, () => {
+    // Registered on the zone scope, so it is removed on zone exit.
+    scope.on(GameEvents.ALL_NPCS_HELPED, () => {
       this._unlock();
     });
 
     // Listen for DIALOGUE_ADVANCE to close the locked-door single-line message.
-    // Note: ZoneScene._unbindEvents() removes DIALOGUE_ADVANCE listeners on zone
-    // change so this handler does not accumulate across transitions.
-    scene.game.events.on(GameEvents.DIALOGUE_ADVANCE, () => {
+    // Registered on the zone scope, so it is removed on zone exit.
+    scope.on(GameEvents.DIALOGUE_ADVANCE, () => {
       if (this.showingLockedMsg) {
         this.showingLockedMsg = false;
         scene.game.events.emit(GameEvents.DIALOGUE_CLOSE);

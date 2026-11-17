@@ -12,6 +12,7 @@ import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
 import { AudioManager } from '@/systems/AudioManager';
 import { XpSystem } from '@/systems/XpSystem';
+import { EventScope } from '@/systems/EventScope';
 import type { CardData } from '@/types/CardData';
 import type { ZoneData, ZoneTheme } from '@/types/ZoneData';
 import type { ProgressSnapshot } from '@/types/Progress';
@@ -63,15 +64,10 @@ function _normalizeHex(hex: string): string {
  *   No zone ids are hardcoded in this file (ADR-002, TASK-020).
  *
  * Listener leak prevention:
- *   NPCs register a DECK_CARD_PICKED listener in their constructor (on the
- *   global game.events bus). On zone transitions we call _unbindEvents() and
- *   then scene.start() which destroys all GameObjects created by this scene,
- *   but the global bus listeners added by NPC constructors persist. To prevent
- *   accumulation across transitions, ZoneScene explicitly removes the
- *   DECK_CARD_PICKED listeners in _unbindEvents() (which removes ALL listeners
- *   for that event — safe because a new set is added when the next zone loads).
- *   Door also adds ALL_NPCS_HELPED and DIALOGUE_ADVANCE to the global bus;
- *   these are cleaned up the same way in _unbindEvents().
+ *   Every listener this zone adds to the global bus (its own, and those of its
+ *   NPCs, Doors and ProgressionSystem) goes through `this.scope` (EventScope).
+ *   On zone exit / restart the scope removes exactly those listeners — never
+ *   the ones owned by long-lived systems such as AudioManager or UIScene.
  */
 export class ZoneScene extends Phaser.Scene {
   // ---- Entities ----
@@ -87,6 +83,9 @@ export class ZoneScene extends Phaser.Scene {
   private deck!: DeckSystem;
   private progression!: ProgressionSystem;
   private xp!: XpSystem;
+
+  /** Global-bus listeners owned by this zone run (cleared on exit). */
+  private scope!: EventScope;
 
   // ---- Input ----
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -157,6 +156,11 @@ export class ZoneScene extends Phaser.Scene {
     this.npcs = [];
     this.doors = [];
     this.wallsLayer = undefined;
+
+    // Fresh listener scope for this zone run; cleared on SHUTDOWN, which
+    // Phaser emits on scene.start() of another zone, a restart, or stop().
+    this.scope = new EventScope(this.game.events);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scope.clear());
     this.transitioning = false;
     this.wasEDown = false;
     this.wasMDown = false;
@@ -308,7 +312,7 @@ export class ZoneScene extends Phaser.Scene {
       }
     }
 
-    this.progression = new ProgressionSystem(this.game.events, questNPCCount, zoneQuestNpcIdSet);
+    this.progression = new ProgressionSystem(this.game.events, questNPCCount, zoneQuestNpcIdSet, this.scope);
 
     for (const npcId of questNPCIds) {
       let npcData = cl.getNpc(npcId);
@@ -324,7 +328,7 @@ export class ZoneScene extends Phaser.Scene {
         npcData = { ...npcData, position: { ...override } };
       }
 
-      const npc = new NPC(this, npcData);
+      const npc = new NPC(this, npcData, this.scope);
       this.npcs.push(npc);
       this.interaction.register(npc);
 
@@ -342,7 +346,7 @@ export class ZoneScene extends Phaser.Scene {
 
     // ---- Doors ----
     for (const doorData of this.zoneData.doors) {
-      const door = new Door(this, doorData);
+      const door = new Door(this, doorData, this.scope);
       this.doors.push(door);
       this.interaction.register(door);
 
@@ -621,12 +625,12 @@ export class ZoneScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private _bindEvents(): void {
-    const ev = this.game.events;
+    const ev = this.game.events; // for emit() only — subscribe via this.scope
     const save = SaveSystem.getInstance();
     const cl = ContentLoader.getInstance();
 
     // NPC reward: add the answered card to player deck + XP
-    ev.on('npc-reward-card', (payload: { npcId: string; cardId: string; wrongAttempts?: number }) => {
+    this.scope.on('npc-reward-card', (payload: { npcId: string; cardId: string; wrongAttempts?: number }) => {
       const card = cl.getCard(payload.cardId);
       if (card) {
         this.deck.add(card);
@@ -645,7 +649,7 @@ export class ZoneScene extends Phaser.Scene {
     // Zone-clear bonus only the first time the door opens: on a reload the
     // door is already in the save (ProgressionSystem re-emits this event from
     // restoreResolved), so no XP is granted twice.
-    ev.on(GameEvents.ALL_NPCS_HELPED, () => {
+    this.scope.on(GameEvents.ALL_NPCS_HELPED, () => {
       let firstClear = false;
       for (const doorData of this.zoneData.doors) {
         if (!save.isDoorUnlocked(doorData.id)) firstClear = true;
@@ -657,7 +661,7 @@ export class ZoneScene extends Phaser.Scene {
     });
 
     // Door exit triggered: transition to next zone (or end screen if final zone)
-    ev.on(GameEvents.ZONE_TRANSITION, (payload: { nextZoneId: string | undefined }) => {
+    this.scope.on(GameEvents.ZONE_TRANSITION, (payload: { nextZoneId: string | undefined }) => {
       this._triggerZoneTransition(payload.nextZoneId);
     });
 
@@ -665,14 +669,14 @@ export class ZoneScene extends Phaser.Scene {
     // Multi-zone semantics: Rejouer reloads the zone the player is in right now,
     // not zone_01. The player keeps their deck and all helped-NPC records.
     // If the door was already unlocked in save, it will show as open immediately.
-    ev.on(GameEvents.END_REPLAY, () => {
+    this.scope.on(GameEvents.END_REPLAY, () => {
       this._unbindEvents();
       // Restart with same zoneId so we stay on the current zone
       this.scene.start('ZoneScene', { zoneId: this.zoneData.id });
     });
 
     // Menu principal: stop zone, stop UI overlay, go to main menu
-    ev.on(GameEvents.END_MENU, () => {
+    this.scope.on(GameEvents.END_MENU, () => {
       this._unbindEvents();
       this.scene.stop('UIScene');
       this.scene.stop('TimelineScene');
@@ -680,18 +684,18 @@ export class ZoneScene extends Phaser.Scene {
     });
 
     // GAME_COMPLETE (final zone clear): show EndScreen via UIScene
-    ev.on(GameEvents.GAME_COMPLETE, (payload: { message: string }) => {
+    this.scope.on(GameEvents.GAME_COMPLETE, (payload: { message: string }) => {
       ev.emit(GameEvents.END_SCREEN_SHOW, payload);
     });
 
     // Close button on a UI overlay (deck panel) → same path as ESC
-    ev.on(GameEvents.DIALOGUE_CANCEL_REQUEST, () => {
+    this.scope.on(GameEvents.DIALOGUE_CANCEL_REQUEST, () => {
       this._cancelActiveConversation();
     });
 
     // TIMELINE_CLOSE: the frieze was closed by T/ESC inside TimelineScene.
     // Release the open flag so T can reopen it.
-    ev.on(GameEvents.TIMELINE_CLOSE, () => {
+    this.scope.on(GameEvents.TIMELINE_CLOSE, () => {
       this.timelineOpen = false;
       // Same race for ESC: the press that closed the frieze must not also
       // be read here as a fresh "abort conversation" press.
@@ -705,56 +709,12 @@ export class ZoneScene extends Phaser.Scene {
   }
 
   /**
-   * Remove zone-specific event listeners before restart/stop to prevent leaks.
-   *
-   * Critical: NPC and Door each add listeners to the global game.events bus in
-   * their constructors:
-   *   - NPC: DECK_CARD_PICKED
-   *   - Door: ALL_NPCS_HELPED, DIALOGUE_ADVANCE
-   *
-   * When scene.start() is called the scene's DisplayList is cleared (GameObjects
-   * are destroyed) but game.events global listeners are NOT automatically removed.
-   * Without cleanup, each zone transition accumulates handlers for these events,
-   * causing duplicate NPC responses, spurious door unlocks, and incorrect
-   * all-NPCs counts.
-   *
-   * We remove ALL listeners for the affected event keys here. This is safe
-   * because the next zone's create() immediately re-registers fresh handlers
-   * via new NPC/Door constructors.
+   * Remove every global-bus listener owned by this zone run (its own and those
+   * of its NPCs, Doors and ProgressionSystem). Also runs automatically on
+   * SHUTDOWN; calling it early is safe (EventScope.clear is idempotent).
    */
   private _unbindEvents(): void {
-    const ev = this.game.events;
-
-    // ZoneScene-owned listeners
-    ev.removeAllListeners('npc-reward-card');
-    ev.removeAllListeners(GameEvents.END_REPLAY);
-    ev.removeAllListeners(GameEvents.END_MENU);
-    ev.removeAllListeners(GameEvents.ZONE_TRANSITION);
-    ev.removeAllListeners(GameEvents.GAME_COMPLETE);
-
-    // ALL_NPCS_HELPED: owned by ZoneScene (saves door) + Door (unlocks visual)
-    // + ProgressionSystem (emits it but does not re-subscribe). Safe to remove all.
-    ev.removeAllListeners(GameEvents.ALL_NPCS_HELPED);
-
-    // NPC_RESOLVED: owned by ProgressionSystem listener inside its constructor.
-    // ProgressionSystem is re-created on each zone load, so stale listeners
-    // would accumulate — remove them here.
-    ev.removeAllListeners(GameEvents.NPC_RESOLVED);
-
-    // DECK_CARD_PICKED: NPC constructor adds one listener per NPC.
-    // After zone transition, old NPCs are gone but their listeners remain on
-    // the global bus. Remove all — next zone's NPCs re-register in create().
-    ev.removeAllListeners(GameEvents.DECK_CARD_PICKED);
-
-    // DIALOGUE_ADVANCE: Door adds one listener per door in its constructor.
-    // Same leak pattern as DECK_CARD_PICKED — clean up here.
-    ev.removeAllListeners(GameEvents.DIALOGUE_ADVANCE);
-
-    // TIMELINE_CLOSE: added by this ZoneScene instance in _bindEvents().
-    ev.removeAllListeners(GameEvents.TIMELINE_CLOSE);
-
-    // DIALOGUE_CANCEL_REQUEST: added by this ZoneScene instance in _bindEvents().
-    ev.removeAllListeners(GameEvents.DIALOGUE_CANCEL_REQUEST);
+    this.scope.clear();
   }
 
   // ---------------------------------------------------------------------------
