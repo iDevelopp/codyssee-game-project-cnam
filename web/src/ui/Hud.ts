@@ -34,6 +34,7 @@ export class Hud {
   private readonly zoneText: Phaser.GameObjects.Text;
   private readonly energyIcon: Phaser.GameObjects.Text;
   private readonly energyBarFill: Phaser.GameObjects.Rectangle;
+  private readonly timerText: Phaser.GameObjects.Text;
   private static readonly ENERGY_BAR_W = 64;
   private readonly zoneBarBg: Phaser.GameObjects.Rectangle;
   private readonly zoneBarFill: Phaser.GameObjects.Rectangle;
@@ -94,7 +95,12 @@ export class Hud {
     const globalBarBg = scene.add.rectangle(globalBarX, midY, Hud.GLOBAL_BAR_W, Hud.BAR_H, 0x2a2a44).setOrigin(0, 0.5);
     this.globalBarFill = scene.add.rectangle(globalBarX, midY, 0, Hud.BAR_H, 0x8888ff).setOrigin(0, 0.5);
 
+    this.timerText = scene.add.text(0, midY, '', {
+      fontFamily: 'monospace', fontSize: '14px', color: '#c8b8ff',
+    }).setOrigin(0, 0.5);
+
     this.container = scene.add.container(0, 0, [
+      this.timerText,
       bg, border, this.xpText, this.energyIcon, energyBarBg, this.energyBarFill, this.zoneText,
       this.zoneBarBg, this.zoneBarFill, this.globalText, globalBarBg, this.globalBarFill,
     ]);
@@ -142,6 +148,7 @@ export class Hud {
     );
     this.zoneBarBg.setVisible(!p.hub);
     this.zoneBarFill.setVisible(!p.hub);
+    this.setTimer(null);
     const barX = this.zoneText.x + this.zoneText.width + 12;
     this.zoneBarBg.setX(barX);
     this.zoneBarFill.setX(barX);
@@ -169,6 +176,12 @@ export class Hud {
     if (energy <= 0) {
       this.scene.tweens.add({ targets: this.energyIcon, alpha: 0.2, duration: 400, yoyo: true, repeat: -1 });
     }
+  }
+
+  /** Maze timer after the zone name ("⏱ 0:42 / 1:15"); null hides it. */
+  setTimer(text: string | null): void {
+    this.timerText.setText(text ?? '');
+    this.timerText.setX(this.zoneText.x + this.zoneText.width + 16);
   }
 
   setVisible(visible: boolean): void {

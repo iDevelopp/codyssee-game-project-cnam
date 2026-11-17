@@ -73,6 +73,8 @@ interface SaveDataV1 {
   ttsEnabled: boolean;
   /** Card ids whose terminal line has been completed. */
   solvedTerminalTaskIds: string[];
+  /** Maze zone ids already escaped (escape reward is granted once). */
+  escapedMazeIds: string[];
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -390,6 +392,14 @@ export class SaveSystem {
     this.save();
   }
 
+  /** Record a maze escape. Returns true the first time only. */
+  recordMazeEscaped(zoneId: string): boolean {
+    if (this.data.escapedMazeIds.includes(zoneId)) return false;
+    this.data.escapedMazeIds.push(zoneId);
+    this.save();
+    return true;
+  }
+
   /** Card ids whose terminal line is completed. */
   getSolvedTerminalTaskIds(): string[] {
     return [...this.data.solvedTerminalTaskIds];
@@ -460,6 +470,7 @@ export class SaveSystem {
       ownedStyleIds: [],
       ttsEnabled: false,
       solvedTerminalTaskIds: [],
+      escapedMazeIds: [],
     };
   }
 
@@ -498,6 +509,9 @@ export class SaveSystem {
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;
+    }
+    if (!Array.isArray(obj['escapedMazeIds'])) {
+      (obj as Record<string, unknown>)['escapedMazeIds'] = [];
     }
     if (!Array.isArray(obj['solvedTerminalTaskIds'])) {
       (obj as Record<string, unknown>)['solvedTerminalTaskIds'] = [];

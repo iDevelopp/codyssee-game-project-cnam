@@ -293,6 +293,11 @@ export class UIScene extends Phaser.Scene {
       this.hud.setEnergy(change.energy, change.max, cl.getEconomy().energy.lowThreshold);
     });
 
+    this.scope.on(GameEvents.MAZE_TIMER, (t: { seconds: number; par: number }) => {
+      const fmt = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      this.hud.setTimer(`⏱ ${fmt(t.seconds)}  (${cl.getString('maze.par')} ${fmt(t.par)})`);
+    });
+
     this.scope.on(GameEvents.TOAST, (msg: { text: string; color?: string }) => {
       this.toast.show(msg.text, msg.color);
     });

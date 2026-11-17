@@ -42,6 +42,12 @@ export interface EconomyData {
     /** XP for each terminal line completed. */
     taskXp: number;
   };
+  maze: {
+    /** XP for escaping a maze the first time. */
+    escapeXp: number;
+    /** Extra XP per second under the maze's par time (first escape only). */
+    bonusPerSecond: number;
+  };
   shop: {
     /** XP cost of a hint: greys out part of the wrong cards. */
     hintCost: number;
@@ -73,6 +79,10 @@ export const ECONOMY_DEFAULT: EconomyData = {
   },
   terminal: {
     taskXp: 30,
+  },
+  maze: {
+    escapeXp: 60,
+    bonusPerSecond: 1,
   },
   shop: {
     hintCost: 20,

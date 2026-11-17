@@ -16,6 +16,7 @@ import { EventScope } from '@/systems/EventScope';
 import { EnergySystem } from '@/systems/EnergySystem';
 import { CoffeeMachine } from '@/entities/CoffeeMachine';
 import { Terminal } from '@/entities/Terminal';
+import { MazeBuilder } from '@/systems/MazeBuilder';
 import type { CardData } from '@/types/CardData';
 import { RETURN_ZONE_ID, type ZoneData, type ZoneTheme } from '@/types/ZoneData';
 import type { NpcData } from '@/types/NpcData';
@@ -155,6 +156,12 @@ export class ZoneScene extends Phaser.Scene {
   private vKey!: Phaser.Input.Keyboard.Key;
   private wasVDown = false;
 
+  /** Maze state (feat/mazes): exit cell, start time, done flag. */
+  private mazeExit: Phaser.Geom.Rectangle | null = null;
+  private mazeStartMs = 0;
+  private mazeLastSecond = -1;
+  private mazeDone = false;
+
   /** The zone terminal, if any (feat/terminal-loop). */
   private terminal: Terminal | null = null;
   private terminalOpen = false;
@@ -220,6 +227,9 @@ export class ZoneScene extends Phaser.Scene {
     this.shopOpen = false;
     this.terminal = null;
     this.terminalOpen = false;
+    this.mazeExit = null;
+    this.mazeDone = false;
+    this.mazeLastSecond = -1;
     this.timelineOpen = false;
     // `player`, `interaction`, `deck`, `progression`, `cursors`, `wasd`,
     // `eKey`, `mKey`, `zoneData` are all reassigned unconditionally below —
@@ -308,9 +318,31 @@ export class ZoneScene extends Phaser.Scene {
     // V key — read dialogues aloud (works anytime, even mid-dialogue)
     this.vKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.V);
 
+    // ---- Maze walls (feat/mazes) — before the player so we know the spawn ----
+    const MAZE_ORIGIN = { x: 80, y: 80 };
+    let mazeWalls: Phaser.Physics.Arcade.StaticGroup | null = null;
+    let spawn = this.zoneData.spawn;
+    const maze = this.zoneData.maze;
+    if (maze) {
+      mazeWalls = MazeBuilder.build(this, maze, MAZE_ORIGIN);
+      // Start: left part of the top-left cell (the coffee machine sits on the right)
+      spawn = { x: MAZE_ORIGIN.x + maze.cell * 0.3, y: MAZE_ORIGIN.y + maze.cell / 2 };
+      // Exit: the bottom-right cell — walking into it escapes
+      const ex = MAZE_ORIGIN.x + (maze.cols - 1) * maze.cell;
+      const ey = MAZE_ORIGIN.y + (maze.rows - 1) * maze.cell;
+      this.mazeExit = new Phaser.Geom.Rectangle(ex, ey, maze.cell, maze.cell);
+      const glow = this.add.rectangle(ex + maze.cell / 2, ey + maze.cell / 2, maze.cell - maze.wall, maze.cell - maze.wall, 0x66ff66, 0.25)
+        .setDepth(1);
+      this.tweens.add({ targets: glow, alpha: 0.6, duration: 700, yoyo: true, repeat: -1 });
+      this.add.text(ex + maze.cell / 2, ey + maze.cell / 2, cl.getString('maze.exit'), {
+        fontFamily: 'monospace', fontSize: '18px', color: '#b0ffb0', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(2);
+      this.mazeStartMs = this.time.now;
+    }
+
     // ---- Player ----
-    const spawn = this.zoneData.spawn;
     this.player = new Player(this, spawn.x, spawn.y);
+    if (mazeWalls) this.physics.add.collider(this.player, mazeWalls);
 
     // ---- Map (tilemap layers + props if `map` data present, else placeholder floor) ----
     // Built after the player exists so solid props/walls can collide with it immediately.
@@ -476,6 +508,13 @@ export class ZoneScene extends Phaser.Scene {
     this.xp.refresh();
     this.energy.refresh();
     this._emitProgress();
+
+    if (maze) {
+      this.game.events.emit(GameEvents.TOAST, {
+        text: cl.getString('maze.start').replace('{par}', String(maze.parSeconds)),
+        color: '#c8b8ff',
+      });
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -485,6 +524,7 @@ export class ZoneScene extends Phaser.Scene {
       : 1;
     this.player.move(this.cursors, this.wasd, InputLock.isLocked());
     this._updateEnergy(delta);
+    this._updateMaze();
 
     // M key: toggle mute (single-press — rising edge only)
     const mDown = this.mKey.isDown;
@@ -665,6 +705,38 @@ export class ZoneScene extends Phaser.Scene {
       this.xp.gain(ContentLoader.getInstance().getEconomy().xp.zoneCleared, 'zone-cleared');
     }
     this.game.events.emit(GameEvents.ZONE_UNLOCKED);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — maze
+  // ---------------------------------------------------------------------------
+
+  /** HUD timer every second; escape when the player reaches the exit cell. */
+  private _updateMaze(): void {
+    const maze = this.zoneData.maze;
+    if (!maze || !this.mazeExit || this.mazeDone) return;
+
+    const seconds = Math.floor((this.time.now - this.mazeStartMs) / 1000);
+    if (seconds !== this.mazeLastSecond) {
+      this.mazeLastSecond = seconds;
+      this.game.events.emit(GameEvents.MAZE_TIMER, { seconds, par: maze.parSeconds });
+    }
+
+    if (!this.mazeExit.contains(this.player.x, this.player.y)) return;
+    this.mazeDone = true;
+
+    const cl = ContentLoader.getInstance();
+    const { maze: cfg } = cl.getEconomy();
+    let text = cl.getString('maze.escapedAgain').replace('{s}', String(seconds));
+    if (SaveSystem.getInstance().recordMazeEscaped(this.zoneData.id)) {
+      const bonus = Math.max(0, maze.parSeconds - seconds) * cfg.bonusPerSecond;
+      this.xp.gain(cfg.escapeXp + bonus, 'maze-escape');
+      text = cl.getString('maze.escaped')
+        .replace('{s}', String(seconds))
+        .replace('{xp}', String(cfg.escapeXp + bonus));
+    }
+    this.game.events.emit(GameEvents.TOAST, { text, color: '#66ff66' });
+    this.game.events.emit(GameEvents.ZONE_TRANSITION, { nextZoneId: maze.exitTo });
   }
 
   // ---------------------------------------------------------------------------

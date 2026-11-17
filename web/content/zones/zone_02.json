@@ -20,7 +20,7 @@
       },
       "lockedMessageKey": "door.locked",
       "exitMessageKey": "door.exit_02",
-      "leadsToZoneId": "zone_03"
+      "leadsToZoneId": "maze_01"
     },
     {
       "id": "door_cafeteria_02",

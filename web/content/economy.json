@@ -24,5 +24,9 @@
   },
   "terminal": {
     "taskXp": 30
+  },
+  "maze": {
+    "escapeXp": 60,
+    "bonusPerSecond": 1
   }
 }

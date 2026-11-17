@@ -1,5 +1,5 @@
 {
   "zones": ["zone_01", "zone_02", "zone_03", "zone_04", "zone_05"],
-  "hubs": ["cafeteria"],
+  "hubs": ["cafeteria", "maze_01", "maze_02"],
   "version": 1
 }

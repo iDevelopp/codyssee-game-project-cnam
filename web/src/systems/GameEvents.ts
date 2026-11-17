@@ -262,4 +262,7 @@ export const GameEvents = {
    * ALL_NPCS_HELPED, since the terminal can hold the door shut.
    */
   ZONE_UNLOCKED: 'zone-unlocked',
+
+  /** Emitted every second in a maze. Payload: { seconds, par }. HUD shows a timer. */
+  MAZE_TIMER: 'maze-timer',
 } as const;

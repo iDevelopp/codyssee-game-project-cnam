@@ -1,0 +1,34 @@
+{
+  "id": "maze_01",
+  "displayName": "🌀 Couloir temporel 1970 → 1980",
+  "tilemap": "maze_01.json",
+  "hub": true,
+  "spawn": {
+    "x": 0,
+    "y": 0
+  },
+  "npcs": [],
+  "doors": [],
+  "maze": {
+    "cols": 10,
+    "rows": 5,
+    "cell": 240,
+    "wall": 24,
+    "seed": "couloir-1970-1980",
+    "exitTo": "zone_03",
+    "parSeconds": 60
+  },
+  "props": [
+    {
+      "id": "coffee_maze_01",
+      "type": "coffee",
+      "position": {
+        "x": 270,
+        "y": 200
+      }
+    }
+  ],
+  "unlockCondition": "maze_escape",
+  "themeEra": "maze",
+  "theme": { "background": "120c24", "ambient": "1a1040", "ambientAlpha": 0.15, "accent": "b98cff" }
+}

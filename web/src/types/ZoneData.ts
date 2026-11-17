@@ -37,6 +37,26 @@ export interface DoorData {
   alwaysOpen?: boolean;
 }
 
+/**
+ * Maze level settings (feat/mazes). The maze is generated from `seed`, so a
+ * zone always has the same layout. The player starts in the top-left cell
+ * and escapes by walking into the bottom-right one.
+ */
+export interface MazeData {
+  cols: number;
+  rows: number;
+  /** Cell size in world pixels (corridor width). */
+  cell: number;
+  /** Wall thickness in world pixels. */
+  wall: number;
+  /** Any string; changing it changes the layout. */
+  seed: string;
+  /** Zone the exit leads to. */
+  exitTo: string;
+  /** Seconds to beat for the time bonus. */
+  parSeconds: number;
+}
+
 /** Special `leadsToZoneId`: back to the last story zone the player was in. */
 export const RETURN_ZONE_ID = '@return';
 
@@ -216,6 +236,9 @@ export interface ZoneData {
    * Listed under "hubs" in zones/index.json.
    */
   hub?: boolean;
+
+  /** Maze level (feat/mazes): walls generated from these settings. */
+  maze?: MazeData;
 
   /** Optional world props (coffee machines…). */
   props?: PropData[];
