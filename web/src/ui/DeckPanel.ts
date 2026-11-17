@@ -3,6 +3,7 @@ import type { CardData } from '@/types/CardData';
 import { InputLock } from '@/systems/InputLock';
 import { COLORS, FONTS } from '@/ui/theme';
 import { buildPanelPieces } from '@/ui/uiKit';
+import { GameEvents } from '@/systems/GameEvents';
 
 /**
  * DeckPanel — full-screen card selection overlay displayed in UIScene.
@@ -55,6 +56,7 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     this.closeBg.on('pointerover', () => this.closeBg.setFillStyle(0x4a4a7a));
     this.closeBg.on('pointerout', () => this.closeBg.setFillStyle(0x333355));
     this.closeBg.on('pointerdown', () => {
+      scene.game.events.emit(GameEvents.UI_CLICK);
       if (this.onClose) this.onClose();
     });
 

@@ -164,4 +164,17 @@ export const GameEvents = {
    * UIScene's HUD redraws the progress bars. Payload: ProgressSnapshot.
    */
   PROGRESS_CHANGED: 'progress-changed',
+
+  // ---------------------------------------------------------------------------
+  // Feedback (feat/sfx-feedback)
+  // ---------------------------------------------------------------------------
+
+  /** Emitted by any clickable UI button. AudioManager plays sfx.uiClick. */
+  UI_CLICK: 'ui-click',
+
+  /**
+   * Emitted when the player tries something that is refused (e.g. buying
+   * without enough XP). AudioManager plays sfx.denied.
+   */
+  ACTION_DENIED: 'action-denied',
 } as const;

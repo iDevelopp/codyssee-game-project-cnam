@@ -1,0 +1,13 @@
+{
+  "_doc": "Procedural sound effects (Web Audio, no file needed). Each key can be played like an audio.json key. wave: sine|square|triangle|sawtooth. notes: [frequency Hz, duration ms] played in sequence; frequency 0 = silence. slideTo (optional): each note glides to this ratio of its frequency.",
+  "sfx.dialogueLine": { "wave": "square",   "volume": 0.06, "notes": [[880, 30]] },
+  "sfx.deckOpen":     { "wave": "triangle", "volume": 0.18, "notes": [[392, 60], [523, 60], [659, 90]] },
+  "sfx.cancel":       { "wave": "triangle", "volume": 0.16, "notes": [[523, 60], [392, 90]] },
+  "sfx.xpGain":       { "wave": "square",   "volume": 0.08, "notes": [[988, 50], [1319, 120]] },
+  "sfx.xpLoss":       { "wave": "sawtooth", "volume": 0.08, "notes": [[220, 90], [165, 160]] },
+  "sfx.zoneTransition": { "wave": "sine",   "volume": 0.20, "notes": [[330, 400]], "slideTo": 3 },
+  "sfx.timelineOpen": { "wave": "sine",     "volume": 0.18, "notes": [[659, 80], [784, 80], [1047, 160]] },
+  "sfx.timelineClose": { "wave": "sine",    "volume": 0.16, "notes": [[1047, 70], [784, 110]] },
+  "sfx.victory":      { "wave": "square",   "volume": 0.10, "notes": [[523, 120], [659, 120], [784, 120], [0, 60], [1047, 320]] },
+  "sfx.denied":       { "wave": "square",   "volume": 0.07, "notes": [[196, 70], [0, 40], [196, 110]] }
+}

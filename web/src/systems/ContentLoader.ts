@@ -46,6 +46,18 @@ export interface AudioEntry {
 /** The full audio manifest from content/audio.json — keyed by sound id. */
 export type AudioManifest = Record<string, AudioEntry>;
 
+/** One procedural sound recipe from content/synth-sfx.json. */
+export interface SynthRecipe {
+  wave: OscillatorType;
+  volume: number;
+  /** [frequency Hz, duration ms] played in sequence; 0 Hz = rest. */
+  notes: Array<[number, number]>;
+  /** Optional glide: each note ramps to frequency × slideTo. */
+  slideTo?: number;
+}
+
+export type SynthManifest = Record<string, SynthRecipe>;
+
 interface ContentStore {
   cards: CardData[];
   npcs: NpcData[];
@@ -60,6 +72,8 @@ interface ContentStore {
   narrative: NarrativeData;
   /** Game balance numbers from content/economy.json, merged over defaults. */
   economy: EconomyData;
+  /** Procedural SFX recipes from content/synth-sfx.json ({} if missing). */
+  synth: SynthManifest;
 }
 
 /**
@@ -394,6 +408,11 @@ export class ContentLoader {
     return this._require().economy;
   }
 
+  /** Procedural SFX recipes (content/synth-sfx.json). Never null. */
+  getSynthManifest(): SynthManifest {
+    return this._require().synth;
+  }
+
   /**
    * Returns the initial player deck: cards that are NOT expected answers for
    * any NPC (matching the Unity GameManager.Start complement-set logic),
@@ -444,7 +463,7 @@ export class ContentLoader {
 
     // Fetch all root-level JSON files in parallel for performance.
     // audio.json and narrative.json are optional — gracefully degrade if missing.
-    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw, economyRaw] = await Promise.all([
+    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw, economyRaw, synthRaw] = await Promise.all([
       this._fetchJson(`${base}content/cards.json`),
       this._fetchJson(`${base}content/npcs.json`),
       // timeline.json is optional in J0 — returns empty array if missing
@@ -456,6 +475,8 @@ export class ContentLoader {
       this._fetchJsonOptional(`${base}content/narrative.json`, null),
       // economy.json is optional — every field has a default (ECONOMY_DEFAULT)
       this._fetchJsonOptional(`${base}content/economy.json`, null),
+      // synth-sfx.json is optional — no procedural SFX if missing
+      this._fetchJsonOptional(`${base}content/synth-sfx.json`, null),
     ]);
 
     // --- Parse cards ---
@@ -559,7 +580,18 @@ export class ContentLoader {
 
     const economy = mergeDefaults(ECONOMY_DEFAULT, economyRaw);
 
-    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative, economy };
+    // Keep only well-formed recipes; "_doc" and malformed entries are skipped.
+    const synth: SynthManifest = {};
+    if (synthRaw !== null && typeof synthRaw === 'object' && !Array.isArray(synthRaw)) {
+      for (const [key, value] of Object.entries(synthRaw as Record<string, unknown>)) {
+        const r = value as Partial<SynthRecipe> | null;
+        if (r && typeof r === 'object' && typeof r.wave === 'string' && typeof r.volume === 'number' && Array.isArray(r.notes)) {
+          synth[key] = r as SynthRecipe;
+        }
+      }
+    }
+
+    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative, economy, synth };
   }
 
   /**

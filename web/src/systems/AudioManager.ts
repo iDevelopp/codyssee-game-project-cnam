@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { SaveSystem } from '@/systems/SaveSystem';
 import { GameEvents } from '@/systems/GameEvents';
-import type { AudioManifest } from '@/systems/ContentLoader';
+import type { AudioManifest, SynthRecipe } from '@/systems/ContentLoader';
+import type { XpChange } from '@/systems/XpSystem';
 
 /**
  * AudioManager — data-driven, event-wired audio system for Codyssey Web.
@@ -297,6 +298,12 @@ export class AudioManager {
 
     const sound = this.sounds.get(key);
     if (!sound) {
+      // Not a file-based sound — try a procedural recipe (synth-sfx.json).
+      const recipe = this._getSynthRecipe(key);
+      if (recipe) {
+        this._playSynth(recipe);
+        return;
+      }
       // Only warn in dev — in prod a missing SFX is not catastrophic.
       if (import.meta.env.DEV) {
         console.warn(`AudioManager.play(): key "${key}" not found.`);
@@ -374,6 +381,85 @@ export class AudioManager {
     ev.on(GameEvents.DOOR_OPEN, () => {
       this.play('sfx.door');
     });
+
+    // ---- feat/sfx-feedback: one distinct cue per key action ----
+
+    // Each dialogue line → short typewriter tick
+    ev.on(GameEvents.DIALOGUE_OPEN, () => this.play('sfx.dialogueLine'));
+
+    // Card selection opens → rising arpeggio
+    ev.on(GameEvents.DECK_OPEN, () => this.play('sfx.deckOpen'));
+
+    // ESC / close button left a conversation → falling two-note
+    ev.on(GameEvents.DIALOGUE_CANCEL, () => this.play('sfx.cancel'));
+
+    // XP gained / lost → coin / low buzz (refresh events have delta 0)
+    ev.on(GameEvents.XP_CHANGED, (change: XpChange) => {
+      if (change.delta > 0) this.play('sfx.xpGain');
+      else if (change.delta < 0) this.play('sfx.xpLoss');
+    });
+
+    // Walking through an open door → upward sweep
+    ev.on(GameEvents.ZONE_TRANSITION, () => this.play('sfx.zoneTransition'));
+
+    // Timeline frieze open / close
+    ev.on(GameEvents.TIMELINE_OPEN, () => this.play('sfx.timelineOpen'));
+    ev.on(GameEvents.TIMELINE_CLOSE, () => this.play('sfx.timelineClose'));
+
+    // Final zone cleared → fanfare
+    ev.on(GameEvents.GAME_COMPLETE, () => this.play('sfx.victory'));
+
+    // Any UI button (menu, end screen, deck close…) → click (file-based)
+    ev.on(GameEvents.UI_CLICK, () => this.play('sfx.uiClick'));
+
+    // Action refused (e.g. not enough XP) → double low beep
+    ev.on(GameEvents.ACTION_DENIED, () => this.play('sfx.denied'));
+  }
+
+  /** Look up a procedural recipe; null if content is not loaded or key unknown. */
+  private _getSynthRecipe(key: string): SynthRecipe | null {
+    try {
+      return ContentLoader.getInstance().getSynthManifest()[key] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Play a procedural recipe with the Web Audio API: one oscillator per note,
+   * scheduled back to back, with a short attack/release envelope to avoid
+   * clicks. Honours master volume (mute is checked by play()).
+   * Silently does nothing on non-WebAudio sound managers.
+   */
+  private _playSynth(recipe: SynthRecipe): void {
+    const mgr = this.scene?.sound as Phaser.Sound.WebAudioSoundManager | undefined;
+    const ctx = mgr && 'context' in mgr ? mgr.context : null;
+    if (!ctx || ctx.state !== 'running') return;
+
+    const gainValue = recipe.volume * SaveSystem.getInstance().getMasterVolume();
+    if (gainValue <= 0) return;
+
+    let t = ctx.currentTime;
+    for (const [freq, ms] of recipe.notes) {
+      const dur = Math.max(ms, 10) / 1000;
+      if (freq > 0) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = recipe.wave;
+        osc.frequency.setValueAtTime(freq, t);
+        if (recipe.slideTo && recipe.slideTo > 0) {
+          osc.frequency.exponentialRampToValueAtTime(freq * recipe.slideTo, t + dur);
+        }
+        const attack = Math.min(0.005, dur / 4);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(gainValue, t + attack);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + dur + 0.02);
+      }
+      t += dur;
+    }
   }
 
   /**

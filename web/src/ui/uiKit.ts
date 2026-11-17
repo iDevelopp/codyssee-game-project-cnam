@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, FONTS } from '@/ui/theme';
+import { GameEvents } from '@/systems/GameEvents';
 
 /**
  * uiKit — small shared builders for the codysse.fr in-game identity
@@ -105,7 +106,11 @@ export function createPixelButton(
     shadow.setFillStyle(COLORS.shadowGreen);
     front.setPosition(0, 0);
   });
-  bg.on('pointerdown', onClick);
+  bg.on('pointerdown', () => {
+    // Every pixel button clicks (AudioManager plays sfx.uiClick) — feat/sfx-feedback
+    scene.game.events.emit(GameEvents.UI_CLICK);
+    onClick();
+  });
 
   return {
     container,

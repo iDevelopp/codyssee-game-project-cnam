@@ -398,7 +398,10 @@ export class TimelineScene extends Phaser.Scene {
       const entryCapture = entry;
       hitZone.on('pointerover', () => this._showDetail(entryCapture, isRevealed, cl));
       hitZone.on('pointerout', () => { this.detailPanel.setVisible(false); });
-      hitZone.on('pointerdown', () => this._showDetail(entryCapture, isRevealed, cl));
+      hitZone.on('pointerdown', () => {
+        this.game.events.emit(GameEvents.UI_CLICK);
+        this._showDetail(entryCapture, isRevealed, cl);
+      });
       this.nodeZones.push(hitZone);
 
       // Label text above/below node — language name (green/dim) on one line,

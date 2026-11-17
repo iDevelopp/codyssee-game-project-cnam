@@ -394,7 +394,9 @@ export class ZoneScene extends Phaser.Scene {
     const mJustPressed = mDown && !this.wasMDown;
     this.wasMDown = mDown;
     if (mJustPressed) {
-      AudioManager.getInstance().toggleMute();
+      const nowMuted = AudioManager.getInstance().toggleMute();
+      // Audible confirmation when sound comes back on
+      if (!nowMuted) this.game.events.emit(GameEvents.UI_CLICK);
     }
 
     // T key: toggle timeline frieze (single-press — rising edge only).
