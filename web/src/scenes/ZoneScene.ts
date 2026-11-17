@@ -110,7 +110,7 @@ export class ZoneScene extends Phaser.Scene {
   /** Whether T was down last frame (single-press guard). */
   private wasTDown = false;
 
-  /** Escape key — exit to main menu (single-press guard). */
+  /** ESC — leaves the active conversation; otherwise exits to the main menu. */
   private escKey!: Phaser.Input.Keyboard.Key;
 
   /** Whether Escape was down last frame (single-press guard). */
@@ -229,7 +229,8 @@ export class ZoneScene extends Phaser.Scene {
     // T key — timeline frieze toggle (TASK-023)
     this.tKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T);
 
-    // Escape — exit to main menu (progress is saved continuously, safe anytime)
+    // Escape — leave the current conversation (no more "tunnel" dialogues),
+    // or exit to the main menu when nothing is open (progress is saved continuously)
     this.escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     // ---- Player ----
@@ -398,15 +399,21 @@ export class ZoneScene extends Phaser.Scene {
       }
     }
 
-    // Escape: exit to main menu (single-press — rising edge only).
-    // Only when no overlay holds the lock (dialogue/deck/timeline manage
-    // their own dismissal) — Escape must never yank the player out mid-answer.
+    // Escape (rising edge only). The timeline frieze handles its own ESC.
+    //  - A conversation is open (lock held): abort it — no more "tunnel".
+    //  - Nothing open: exit to the main menu.
+    // Other locked overlays (end screen, intro) are left alone: the cancel
+    // routine is a no-op when no NPC/door conversation is active.
     const escDown = this.escKey.isDown;
     const escJustPressed = escDown && !this.wasEscDown;
     this.wasEscDown = escDown;
-    if (escJustPressed && !InputLock.isLocked() && !this.timelineOpen) {
-      this._exitToMenu();
-      return;
+    if (escJustPressed && !this.timelineOpen) {
+      if (InputLock.isLocked()) {
+        this._cancelActiveConversation();
+      } else {
+        this._exitToMenu();
+        return;
+      }
     }
 
     // InteractionSystem handles E for NPCs and doors (unlocked state only).
@@ -471,6 +478,28 @@ export class ZoneScene extends Phaser.Scene {
    */
   getPlayerPosition(): { x: number; y: number } {
     return { x: this.player.x, y: this.player.y };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — conversation abort (ESC)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Abort whichever NPC conversation or door message is in progress and ask
+   * UIScene to hide the dialogue box / deck panel. No-op when nothing is
+   * active, so ESC never closes unrelated overlays (intro, end screen).
+   */
+  private _cancelActiveConversation(): void {
+    let cancelled = false;
+    for (const npc of this.npcs) {
+      if (npc.cancel()) cancelled = true;
+    }
+    for (const door of this.doors) {
+      if (door.cancel()) cancelled = true;
+    }
+    if (cancelled) {
+      this.game.events.emit(GameEvents.DIALOGUE_CANCEL);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -593,10 +622,18 @@ export class ZoneScene extends Phaser.Scene {
       ev.emit(GameEvents.END_SCREEN_SHOW, payload);
     });
 
+    // Close button on a UI overlay (deck panel) → same path as ESC
+    ev.on(GameEvents.DIALOGUE_CANCEL_REQUEST, () => {
+      this._cancelActiveConversation();
+    });
+
     // TIMELINE_CLOSE: the frieze was closed by T/ESC inside TimelineScene.
     // Release the open flag so T can reopen it.
     ev.on(GameEvents.TIMELINE_CLOSE, () => {
       this.timelineOpen = false;
+      // Same race for ESC: the press that closed the frieze must not also
+      // be read here as a fresh "abort conversation" press.
+      this.wasEscDown = true;
       // Race guard: the T keydown that closed the frieze can land between our
       // update and TimelineScene's update. Without this, the NEXT frame would
       // see that same press as a fresh rising edge here and instantly reopen
@@ -653,6 +690,9 @@ export class ZoneScene extends Phaser.Scene {
 
     // TIMELINE_CLOSE: added by this ZoneScene instance in _bindEvents().
     ev.removeAllListeners(GameEvents.TIMELINE_CLOSE);
+
+    // DIALOGUE_CANCEL_REQUEST: added by this ZoneScene instance in _bindEvents().
+    ev.removeAllListeners(GameEvents.DIALOGUE_CANCEL_REQUEST);
   }
 
   // ---------------------------------------------------------------------------

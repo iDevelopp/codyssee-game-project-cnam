@@ -34,6 +34,18 @@ export const GameEvents = {
   DIALOGUE_CLOSE: 'dialogue-close',
 
   /**
+   * Emitted by ZoneScene after ESC aborted the active NPC/door conversation.
+   * UIScene hides the dialogue box AND the deck panel (whichever is open).
+   */
+  DIALOGUE_CANCEL: 'dialogue-cancel',
+
+  /**
+   * Emitted by UI widgets (e.g. the deck panel "close" button) to ask ZoneScene
+   * to abort the active conversation — same path as pressing ESC.
+   */
+  DIALOGUE_CANCEL_REQUEST: 'dialogue-cancel-request',
+
+  /**
    * Emitted when ZoneScene wants UIScene to open the deck panel.
    * Payload: { cards: CardData[], npcId: string }
    */

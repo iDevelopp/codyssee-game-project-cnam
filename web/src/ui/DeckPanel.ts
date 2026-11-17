@@ -19,8 +19,11 @@ import { buildPanelPieces } from '@/ui/uiKit';
 export class DeckPanel extends Phaser.GameObjects.Container {
   private readonly bg: Phaser.GameObjects.Rectangle;
   private readonly titleText: Phaser.GameObjects.Text;
+  private readonly closeBg: Phaser.GameObjects.Rectangle;
+  private readonly closeText: Phaser.GameObjects.Text;
   private cardButtons: Phaser.GameObjects.Container[] = [];
   private onCardPicked: ((card: CardData) => void) | null = null;
+  private onClose: (() => void) | null = null;
 
   // Card button dimensions
   private static readonly CARD_W = 200;
@@ -40,7 +43,22 @@ export class DeckPanel extends Phaser.GameObjects.Container {
       align: 'center',
     }).setOrigin(0.5);
 
-    this.add([this.bg, this.titleText]);
+    // Close button (top-right) — mouse equivalent of ESC
+    this.closeBg = scene.add.rectangle(1240, 40, 180, 36, 0x333355)
+      .setOrigin(1, 0.5)
+      .setInteractive({ useHandCursor: true });
+    this.closeText = scene.add.text(1240 - 90, 40, '', {
+      fontFamily: 'monospace',
+      fontSize: '14px',
+      color: '#e0e0ff',
+    }).setOrigin(0.5);
+    this.closeBg.on('pointerover', () => this.closeBg.setFillStyle(0x4a4a7a));
+    this.closeBg.on('pointerout', () => this.closeBg.setFillStyle(0x333355));
+    this.closeBg.on('pointerdown', () => {
+      if (this.onClose) this.onClose();
+    });
+
+    this.add([this.bg, this.titleText, this.closeBg, this.closeText]);
     this.setDepth(200);
     this.setVisible(false);
 
@@ -53,10 +71,22 @@ export class DeckPanel extends Phaser.GameObjects.Container {
    * @param cards - Full card array to display as buttons
    * @param title - Panel title string (from strings.fr.json)
    * @param onPicked - Callback invoked with the chosen CardData
+   * @param closeLabel - Label of the close button (from strings.fr.json)
+   * @param onClose - Callback invoked when the close button is clicked
    */
-  open(cards: CardData[], title: string, onPicked: (card: CardData) => void): void {
+  open(
+    cards: CardData[],
+    title: string,
+    onPicked: (card: CardData) => void,
+    closeLabel = '',
+    onClose: (() => void) | null = null,
+  ): void {
     this.onCardPicked = onPicked;
+    this.onClose = onClose;
     this.titleText.setText(title);
+    this.closeText.setText(closeLabel);
+    this.closeBg.setVisible(onClose !== null);
+    this.closeText.setVisible(onClose !== null);
 
     // Clear previous buttons
     this._clearButtons();

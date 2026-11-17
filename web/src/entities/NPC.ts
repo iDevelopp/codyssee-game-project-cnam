@@ -181,6 +181,25 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
     return this.npcState !== 'Idle';
   }
 
+  /**
+   * Abort the conversation in progress (ESC). Resets the state machine to Idle
+   * without touching `resolved`, so the player can come back later and start
+   * the dialogue again from the first line.
+   *
+   * The caller (ZoneScene) is responsible for asking UIScene to hide the
+   * dialogue box / deck panel via GameEvents.DIALOGUE_CANCEL.
+   *
+   * @returns true if a conversation was actually aborted
+   */
+  cancel(): boolean {
+    if (this.npcState === 'Idle') return false;
+    this.npcState = 'Idle';
+    this.awaitingRetry = false;
+    this.lineIndex = 0;
+    this.activeLines = [];
+    return true;
+  }
+
   /** Current resolved state (read by ProgressionSystem and SaveSystem). */
   isResolved(): boolean {
     return this.resolved;

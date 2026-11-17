@@ -91,6 +91,13 @@ export class UIScene extends Phaser.Scene {
       }
     });
 
+    // ESC / close button: the conversation was aborted — hide whichever
+    // conversation overlay is open (dialogue line or card selection).
+    ev.on(GameEvents.DIALOGUE_CANCEL, () => {
+      if (this.dialogueBox.isOpen()) this.dialogueBox.hide();
+      if (this.deckPanel.isOpen()) this.deckPanel.close();
+    });
+
     // ---- Deck ----
 
     // Open deck panel — payload: { cards, npcId }
@@ -103,6 +110,8 @@ export class UIScene extends Phaser.Scene {
           this.deckPanel.close();
           this.game.events.emit(GameEvents.DECK_CARD_PICKED, { cardId: card.id, npcId: data.npcId });
         },
+        cl.getString('deck.close'),
+        () => this.game.events.emit(GameEvents.DIALOGUE_CANCEL_REQUEST),
       );
     });
 

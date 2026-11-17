@@ -154,6 +154,18 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
     }
   }
 
+  /**
+   * Abort the locked-door message (ESC). The exit message is not cancellable:
+   * the zone transition is already scheduled at that point.
+   *
+   * @returns true if a message was dismissed
+   */
+  cancel(): boolean {
+    if (!this.showingLockedMsg) return false;
+    this.showingLockedMsg = false;
+    return true;
+  }
+
   /** Open the door: switch to the open frame and start a green glow pulse. */
   private _unlock(): void {
     this.isOpen = true;
