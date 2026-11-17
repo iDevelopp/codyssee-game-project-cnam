@@ -8,7 +8,9 @@ import { Hud } from '@/ui/Hud';
 import { Toast } from '@/ui/Toast';
 import { CharacterCreator } from '@/ui/CharacterCreator';
 import { personalize } from '@/systems/Personalize';
-import type { EnergyChange } from '@/systems/EnergySystem';
+import { EnergySystem, type EnergyChange } from '@/systems/EnergySystem';
+import { ShopPanel, type ShopItem } from '@/ui/ShopPanel';
+import type { CosmeticStyle } from '@/types/Profile';
 import { JournalPanel, type JournalEntry } from '@/ui/JournalPanel';
 import { SaveSystem } from '@/systems/SaveSystem';
 import { XpSystem, type XpChange } from '@/systems/XpSystem';
@@ -51,6 +53,10 @@ export class UIScene extends Phaser.Scene {
   private scope!: EventScope;
   /** Question journal (J). */
   private journalPanel!: JournalPanel;
+  /** Outfit shop (B). */
+  private shopPanel!: ShopPanel;
+  /** Energy wallet (some styles are paid in energy). */
+  private energy!: EnergySystem;
   /** Character creation screen (first game only). */
   private creator!: CharacterCreator;
   /** Short non-blocking messages under the HUD. */
@@ -107,6 +113,17 @@ export class UIScene extends Phaser.Scene {
     this.xp = new XpSystem(this.game.events);
     this.purchases = new Map();
     this.toast = new Toast(this);
+    this.energy = new EnergySystem(this.game.events);
+    this.shopPanel = new ShopPanel(this, {
+      title: cl.getString('skins.title'),
+      hint: cl.getString('skins.hint'),
+      equip: cl.getString('skins.equip'),
+      equipped: cl.getString('skins.equipped'),
+      buy: cl.getString('skins.buy'),
+      xpUnit: cl.getString('hud.xp'),
+      energyUnit: '⚡',
+      balance: cl.getString('skins.balance'),
+    }, () => this.game.events.emit(GameEvents.SKIN_SHOP_CLOSE));
     this.creator = new CharacterCreator(this, {
       title: cl.getString('creator.title'),
       nameLabel: cl.getString('creator.nameLabel'),
@@ -217,6 +234,9 @@ export class UIScene extends Phaser.Scene {
       // UIScene shuts down when ZoneScene stops; no extra cleanup needed
     });
 
+    // ---- Skins shop (feat/skins-shop) ----
+    this.scope.on(GameEvents.SKIN_SHOP_OPEN, () => this._openShop());
+
     // ---- Character creation ----
     this.scope.on(GameEvents.CHARACTER_CREATE, (payload: { onComplete: () => void }) => {
       const free = cl.getStyles().filter((st) => st.price === 0);
@@ -317,6 +337,62 @@ export class UIScene extends Phaser.Scene {
     this._refreshBalance();
     if (bought.eliminated.length > 0) this.deckPanel.eliminate(bought.eliminated);
     if (bought.answer) this.deckPanel.revealAnswer(expected);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Skins shop (feat/skins-shop)
+  // ---------------------------------------------------------------------------
+
+  private _shopItems(): ShopItem[] {
+    const save = SaveSystem.getInstance();
+    const owned = new Set(save.getOwnedStyleIds());
+    const current = save.getProfile()?.styleId;
+    return ContentLoader.getInstance().getStyles().map((style) => ({
+      style,
+      owned: style.price === 0 || owned.has(style.id),
+      equipped: style.id === current,
+    }));
+  }
+
+  private _shopBalance(): { xp: number; energy: number } {
+    return { xp: this.xp.get(), energy: this.energy.get() };
+  }
+
+  private _openShop(): void {
+    this.shopPanel.open(this._shopItems(), this._shopBalance(), (style) => this._shopAction(style));
+  }
+
+  /** Buy (if not owned) then equip the clicked style. */
+  private _shopAction(style: CosmeticStyle): void {
+    const save = SaveSystem.getInstance();
+    const cl = ContentLoader.getInstance();
+    const owned = style.price === 0 || save.getOwnedStyleIds().includes(style.id);
+
+    if (!owned) {
+      const paid = style.currency === 'energy'
+        ? this._payEnergy(style.price)
+        : this.xp.spend(style.price, 'skin-purchase');
+      if (!paid) {
+        this.shopPanel.flashDenied();
+        this.game.events.emit(GameEvents.ACTION_DENIED);
+        this.toast.show(cl.getString(style.currency === 'energy' ? 'skins.noEnergy' : 'skins.noXp'), '#ff6666');
+        return;
+      }
+      save.recordStyleOwned(style.id);
+      this.toast.show(cl.getString('skins.bought').replace('{name}', style.name), '#66ff66');
+    }
+
+    save.setStyle(style.id);
+    this.game.events.emit(GameEvents.UI_CLICK);
+    this.game.events.emit(GameEvents.STYLE_CHANGED, style.id);
+    this.shopPanel.refresh(this._shopItems(), this._shopBalance());
+  }
+
+  /** Pay with energy; refused if the gauge is too low. */
+  private _payEnergy(amount: number): boolean {
+    if (this.energy.get() < amount) return false;
+    this.energy.drain(amount);
+    return true;
   }
 
   /** Update the XP balance shown in the deck's shop corner. */

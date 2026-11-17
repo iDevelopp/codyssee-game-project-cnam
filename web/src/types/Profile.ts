@@ -17,6 +17,8 @@ export interface CosmeticStyle {
   name: string;
   /** CSS hex tint ("#66e0ff") or null for the original sprite colours. */
   tint: string | null;
-  /** XP price; 0 = free (offered at character creation). */
+  /** Price; 0 = free (offered at character creation). */
   price: number;
+  /** What the price is paid in. Default "xp". */
+  currency?: 'xp' | 'energy';
 }

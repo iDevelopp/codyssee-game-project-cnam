@@ -1,9 +1,13 @@
 {
-  "_doc": "Player outfit styles = sprite tints. price 0 = free, offered at character creation. tint null = original colours.",
+  "_doc": "Player outfit styles = sprite tints. price 0 = free, offered at character creation. tint null = original colours. currency: xp (default) or energy — premium styles are bought in the shop (B).",
   "styles": [
     { "id": "classic", "name": "Classique", "tint": null, "price": 0 },
     { "id": "neon", "name": "Néon", "tint": "#66e0ff", "price": 0 },
     { "id": "rose", "name": "Rose", "tint": "#ff9fd0", "price": 0 },
-    { "id": "mint", "name": "Menthe", "tint": "#9dffb8", "price": 0 }
+    { "id": "mint", "name": "Menthe", "tint": "#9dffb8", "price": 0 },
+    { "id": "espresso", "name": "Espresso", "tint": "#c08552", "price": 30, "currency": "energy" },
+    { "id": "cosmic", "name": "Violet cosmique", "tint": "#b98cff", "price": 150 },
+    { "id": "matrix", "name": "Matrix", "tint": "#3dff7a", "price": 250 },
+    { "id": "gold", "name": "Or massif", "tint": "#ffd166", "price": 400 }
   ]
 }

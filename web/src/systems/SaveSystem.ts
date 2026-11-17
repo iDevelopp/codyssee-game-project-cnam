@@ -67,6 +67,8 @@ interface SaveDataV1 {
   lastStoryZoneId: string | null;
   /** Player character (name, pronoun, style) — null until created. */
   profile: PlayerProfile | null;
+  /** Premium style ids bought in the shop (free styles are always owned). */
+  ownedStyleIds: string[];
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -384,6 +386,25 @@ export class SaveSystem {
     this.save();
   }
 
+  /** Premium styles bought in the shop. */
+  getOwnedStyleIds(): string[] {
+    return [...this.data.ownedStyleIds];
+  }
+
+  recordStyleOwned(styleId: string): void {
+    if (!this.data.ownedStyleIds.includes(styleId)) {
+      this.data.ownedStyleIds.push(styleId);
+      this.save();
+    }
+  }
+
+  /** Change the equipped style (no-op without a profile). */
+  setStyle(styleId: string): void {
+    if (!this.data.profile) return;
+    this.data.profile.styleId = styleId;
+    this.save();
+  }
+
   private static _isValidProfile(p: unknown): p is PlayerProfile {
     if (typeof p !== 'object' || p === null) return false;
     const o = p as Record<string, unknown>;
@@ -408,6 +429,7 @@ export class SaveSystem {
       energy: null,
       lastStoryZoneId: null,
       profile: null,
+      ownedStyleIds: [],
     };
   }
 
@@ -446,6 +468,9 @@ export class SaveSystem {
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;
+    }
+    if (!Array.isArray(obj['ownedStyleIds'])) {
+      (obj as Record<string, unknown>)['ownedStyleIds'] = [];
     }
     if (!SaveSystem._isValidProfile(obj['profile'])) {
       (obj as Record<string, unknown>)['profile'] = null;

@@ -150,6 +150,11 @@ export class ZoneScene extends Phaser.Scene {
   /** Whether the journal panel is open (blocks ESC-cancel and re-open). */
   private journalOpen = false;
 
+  /** B key — outfit shop toggle (feat/skins-shop). */
+  private bKey!: Phaser.Input.Keyboard.Key;
+  private wasBDown = false;
+  private shopOpen = false;
+
   /** Whether the timeline frieze is currently open (to avoid double-toggle). */
   private timelineOpen = false;
 
@@ -201,6 +206,8 @@ export class ZoneScene extends Phaser.Scene {
     this.wasBackDown = false;
     this.wasJDown = false;
     this.journalOpen = false;
+    this.wasBDown = false;
+    this.shopOpen = false;
     this.timelineOpen = false;
     // `player`, `interaction`, `deck`, `progression`, `cursors`, `wasd`,
     // `eKey`, `mKey`, `zoneData` are all reassigned unconditionally below —
@@ -282,6 +289,9 @@ export class ZoneScene extends Phaser.Scene {
 
     // J key — question journal
     this.jKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.J);
+
+    // B key — outfit shop
+    this.bKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.B);
 
     // ---- Player ----
     const spawn = this.zoneData.spawn;
@@ -489,7 +499,7 @@ export class ZoneScene extends Phaser.Scene {
     const escDown = this.escKey.isDown;
     const escJustPressed = escDown && !this.wasEscDown;
     this.wasEscDown = escDown;
-    if (escJustPressed && !this.timelineOpen && !this.journalOpen) {
+    if (escJustPressed && !this.timelineOpen && !this.journalOpen && !this.shopOpen) {
       if (InputLock.isLocked()) {
         this._cancelActiveConversation();
       } else {
@@ -504,7 +514,7 @@ export class ZoneScene extends Phaser.Scene {
     const backDown = this.backKey.isDown || this.cursors.left.isDown;
     const backJustPressed = backDown && !this.wasBackDown;
     this.wasBackDown = backDown;
-    if (backJustPressed && InputLock.isLocked() && !this.journalOpen && !this.timelineOpen) {
+    if (backJustPressed && InputLock.isLocked() && !this.journalOpen && !this.timelineOpen && !this.shopOpen) {
       for (const npc of this.npcs) {
         if (npc.isBusy()) {
           npc.back();
@@ -521,6 +531,16 @@ export class ZoneScene extends Phaser.Scene {
       this.journalOpen = true;
       this.game.events.emit(GameEvents.UI_CLICK);
       this.game.events.emit(GameEvents.JOURNAL_OPEN, this._buildJournal());
+    }
+
+    // B: open the outfit shop (closing is handled by the panel itself)
+    const bDown = this.bKey.isDown;
+    const bJustPressed = bDown && !this.wasBDown;
+    this.wasBDown = bDown;
+    if (bJustPressed && !this.shopOpen && !InputLock.isLocked()) {
+      this.shopOpen = true;
+      this.game.events.emit(GameEvents.UI_CLICK);
+      this.game.events.emit(GameEvents.SKIN_SHOP_OPEN);
     }
 
     // InteractionSystem handles E for NPCs and doors (unlocked state only).
@@ -928,6 +948,19 @@ export class ZoneScene extends Phaser.Scene {
       this.journalOpen = false;
       this.wasJDown = true;
       this.wasEscDown = true;
+    });
+
+    // Shop closed (B / ESC): same re-arm and race guards as the journal
+    this.scope.on(GameEvents.SKIN_SHOP_CLOSE, () => {
+      this.shopOpen = false;
+      this.wasBDown = true;
+      this.wasEscDown = true;
+    });
+
+    // New outfit equipped in the shop → re-tint the character live
+    this.scope.on(GameEvents.STYLE_CHANGED, (styleId: string) => {
+      const style = cl.getStyles().find((st) => st.id === styleId);
+      this.player.applyLook(save.getProfile()?.name ?? null, style?.tint ?? null);
     });
 
     // Close button on a UI overlay (deck panel) → same path as ESC

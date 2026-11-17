@@ -223,4 +223,17 @@ export const GameEvents = {
    * Payload: { onComplete: () => void }
    */
   CHARACTER_CREATE: 'character-create',
+
+  // ---------------------------------------------------------------------------
+  // Skins shop (feat/skins-shop)
+  // ---------------------------------------------------------------------------
+
+  /** Emitted by ZoneScene (B key). UIScene opens the shop. */
+  SKIN_SHOP_OPEN: 'skin-shop-open',
+
+  /** Emitted by the shop panel when it closes (B / ESC). */
+  SKIN_SHOP_CLOSE: 'skin-shop-close',
+
+  /** Emitted when the equipped style changes. Payload: styleId. ZoneScene re-tints. */
+  STYLE_CHANGED: 'style-changed',
 } as const;

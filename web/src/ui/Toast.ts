@@ -18,7 +18,7 @@ export class Toast {
       backgroundColor: '#0a0a18dd',
       padding: { x: 12, y: 6 },
       align: 'center',
-    }).setOrigin(0.5, 0).setDepth(260).setAlpha(0);
+    }).setOrigin(0.5, 0).setDepth(350).setAlpha(0); // above modals (300) so shop feedback shows
   }
 
   show(message: string, color = '#ffffff'): void {
