@@ -177,4 +177,23 @@ export const GameEvents = {
    * without enough XP). AudioManager plays sfx.denied.
    */
   ACTION_DENIED: 'action-denied',
+
+  // ---------------------------------------------------------------------------
+  // Question history (feat/question-history)
+  // ---------------------------------------------------------------------------
+
+  /** Emitted by NPC when its question is put to the player. Payload: npcId. */
+  QUESTION_ASKED: 'question-asked',
+
+  /**
+   * Emitted by NPC when the player steps back from the card selection to
+   * re-read the question. UIScene closes the deck panel (no cancel sound).
+   */
+  DECK_CLOSE: 'deck-close',
+
+  /** Emitted by ZoneScene (J key). Payload: JournalEntry[]. */
+  JOURNAL_OPEN: 'journal-open',
+
+  /** Emitted by the journal panel when it closes (J / ESC). */
+  JOURNAL_CLOSE: 'journal-close',
 } as const;

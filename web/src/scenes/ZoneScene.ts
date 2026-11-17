@@ -16,6 +16,7 @@ import { EventScope } from '@/systems/EventScope';
 import type { CardData } from '@/types/CardData';
 import type { ZoneData, ZoneTheme } from '@/types/ZoneData';
 import type { ProgressSnapshot } from '@/types/Progress';
+import type { JournalEntry } from '@/ui/JournalPanel';
 
 /**
  * Default zone theme, used when a zone JSON predates the `theme` schema
@@ -118,6 +119,21 @@ export class ZoneScene extends Phaser.Scene {
   /** Whether Escape was down last frame (single-press guard). */
   private wasEscDown = false;
 
+  /** Backspace — step back one dialogue line (← arrow does the same). */
+  private backKey!: Phaser.Input.Keyboard.Key;
+
+  /** Whether ← or Backspace was down last frame (single-press guard). */
+  private wasBackDown = false;
+
+  /** J key — question journal toggle. */
+  private jKey!: Phaser.Input.Keyboard.Key;
+
+  /** Whether J was down last frame (single-press guard). */
+  private wasJDown = false;
+
+  /** Whether the journal panel is open (blocks ESC-cancel and re-open). */
+  private journalOpen = false;
+
   /** Whether the timeline frieze is currently open (to avoid double-toggle). */
   private timelineOpen = false;
 
@@ -166,6 +182,9 @@ export class ZoneScene extends Phaser.Scene {
     this.wasMDown = false;
     this.wasTDown = false;
     this.wasEscDown = false;
+    this.wasBackDown = false;
+    this.wasJDown = false;
+    this.journalOpen = false;
     this.timelineOpen = false;
     // `player`, `interaction`, `deck`, `progression`, `cursors`, `wasd`,
     // `eKey`, `mKey`, `zoneData` are all reassigned unconditionally below —
@@ -239,6 +258,12 @@ export class ZoneScene extends Phaser.Scene {
     // Escape — leave the current conversation (no more "tunnel" dialogues),
     // or exit to the main menu when nothing is open (progress is saved continuously)
     this.escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+    // ← / Backspace — re-read the previous line or the question
+    this.backKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.BACKSPACE);
+
+    // J key — question journal
+    this.jKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.J);
 
     // ---- Player ----
     const spawn = this.zoneData.spawn;
@@ -421,13 +446,38 @@ export class ZoneScene extends Phaser.Scene {
     const escDown = this.escKey.isDown;
     const escJustPressed = escDown && !this.wasEscDown;
     this.wasEscDown = escDown;
-    if (escJustPressed && !this.timelineOpen) {
+    if (escJustPressed && !this.timelineOpen && !this.journalOpen) {
       if (InputLock.isLocked()) {
         this._cancelActiveConversation();
       } else {
         this._exitToMenu();
         return;
       }
+    }
+
+    // ← / Backspace: step back in the active conversation (rising edge).
+    // The arrow does not move the player here: movement is frozen while a
+    // dialogue holds the InputLock.
+    const backDown = this.backKey.isDown || this.cursors.left.isDown;
+    const backJustPressed = backDown && !this.wasBackDown;
+    this.wasBackDown = backDown;
+    if (backJustPressed && InputLock.isLocked() && !this.journalOpen && !this.timelineOpen) {
+      for (const npc of this.npcs) {
+        if (npc.isBusy()) {
+          npc.back();
+          break;
+        }
+      }
+    }
+
+    // J: open the question journal (closing is handled by the panel itself)
+    const jDown = this.jKey.isDown;
+    const jJustPressed = jDown && !this.wasJDown;
+    this.wasJDown = jDown;
+    if (jJustPressed && !this.journalOpen && !this.timelineOpen && !InputLock.isLocked()) {
+      this.journalOpen = true;
+      this.game.events.emit(GameEvents.UI_CLICK);
+      this.game.events.emit(GameEvents.JOURNAL_OPEN, this._buildJournal());
     }
 
     // InteractionSystem handles E for NPCs and doors (unlocked state only).
@@ -531,6 +581,37 @@ export class ZoneScene extends Phaser.Scene {
       globalTotal,
     };
     this.game.events.emit(GameEvents.PROGRESS_CHANGED, snapshot);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — question journal
+  // ---------------------------------------------------------------------------
+
+  /** Every question asked so far, first asked first, with its status. */
+  private _buildJournal(): JournalEntry[] {
+    const cl = ContentLoader.getInstance();
+    const save = SaveSystem.getInstance();
+    const helped = new Set(save.getHelpedNpcIds());
+
+    const zoneNameOf = new Map<string, string>();
+    for (const zone of cl.getZones()) {
+      for (const npcId of zone.npcs) zoneNameOf.set(npcId, zone.displayName);
+    }
+
+    const entries: JournalEntry[] = [];
+    for (const npcId of save.getSeenQuestionNpcIds()) {
+      const npc = cl.getNpc(npcId);
+      if (!npc?.question) continue;
+      const resolved = helped.has(npcId);
+      entries.push({
+        npcName: npc.name,
+        zoneName: zoneNameOf.get(npcId) ?? '',
+        question: NPC.questionPrompt(npc),
+        resolved,
+        answerName: resolved ? cl.getCard(npc.question.expectedCardId)?.displayName : undefined,
+      });
+    }
+    return entries;
   }
 
   // ---------------------------------------------------------------------------
@@ -688,6 +769,19 @@ export class ZoneScene extends Phaser.Scene {
     // GAME_COMPLETE (final zone clear): show EndScreen via UIScene
     this.scope.on(GameEvents.GAME_COMPLETE, (payload: { message: string }) => {
       ev.emit(GameEvents.END_SCREEN_SHOW, payload);
+    });
+
+    // A question was put to the player → remember it for the journal
+    this.scope.on(GameEvents.QUESTION_ASKED, (npcId: string) => {
+      save.recordQuestionSeen(npcId);
+    });
+
+    // Journal closed (J / ESC): re-arm J, and make sure the closing press is
+    // not read as a fresh J (re-open) or ESC (cancel) on the next frame.
+    this.scope.on(GameEvents.JOURNAL_CLOSE, () => {
+      this.journalOpen = false;
+      this.wasJDown = true;
+      this.wasEscDown = true;
     });
 
     // Close button on a UI overlay (deck panel) → same path as ESC

@@ -18,6 +18,12 @@ export interface NpcQuestion {
    * French string.
    */
   hintLine: string;
+
+  /**
+   * Optional short wording of the question, shown above the cards and in the
+   * journal. Defaults to the last line of `dialogueLines`. French string.
+   */
+  prompt?: string;
 }
 
 /**

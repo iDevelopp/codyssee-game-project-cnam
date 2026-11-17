@@ -14,6 +14,7 @@
  *   masterVolume: number,           // [0..1] master volume (added TASK-016)
  *   muted: boolean,                 // global mute flag (added TASK-016)
  *   xp: number,                     // experience points, never negative (feat/xp-progress)
+ *   seenQuestionNpcIds: string[],   // NPCs whose question was asked, in order (feat/question-history)
  *   // timeline: [] — placeholder, not populated in J1
  * }
  *
@@ -56,6 +57,8 @@ interface SaveDataV1 {
   muted: boolean;
   /** Experience points (≥ 0). Default 0. Added in feat/xp-progress. */
   xp: number;
+  /** NPC ids whose question has been asked, in first-asked order. Default []. */
+  seenQuestionNpcIds: string[];
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -318,6 +321,23 @@ export class SaveSystem {
     this.save();
   }
 
+  // ---------------------------------------------------------------------------
+  // Question history (feat/question-history)
+  // ---------------------------------------------------------------------------
+
+  /** NPC ids whose question was asked, in the order they were first asked. */
+  getSeenQuestionNpcIds(): string[] {
+    return [...this.data.seenQuestionNpcIds];
+  }
+
+  /** Record that an NPC's question was asked (idempotent) and persist. */
+  recordQuestionSeen(npcId: string): void {
+    if (!this.data.seenQuestionNpcIds.includes(npcId)) {
+      this.data.seenQuestionNpcIds.push(npcId);
+      this.save();
+    }
+  }
+
   /** Returns a fresh empty v1 save. */
   private static _empty(): SaveDataV1 {
     return {
@@ -330,6 +350,7 @@ export class SaveSystem {
       masterVolume: 1.0,
       muted: false,
       xp: 0,
+      seenQuestionNpcIds: [],
     };
   }
 
@@ -358,6 +379,10 @@ export class SaveSystem {
     }
     if (typeof obj['xp'] !== 'number' || !Number.isFinite(obj['xp']) || (obj['xp'] as number) < 0) {
       (obj as Record<string, unknown>)['xp'] = 0;
+    }
+    if (!Array.isArray(obj['seenQuestionNpcIds'])) {
+      // Old saves: every helped NPC has necessarily been asked its question
+      (obj as Record<string, unknown>)['seenQuestionNpcIds'] = [...(obj['helpedNpcIds'] as string[])];
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;

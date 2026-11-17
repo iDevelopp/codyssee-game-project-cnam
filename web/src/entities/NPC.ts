@@ -209,6 +209,38 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
     return true;
   }
 
+  /**
+   * Step back one line (← / Backspace during a conversation).
+   *  - Reading lines: show the previous line.
+   *  - Choosing a card: close the deck and show the question line again;
+   *    the next E reopens the deck as usual.
+   *
+   * @returns true if something was shown again
+   */
+  back(): boolean {
+    if (this.npcState === 'ShowingLines' && this.lineIndex > 0) {
+      this.lineIndex--;
+      this._showCurrentLine();
+      return true;
+    }
+    if (this.npcState === 'AwaitingAnswer' && this.activeLines.length > 0) {
+      this.gameScene.game.events.emit(GameEvents.DECK_CLOSE);
+      this.npcState = 'ShowingLines';
+      this.lineIndex = this.activeLines.length - 1;
+      this._showCurrentLine();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * The question as a short sentence: `question.prompt` when authored,
+   * otherwise the last dialogue line (which ends with the question).
+   */
+  static questionPrompt(npc: NpcData): string {
+    return npc.question?.prompt ?? npc.dialogueLines[npc.dialogueLines.length - 1] ?? '';
+  }
+
   /** Current resolved state (read by ProgressionSystem and SaveSystem). */
   isResolved(): boolean {
     return this.resolved;
@@ -327,9 +359,11 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
     const zoneScene = this.gameScene as Phaser.Scene & { getAllCards(): CardData[] };
     const cards = zoneScene.getAllCards ? zoneScene.getAllCards() : [];
 
+    this.gameScene.game.events.emit(GameEvents.QUESTION_ASKED, this.npcContent.id);
     this.gameScene.game.events.emit(GameEvents.DECK_OPEN, {
       cards,
       npcId: this.npcContent.id,
+      question: NPC.questionPrompt(this.npcContent),
     });
   }
 

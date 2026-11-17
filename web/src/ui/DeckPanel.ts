@@ -20,6 +20,8 @@ import { GameEvents } from '@/systems/GameEvents';
 export class DeckPanel extends Phaser.GameObjects.Container {
   private readonly bg: Phaser.GameObjects.Rectangle;
   private readonly titleText: Phaser.GameObjects.Text;
+  /** The NPC's question, under the title — the deck no longer hides it. */
+  private readonly subtitleText: Phaser.GameObjects.Text;
   private readonly closeBg: Phaser.GameObjects.Rectangle;
   private readonly closeText: Phaser.GameObjects.Text;
   private cardButtons: Phaser.GameObjects.Container[] = [];
@@ -60,8 +62,17 @@ export class DeckPanel extends Phaser.GameObjects.Container {
       if (this.onClose) this.onClose();
     });
 
-    this.add([this.bg, this.titleText, this.closeBg, this.closeText]);
-    this.setDepth(200);
+    this.subtitleText = scene.add.text(640, 116, '', {
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      color: '#ffd166',
+      align: 'center',
+      wordWrap: { width: 1000 },
+    }).setOrigin(0.5);
+
+    this.add([this.bg, this.titleText, this.subtitleText, this.closeBg, this.closeText]);
+    // Modal: above the zone banner (200-201) and the HUD bar (250)
+    this.setDepth(300);
     this.setVisible(false);
 
     scene.add.existing(this);
@@ -99,7 +110,7 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     // grid inside the panel area (below the title, above the bottom margin).
     const count = cards.length;
     const AREA_W = 1200;                    // 40px side margins
-    const AREA_TOP = 130;                   // below the title at y=80
+    const AREA_TOP = 145;                   // below the title (y=80) and question (y=116)
     const AREA_BOTTOM = 690;                // bottom margin
     const AREA_H = AREA_BOTTOM - AREA_TOP;
     const W = DeckPanel.CARD_W;
@@ -145,6 +156,14 @@ export class DeckPanel extends Phaser.GameObjects.Container {
 
     this.setVisible(true);
     InputLock.lock();
+  }
+
+  /**
+   * Show the NPC's question (and a hint line) under the title.
+   * Call right after open(); an empty string hides it.
+   */
+  setSubtitle(text: string): void {
+    this.subtitleText.setText(text);
   }
 
   /** Hide the panel and release input lock. */

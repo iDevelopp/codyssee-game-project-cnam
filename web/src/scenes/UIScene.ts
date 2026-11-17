@@ -5,6 +5,7 @@ import { EndScreen } from '@/ui/EndScreen';
 import { NarrativeOverlay } from '@/ui/NarrativeOverlay';
 import { ZoneBanner } from '@/ui/ZoneBanner';
 import { Hud } from '@/ui/Hud';
+import { JournalPanel, type JournalEntry } from '@/ui/JournalPanel';
 import { SaveSystem } from '@/systems/SaveSystem';
 import type { XpChange } from '@/systems/XpSystem';
 import type { ProgressSnapshot } from '@/types/Progress';
@@ -44,6 +45,8 @@ export class UIScene extends Phaser.Scene {
   private hud!: Hud;
   /** Global-bus listeners of this UIScene run — removed on SHUTDOWN. */
   private scope!: EventScope;
+  /** Question journal (J). */
+  private journalPanel!: JournalPanel;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -85,6 +88,14 @@ export class UIScene extends Phaser.Scene {
     // Hidden during the intro overlay — revealed on the first zone progress event.
     this.hud.setVisible(false);
 
+    this.journalPanel = new JournalPanel(this, {
+      title: cl.getString('journal.title'),
+      empty: cl.getString('journal.empty'),
+      hint: cl.getString('journal.hint'),
+      resolved: cl.getString('journal.resolved'),
+      pending: cl.getString('journal.pending'),
+    }, () => this.game.events.emit(GameEvents.JOURNAL_CLOSE));
+
     // UIScene is stopped on "Menu principal" and launched again on "Jouer":
     // without this, every round trip stacked one more copy of each handler.
     this.scope = new EventScope(this.game.events);
@@ -123,7 +134,7 @@ export class UIScene extends Phaser.Scene {
     // ---- Deck ----
 
     // Open deck panel — payload: { cards, npcId }
-    this.scope.on(GameEvents.DECK_OPEN, (data: { cards: CardData[]; npcId: string }) => {
+    this.scope.on(GameEvents.DECK_OPEN, (data: { cards: CardData[]; npcId: string; question?: string }) => {
       this.deckPanel.open(
         data.cards,
         cl.getString('deck.title'),
@@ -135,6 +146,19 @@ export class UIScene extends Phaser.Scene {
         cl.getString('deck.close'),
         () => this.game.events.emit(GameEvents.DIALOGUE_CANCEL_REQUEST),
       );
+      this.deckPanel.setSubtitle(
+        data.question ? `« ${data.question} »   ${cl.getString('deck.backHint')}` : '',
+      );
+    });
+
+    // ← / Backspace from the card selection: back to the question line
+    this.scope.on(GameEvents.DECK_CLOSE, () => {
+      if (this.deckPanel.isOpen()) this.deckPanel.close();
+    });
+
+    // ---- Journal (feat/question-history) ----
+    this.scope.on(GameEvents.JOURNAL_OPEN, (entries: JournalEntry[]) => {
+      this.journalPanel.open(entries);
     });
 
     // ---- End screen ----
