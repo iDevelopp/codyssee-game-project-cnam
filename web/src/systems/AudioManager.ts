@@ -412,6 +412,10 @@ export class AudioManager {
     // Any UI button (menu, end screen, deck close…) → click (file-based)
     ev.on(GameEvents.UI_CLICK, () => this.play('sfx.uiClick'));
 
+    // Terminal line compiled / whole terminal compiled
+    ev.on(GameEvents.TERMINAL_TASK_SOLVED, () => this.play('sfx.correct'));
+    ev.on(GameEvents.TERMINAL_SOLVED, () => this.play('sfx.compile'));
+
     // Coffee → warm rising bubble
     ev.on(GameEvents.COFFEE_DRUNK, () => this.play('sfx.coffee'));
 

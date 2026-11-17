@@ -38,6 +38,10 @@ export interface EconomyData {
     /** Walking speed multiplier at 0 energy. */
     exhaustedSpeedFactor: number;
   };
+  terminal: {
+    /** XP for each terminal line completed. */
+    taskXp: number;
+  };
   shop: {
     /** XP cost of a hint: greys out part of the wrong cards. */
     hintCost: number;
@@ -66,6 +70,9 @@ export const ECONOMY_DEFAULT: EconomyData = {
     exhaustedXpPenalty: 5,
     exhaustedPenaltyIntervalSec: 8,
     exhaustedSpeedFactor: 0.5,
+  },
+  terminal: {
+    taskXp: 30,
   },
   shop: {
     hintCost: 20,

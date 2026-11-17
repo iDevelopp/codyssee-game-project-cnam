@@ -10,5 +10,6 @@
   "sfx.timelineClose": { "wave": "sine",    "volume": 0.16, "notes": [[1047, 70], [784, 110]] },
   "sfx.victory":      { "wave": "square",   "volume": 0.10, "notes": [[523, 120], [659, 120], [784, 120], [0, 60], [1047, 320]] },
   "sfx.coffee":       { "wave": "sine",     "volume": 0.18, "notes": [[440, 90], [554, 90], [659, 90], [880, 200]], "slideTo": 1.05 },
+  "sfx.compile":      { "wave": "square",   "volume": 0.08, "notes": [[523, 60], [0, 30], [523, 60], [0, 30], [784, 60], [1047, 220]] },
   "sfx.denied":       { "wave": "square",   "volume": 0.07, "notes": [[196, 70], [0, 40], [196, 110]] }
 }

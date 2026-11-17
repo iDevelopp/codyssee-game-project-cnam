@@ -5,6 +5,7 @@ import type { TimelineEntry } from '@/types/TimelineEntry';
 import type { Strings } from '@/types/Strings';
 import { ECONOMY_DEFAULT, type EconomyData } from '@/types/Economy';
 import type { CosmeticStyle } from '@/types/Profile';
+import type { TerminalTask } from '@/types/Terminal';
 import { personalize } from '@/systems/Personalize';
 
 // ---------------------------------------------------------------------------
@@ -78,6 +79,8 @@ interface ContentStore {
   synth: SynthManifest;
   /** Outfit styles from content/cosmetics.json ([] if missing). */
   styles: CosmeticStyle[];
+  /** Terminal lines keyed by card id (content/terminal.json, {} if missing). */
+  terminalTasks: Record<string, TerminalTask>;
 }
 
 /**
@@ -414,6 +417,11 @@ export class ContentLoader {
     return this._require().economy;
   }
 
+  /** Terminal line for a language (card id), or undefined if none authored. */
+  getTerminalTask(cardId: string): TerminalTask | undefined {
+    return this._require().terminalTasks[cardId];
+  }
+
   /** Outfit styles (content/cosmetics.json), in authoring order. */
   getStyles(): CosmeticStyle[] {
     return this._require().styles;
@@ -474,7 +482,7 @@ export class ContentLoader {
 
     // Fetch all root-level JSON files in parallel for performance.
     // audio.json and narrative.json are optional — gracefully degrade if missing.
-    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw, economyRaw, synthRaw, cosmeticsRaw] = await Promise.all([
+    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw, economyRaw, synthRaw, cosmeticsRaw, terminalRaw] = await Promise.all([
       this._fetchJson(`${base}content/cards.json`),
       this._fetchJson(`${base}content/npcs.json`),
       // timeline.json is optional in J0 — returns empty array if missing
@@ -490,6 +498,8 @@ export class ContentLoader {
       this._fetchJsonOptional(`${base}content/synth-sfx.json`, null),
       // cosmetics.json is optional — only the original look if missing
       this._fetchJsonOptional(`${base}content/cosmetics.json`, null),
+      // terminal.json is optional — terminals without tasks never block a door
+      this._fetchJsonOptional(`${base}content/terminal.json`, null),
     ]);
 
     // --- Parse cards ---
@@ -599,6 +609,19 @@ export class ContentLoader {
 
     const economy = mergeDefaults(ECONOMY_DEFAULT, economyRaw);
 
+    // Terminal tasks: keep well-formed entries only (one blank, valid answer)
+    const terminalTasks: Record<string, TerminalTask> = {};
+    const tasksRaw = (terminalRaw as { tasks?: unknown } | null)?.tasks;
+    if (tasksRaw && typeof tasksRaw === 'object') {
+      for (const [cardId, t] of Object.entries(tasksRaw as Record<string, TerminalTask>)) {
+        const ok = t && typeof t.goal === 'string' && typeof t.code === 'string'
+          && t.code.split('____').length === 2 && Array.isArray(t.choices)
+          && Number.isInteger(t.answer) && t.answer >= 0 && t.answer < t.choices.length;
+        if (ok) terminalTasks[cardId] = t;
+        else if (import.meta.env.DEV) console.warn(`ContentLoader: terminal task "${cardId}" is malformed — skipped.`);
+      }
+    }
+
     // Outfit styles: keep well-formed entries only
     const stylesRaw = (cosmeticsRaw as { styles?: unknown } | null)?.styles;
     const styles: CosmeticStyle[] = Array.isArray(stylesRaw)
@@ -618,7 +641,7 @@ export class ContentLoader {
       }
     }
 
-    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative, economy, synth, styles };
+    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative, economy, synth, styles, terminalTasks };
   }
 
   /**

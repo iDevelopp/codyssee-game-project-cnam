@@ -15,6 +15,7 @@ import { XpSystem } from '@/systems/XpSystem';
 import { EventScope } from '@/systems/EventScope';
 import { EnergySystem } from '@/systems/EnergySystem';
 import { CoffeeMachine } from '@/entities/CoffeeMachine';
+import { Terminal } from '@/entities/Terminal';
 import type { CardData } from '@/types/CardData';
 import { RETURN_ZONE_ID, type ZoneData, type ZoneTheme } from '@/types/ZoneData';
 import type { NpcData } from '@/types/NpcData';
@@ -154,6 +155,10 @@ export class ZoneScene extends Phaser.Scene {
   private vKey!: Phaser.Input.Keyboard.Key;
   private wasVDown = false;
 
+  /** The zone terminal, if any (feat/terminal-loop). */
+  private terminal: Terminal | null = null;
+  private terminalOpen = false;
+
   /** B key — outfit shop toggle (feat/skins-shop). */
   private bKey!: Phaser.Input.Keyboard.Key;
   private wasBDown = false;
@@ -213,6 +218,8 @@ export class ZoneScene extends Phaser.Scene {
     this.wasBDown = false;
     this.wasVDown = false;
     this.shopOpen = false;
+    this.terminal = null;
+    this.terminalOpen = false;
     this.timelineOpen = false;
     // `player`, `interaction`, `deck`, `progression`, `cursors`, `wasd`,
     // `eKey`, `mKey`, `zoneData` are all reassigned unconditionally below —
@@ -432,6 +439,10 @@ export class ZoneScene extends Phaser.Scene {
     for (const prop of this.zoneData.props ?? []) {
       if (prop.type === 'coffee') {
         this.interaction.register(new CoffeeMachine(this, prop, this.energy));
+      } else if (prop.type === 'terminal') {
+        this.terminal = new Terminal(this, prop, this.zoneData.id);
+        this.terminal.setCompiled(this._terminalSolved());
+        this.interaction.register(this.terminal);
       } else {
         console.warn(`ZoneScene: unknown prop type "${prop.type}" (${prop.id})`);
       }
@@ -507,7 +518,7 @@ export class ZoneScene extends Phaser.Scene {
     const escDown = this.escKey.isDown;
     const escJustPressed = escDown && !this.wasEscDown;
     this.wasEscDown = escDown;
-    if (escJustPressed && !this.timelineOpen && !this.journalOpen && !this.shopOpen) {
+    if (escJustPressed && !this.timelineOpen && !this.journalOpen && !this.shopOpen && !this.terminalOpen) {
       if (InputLock.isLocked()) {
         this._cancelActiveConversation();
       } else {
@@ -522,7 +533,7 @@ export class ZoneScene extends Phaser.Scene {
     const backDown = this.backKey.isDown || this.cursors.left.isDown;
     const backJustPressed = backDown && !this.wasBackDown;
     this.wasBackDown = backDown;
-    if (backJustPressed && InputLock.isLocked() && !this.journalOpen && !this.timelineOpen && !this.shopOpen) {
+    if (backJustPressed && InputLock.isLocked() && !this.journalOpen && !this.timelineOpen && !this.shopOpen && !this.terminalOpen) {
       for (const npc of this.npcs) {
         if (npc.isBusy()) {
           npc.back();
@@ -618,6 +629,42 @@ export class ZoneScene extends Phaser.Scene {
    */
   getPlayerPosition(): { x: number; y: number } {
     return { x: this.player.x, y: this.player.y };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private — zone exit (NPCs + terminal)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Card ids this zone's terminal asks for (quest languages with a task).
+   * Empty when the zone has no terminal — nothing then holds the door.
+   */
+  private _terminalCardIds(): string[] {
+    if (!this.terminal) return [];
+    const cl = ContentLoader.getInstance();
+    return this.zoneData.npcs
+      .map((id) => cl.getNpc(id)?.question?.expectedCardId)
+      .filter((cardId): cardId is string => !!cardId && !!cl.getTerminalTask(cardId));
+  }
+
+  private _terminalSolved(): boolean {
+    const solved = new Set(SaveSystem.getInstance().getSolvedTerminalTaskIds());
+    return this._terminalCardIds().every((cardId) => solved.has(cardId));
+  }
+
+  /** Open the exit: record it, grant the first-clear bonus, notify doors. */
+  private _unlockZone(): void {
+    const save = SaveSystem.getInstance();
+    let firstClear = false;
+    for (const doorData of this.zoneData.doors) {
+      if (doorData.alwaysOpen) continue;
+      if (!save.isDoorUnlocked(doorData.id)) firstClear = true;
+      save.recordDoorUnlocked(doorData.id);
+    }
+    if (firstClear) {
+      this.xp.gain(ContentLoader.getInstance().getEconomy().xp.zoneCleared, 'zone-cleared');
+    }
+    this.game.events.emit(GameEvents.ZONE_UNLOCKED);
   }
 
   // ---------------------------------------------------------------------------
@@ -885,15 +932,37 @@ export class ZoneScene extends Phaser.Scene {
     // restoreResolved), so no XP is granted twice.
     this.scope.on(GameEvents.ALL_NPCS_HELPED, () => {
       if (this.zoneData.hub) return; // hubs have no quest: nothing to clear
-      let firstClear = false;
-      for (const doorData of this.zoneData.doors) {
-        if (doorData.alwaysOpen) continue;
-        if (!save.isDoorUnlocked(doorData.id)) firstClear = true;
-        save.recordDoorUnlocked(doorData.id);
+
+      // Exit already opened in an earlier session: just re-open it
+      const exits = this.zoneData.doors.filter((d) => !d.alwaysOpen);
+      if (exits.length > 0 && exits.every((d) => save.isDoorUnlocked(d.id))) {
+        ev.emit(GameEvents.ZONE_UNLOCKED);
+        return;
       }
-      if (firstClear) {
-        this.xp.gain(cl.getEconomy().xp.zoneCleared, 'zone-cleared');
+
+      // Every language restored, but the terminal still has to be compiled
+      if (!this._terminalSolved()) {
+        for (const door of this.doors) door.setLockedMessageKey('door.lockedTerminal');
+        ev.emit(GameEvents.TOAST, { text: cl.getString('terminal.needed'), color: '#9dffb0' });
+        return;
       }
+      this._unlockZone();
+    });
+
+    // Terminal console open/closed: guards like the journal
+    this.scope.on(GameEvents.TERMINAL_OPEN, () => {
+      this.terminalOpen = true;
+    });
+    this.scope.on(GameEvents.TERMINAL_CLOSE, () => {
+      this.terminalOpen = false;
+      this.wasEscDown = true;
+    });
+
+    // Last terminal line compiled → the exit may open
+    this.scope.on(GameEvents.TERMINAL_SOLVED, (zoneId: string) => {
+      if (zoneId !== this.zoneData.id) return;
+      this.terminal?.setCompiled(true);
+      if (this.progression.isComplete()) this._unlockZone();
     });
 
     // Door exit triggered: transition to next zone (or end screen if final zone)

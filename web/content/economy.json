@@ -21,5 +21,8 @@
     "exhaustedXpPenalty": 5,
     "exhaustedPenaltyIntervalSec": 8,
     "exhaustedSpeedFactor": 0.5
+  },
+  "terminal": {
+    "taskXp": 30
   }
 }

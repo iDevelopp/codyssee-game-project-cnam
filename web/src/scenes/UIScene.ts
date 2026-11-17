@@ -12,6 +12,7 @@ import { SpeechSystem } from '@/systems/SpeechSystem';
 import { EnergySystem, type EnergyChange } from '@/systems/EnergySystem';
 import { ShopPanel, type ShopItem } from '@/ui/ShopPanel';
 import type { CosmeticStyle } from '@/types/Profile';
+import { TerminalPanel, type TerminalLine } from '@/ui/TerminalPanel';
 import { JournalPanel, type JournalEntry } from '@/ui/JournalPanel';
 import { SaveSystem } from '@/systems/SaveSystem';
 import { XpSystem, type XpChange } from '@/systems/XpSystem';
@@ -54,6 +55,10 @@ export class UIScene extends Phaser.Scene {
   private scope!: EventScope;
   /** Question journal (J). */
   private journalPanel!: JournalPanel;
+  /** Zone terminal console (feat/terminal-loop). */
+  private terminalPanel!: TerminalPanel;
+  /** Shuffled choice order per line, stable while the console stays open. */
+  private terminalOrders: Map<string, number[]> = new Map();
   /** Outfit shop (B). */
   private shopPanel!: ShopPanel;
   /** Energy wallet (some styles are paid in energy). */
@@ -115,6 +120,13 @@ export class UIScene extends Phaser.Scene {
     this.purchases = new Map();
     this.toast = new Toast(this);
     this.energy = new EnergySystem(this.game.events);
+    this.terminalPanel = new TerminalPanel(this, {
+      title: cl.getString('terminal.title'),
+      progress: cl.getString('terminal.progress'),
+      compiled: cl.getString('terminal.compiled'),
+      locked: cl.getString('terminal.locked'),
+      hint: cl.getString('terminal.hint'),
+    }, () => this.game.events.emit(GameEvents.TERMINAL_CLOSE));
     this.shopPanel = new ShopPanel(this, {
       title: cl.getString('skins.title'),
       hint: cl.getString('skins.hint'),
@@ -251,6 +263,13 @@ export class UIScene extends Phaser.Scene {
       if (on) SpeechSystem.getInstance().speak(cl.getString('tts.on'));
     });
 
+    // ---- Terminal (feat/terminal-loop) ----
+    this.scope.on(GameEvents.TERMINAL_OPEN, (payload: { zoneId: string }) => {
+      this.terminalOrders = new Map();
+      this.terminalPanel.open(this._terminalLines(payload.zoneId), (cardId, choice) =>
+        this._terminalChoose(payload.zoneId, cardId, choice));
+    });
+
     // ---- Skins shop (feat/skins-shop) ----
     this.scope.on(GameEvents.SKIN_SHOP_OPEN, () => this._openShop());
 
@@ -354,6 +373,59 @@ export class UIScene extends Phaser.Scene {
     this._refreshBalance();
     if (bought.eliminated.length > 0) this.deckPanel.eliminate(bought.eliminated);
     if (bought.answer) this.deckPanel.revealAnswer(expected);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Terminal (feat/terminal-loop)
+  // ---------------------------------------------------------------------------
+
+  /** Lines of a zone's terminal: one per quest language that has a task. */
+  private _terminalLines(zoneId: string): TerminalLine[] {
+    const cl = ContentLoader.getInstance();
+    const save = SaveSystem.getInstance();
+    const helped = new Set(save.getHelpedNpcIds());
+    const solved = new Set(save.getSolvedTerminalTaskIds());
+    const lines: TerminalLine[] = [];
+    for (const npcId of cl.getZone(zoneId)?.npcs ?? []) {
+      const cardId = cl.getNpc(npcId)?.question?.expectedCardId;
+      const task = cardId ? cl.getTerminalTask(cardId) : undefined;
+      if (!cardId || !task) continue;
+      if (!this.terminalOrders.has(cardId)) {
+        this.terminalOrders.set(cardId, Phaser.Utils.Array.Shuffle(task.choices.map((_, i) => i)));
+      }
+      lines.push({
+        cardId,
+        language: cl.getCard(cardId)?.displayName ?? cardId,
+        task,
+        state: solved.has(cardId) ? 'solved' : helped.has(npcId) ? 'open' : 'locked',
+        order: this.terminalOrders.get(cardId)!,
+      });
+    }
+    return lines;
+  }
+
+  private _terminalChoose(zoneId: string, cardId: string, choice: number): void {
+    const cl = ContentLoader.getInstance();
+    const task = cl.getTerminalTask(cardId);
+    if (!task) return;
+
+    if (choice === task.answer) {
+      SaveSystem.getInstance().recordTerminalTaskSolved(cardId);
+      this.xp.gain(cl.getEconomy().terminal.taskXp, 'terminal-task');
+      this.game.events.emit(GameEvents.TERMINAL_TASK_SOLVED, cardId);
+    } else {
+      // Same cost and cue as a wrong card (ZoneScene drains energy)
+      this.game.events.emit(GameEvents.ANSWER_WRONG, { npcId: `terminal:${cardId}` });
+      this.terminalPanel.flashWrong();
+      this.toast.show(cl.getString('terminal.wrong'), '#ff6666');
+    }
+
+    const lines = this._terminalLines(zoneId);
+    this.terminalPanel.refresh(lines);
+    if (choice === task.answer && lines.length > 0 && lines.every((l) => l.state === 'solved')) {
+      this.toast.show(cl.getString('terminal.done'), '#66ff66');
+      this.game.events.emit(GameEvents.TERMINAL_SOLVED, zoneId);
+    }
   }
 
   // ---------------------------------------------------------------------------

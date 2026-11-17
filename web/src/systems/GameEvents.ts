@@ -239,4 +239,27 @@ export const GameEvents = {
 
   /** Emitted by ZoneScene (V key): toggle dialogue text-to-speech. */
   TTS_TOGGLE: 'tts-toggle',
+
+  // ---------------------------------------------------------------------------
+  // Terminal loop (feat/terminal-loop)
+  // ---------------------------------------------------------------------------
+
+  /** Emitted by a Terminal on E. Payload: { zoneId: string }. UIScene opens the panel. */
+  TERMINAL_OPEN: 'terminal-open',
+
+  /** Emitted by the terminal panel when it closes (ESC). */
+  TERMINAL_CLOSE: 'terminal-close',
+
+  /** Emitted by UIScene when a line is completed. Payload: cardId. AudioManager: sfx.correct. */
+  TERMINAL_TASK_SOLVED: 'terminal-task-solved',
+
+  /** Emitted by UIScene when every line of the zone's terminal is done. Payload: zoneId. */
+  TERMINAL_SOLVED: 'terminal-solved',
+
+  /**
+   * Emitted by ZoneScene when the exit may open: all quest NPCs helped AND
+   * (no terminal, or terminal solved). Doors listen to this, not to
+   * ALL_NPCS_HELPED, since the terminal can hold the door shut.
+   */
+  ZONE_UNLOCKED: 'zone-unlocked',
 } as const;

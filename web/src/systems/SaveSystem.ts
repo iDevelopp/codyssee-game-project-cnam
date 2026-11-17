@@ -71,6 +71,8 @@ interface SaveDataV1 {
   ownedStyleIds: string[];
   /** Read dialogue lines aloud (Web Speech API). Default false. */
   ttsEnabled: boolean;
+  /** Card ids whose terminal line has been completed. */
+  solvedTerminalTaskIds: string[];
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -388,6 +390,18 @@ export class SaveSystem {
     this.save();
   }
 
+  /** Card ids whose terminal line is completed. */
+  getSolvedTerminalTaskIds(): string[] {
+    return [...this.data.solvedTerminalTaskIds];
+  }
+
+  recordTerminalTaskSolved(cardId: string): void {
+    if (!this.data.solvedTerminalTaskIds.includes(cardId)) {
+      this.data.solvedTerminalTaskIds.push(cardId);
+      this.save();
+    }
+  }
+
   /** Whether dialogue lines are read aloud. */
   getTtsEnabled(): boolean {
     return this.data.ttsEnabled;
@@ -445,6 +459,7 @@ export class SaveSystem {
       profile: null,
       ownedStyleIds: [],
       ttsEnabled: false,
+      solvedTerminalTaskIds: [],
     };
   }
 
@@ -483,6 +498,9 @@ export class SaveSystem {
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;
+    }
+    if (!Array.isArray(obj['solvedTerminalTaskIds'])) {
+      (obj as Record<string, unknown>)['solvedTerminalTaskIds'] = [];
     }
     if (typeof obj['ttsEnabled'] !== 'boolean') {
       (obj as Record<string, unknown>)['ttsEnabled'] = false;

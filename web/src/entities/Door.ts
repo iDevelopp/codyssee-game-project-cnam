@@ -35,6 +35,9 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
   private glow?: Phaser.GameObjects.Rectangle;
 
   private readonly doorData: DoorData;
+
+  /** Replaces doorData.lockedMessageKey (e.g. "go to the terminal"). */
+  private lockedMessageKeyOverride: string | null = null;
   private readonly gameScene: Phaser.Scene;
 
   /** Proximity outline + [E] prompt, driven by InteractionSystem. */
@@ -84,7 +87,9 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
       this.setTint(0x88bbff); // blue: a passage, not the strate exit
     }
 
-    scope.on(GameEvents.ALL_NPCS_HELPED, () => {
+    // ZONE_UNLOCKED (not ALL_NPCS_HELPED): the zone terminal can keep the
+    // exit shut after every NPC is helped (feat/terminal-loop).
+    scope.on(GameEvents.ZONE_UNLOCKED, () => {
       this._unlock();
     });
 
@@ -140,7 +145,7 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
 
       this.gameScene.game.events.emit(GameEvents.DIALOGUE_OPEN, {
         speakerName: '',
-        line: cl.getString(this.doorData.lockedMessageKey),
+        line: cl.getString(this.lockedMessageKeyOverride ?? this.doorData.lockedMessageKey),
       });
     } else {
       // Show brief exit message then trigger zone transition
@@ -173,7 +178,12 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
     return true;
   }
 
-  /** Open the door: switch to the open frame and start a green glow pulse. */
+  /** Change the message shown when the door is still locked. */
+  setLockedMessageKey(key: string): void {
+    this.lockedMessageKeyOverride = key;
+  }
+
+  /** Open the door: switch to the open frame and start a green glow pulse (ZONE_UNLOCKED). */
   private _unlock(): void {
     if (this.doorData.alwaysOpen) return; // already open, keeps its own colour
     this.isOpen = true;

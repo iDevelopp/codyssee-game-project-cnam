@@ -33,7 +33,8 @@
     }
   ],
   "props": [
-    { "id": "coffee_03", "type": "coffee", "position": { "x": 140, "y": 620 } }
+    { "id": "coffee_03", "type": "coffee", "position": { "x": 140, "y": 620 } },
+    { "id": "terminal_03", "type": "terminal", "position": { "x": 1180, "y": 660 } }
   ],
   "unlockCondition": "all_quest_npcs_helped",
   "nextZoneId": "zone_04",

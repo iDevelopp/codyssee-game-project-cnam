@@ -1,0 +1,20 @@
+{
+  "_doc": "Terminal tasks, one per language (key = card id). A task unlocks once that language is restored (its NPC helped). code: one line with ____ as the blank. choices: shown shuffled; answer = index of the right one in this list.",
+  "tasks": {
+    "javascript": { "goal": "Réagir au clic sur le bouton", "code": "bouton.____('click', () => alert('Salut !'));", "choices": ["addEventListener", "onClickHandler", "listen"], "answer": 0 },
+    "csharp": { "goal": "Déclarer le script du joueur dans Unity", "code": "public ____ Joueur : MonoBehaviour { }", "choices": ["class", "function", "def"], "answer": 0 },
+    "sql": { "goal": "Lire tous les clients de la table", "code": "____ * FROM clients;", "choices": ["SELECT", "GET", "READ"], "answer": 0 },
+    "fortran": { "goal": "Afficher un résultat à l'écran", "code": "____ *, 'Resultat :', x", "choices": ["PRINT", "ECHO", "printf"], "answer": 0 },
+    "cobol": { "goal": "Afficher un message", "code": "____ 'BONJOUR'.", "choices": ["DISPLAY", "SHOW", "OUTPUT"], "answer": 0 },
+    "lisp": { "goal": "Additionner 2 et 3", "code": "(____ 2 3)", "choices": ["+", "add", "sum"], "answer": 0 },
+    "cpp": { "goal": "Écrire du texte dans la console", "code": "std::____ << \"Bonjour\" << std::endl;", "choices": ["cout", "print", "console"], "answer": 0 },
+    "perl": { "goal": "Tester si la ligne contient « erreur »", "code": "if ($ligne ____ /erreur/) { print \"trouvé\\n\"; }", "choices": ["=~", "==", "->"], "answer": 0 },
+    "c": { "goal": "Afficher un entier", "code": "____(\"%d\\n\", n);", "choices": ["printf", "echo", "puts_int"], "answer": 0 },
+    "php": { "goal": "Écrire du texte dans la page", "code": "<?php ____ \"Bonjour\"; ?>", "choices": ["echo", "say", "puts"], "answer": 0 },
+    "ruby": { "goal": "Répéter trois fois", "code": "3.____ { puts 'Hip hip hourra' }", "choices": ["times", "repeat", "loop_n"], "answer": 0 },
+    "java": { "goal": "Point d'entrée du programme", "code": "public static void ____(String[] args) { }", "choices": ["main", "start", "run"], "answer": 0 },
+    "go": { "goal": "Lancer le traitement en parallèle", "code": "____ traiter(commande)", "choices": ["go", "async", "spawn"], "answer": 0 },
+    "kotlin": { "goal": "Déclarer une valeur NON modifiable", "code": "____ nom = \"Ada\"", "choices": ["val", "var", "let"], "answer": 0 },
+    "typescript": { "goal": "Typer le paramètre comme du texte", "code": "function saluer(nom: ____) { }", "choices": ["string", "text", "chars"], "answer": 0 }
+  }
+}
