@@ -3,6 +3,8 @@ import { ContentLoader } from '@/systems/ContentLoader';
 import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
 import type { NarrativeData } from '@/systems/ContentLoader';
+import { COLORS, FONTS } from '@/ui/theme';
+import { createPixelButton, type PixelButton } from '@/ui/uiKit';
 
 /**
  * EndScreen — full-screen end-of-zone overlay shown in UIScene.
@@ -12,26 +14,29 @@ import type { NarrativeData } from '@/systems/ContentLoader';
  * - Menu principal: emit END_MENU (navigate to MainMenuScene)
  * - Quitter: same as Menu on web — Application.Quit has no web equivalent (ADR-004)
  *
- * Background colour matches Unity EndScreenUI: (0.07,0.07,0.12,0.97) ≈ #121220 at 97% opacity.
+ * Background: theme deep-space bg at high opacity, matching the landing/CRT identity.
  * Sets InputLock to prevent any game interaction while showing.
  */
 export class EndScreen extends Phaser.GameObjects.Container {
   private readonly bg: Phaser.GameObjects.Rectangle;
   private readonly messageText: Phaser.GameObjects.Text;
+  /** PixelButton handles created per-show(), destroyed in _clearButtons(). */
+  private buttons: PixelButton[] = [];
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
 
-    // Full-screen overlay: (0.07, 0.07, 0.12, 0.97) → #121220
-    this.bg = scene.add.rectangle(0, 0, 1280, 720, 0x121220, 0.97).setOrigin(0);
+    // Full-screen overlay: theme deep-space background, near-opaque.
+    this.bg = scene.add.rectangle(0, 0, 1280, 720, COLORS.bg, 0.97).setOrigin(0);
 
     // Main congrats message — placed in upper zone, outro slides go below it
     this.messageText = scene.add.text(640, 160, '', {
-      fontFamily: 'monospace',
-      fontSize: '28px',
-      color: '#e0e0ff',
+      fontFamily: FONTS.pixel,
+      fontSize: '20px',
+      color: COLORS.greenCss,
       align: 'center',
       wordWrap: { width: 800 },
+      lineSpacing: 10,
     }).setOrigin(0.5);
 
     this.add([this.bg, this.messageText]);
@@ -68,9 +73,9 @@ export class EndScreen extends Phaser.GameObjects.Container {
     const outroLineHeight = 32;
     for (let i = 0; i < narrative.outro.length; i++) {
       const outroText = this.scene.add.text(640, outroStartY + i * outroLineHeight, narrative.outro[i], {
-        fontFamily: 'monospace',
-        fontSize: '18px',
-        color: '#9999bb',
+        fontFamily: FONTS.body,
+        fontSize: '16px',
+        color: COLORS.inkDimCss,
         align: 'center',
         wordWrap: { width: 860 },
       }).setOrigin(0.5);
@@ -83,25 +88,25 @@ export class EndScreen extends Phaser.GameObjects.Container {
     const buttonY = outroStartY + Math.max(narrative.outro.length, 1) * outroLineHeight + 56;
     const spacing = 220;
 
-    this._makeButton(640 - spacing, buttonY, cl.getString('end.replay'), 0x2244aa, () => {
+    this._makeButton(640 - spacing, buttonY, cl.getString('end.replay'), () => {
       this.hide();
       this.scene.game.events.emit(GameEvents.END_REPLAY);
     });
 
-    this._makeButton(640, buttonY, cl.getString('end.menu'), 0x224422, () => {
+    this._makeButton(640, buttonY, cl.getString('end.menu'), () => {
       this.hide();
       this.scene.game.events.emit(GameEvents.END_MENU);
     });
 
     // Quitter → same as menu on web (ADR-004: no Application.Quit on browser)
-    this._makeButton(640 + spacing, buttonY, cl.getString('end.quit'), 0x442222, () => {
+    this._makeButton(640 + spacing, buttonY, cl.getString('end.quit'), () => {
       this.hide();
       this.scene.game.events.emit(GameEvents.END_MENU);
     });
 
     // "Voir la frise" — second row, centered. Opens TimelineScene overlay without
     // hiding the EndScreen. Deck is null: game session ended, no live-reveal needed.
-    this._makeButton(640, buttonY + 80, cl.getString('timeline.button'), 0x224455, () => {
+    this._makeButton(640, buttonY + 80, cl.getString('timeline.button'), () => {
       this.scene.game.events.emit(GameEvents.TIMELINE_OPEN, null);
     });
 
@@ -126,28 +131,23 @@ export class EndScreen extends Phaser.GameObjects.Container {
   // ---------------------------------------------------------------------------
 
   /**
-   * Creates a styled button and adds it as a child of this container.
+   * Creates a themed pixel-shadow button (see {@link createPixelButton}) and
+   * adds it as a child of this container. Tracked in `this.buttons` so
+   * `_clearButtons` can destroy it cleanly (its shadow/front sub-objects
+   * aren't direct children of `this`, so `this.list` alone can't find them).
    */
-  private _makeButton(x: number, y: number, label: string, color: number, onClick: () => void): void {
-    const bg = this.scene.add.rectangle(x, y, 180, 50, color)
-      .setInteractive({ useHandCursor: true });
-
-    const text = this.scene.add.text(x, y, label, {
-      fontFamily: 'monospace',
-      fontSize: '18px',
-      color: '#e0e0ff',
-    }).setOrigin(0.5).setDepth(1);
-
-    bg.on('pointerover', () => bg.setFillStyle(color + 0x222222));
-    bg.on('pointerout', () => bg.setFillStyle(color));
-    bg.on('pointerdown', onClick);
-
-    this.add([bg, text]);
+  private _makeButton(x: number, y: number, label: string, onClick: () => void): void {
+    const button = createPixelButton(this.scene, x, y, 200, 56, label, onClick, 11);
+    this.buttons.push(button);
+    this.add(button.container);
   }
 
-  /** Remove and destroy all dynamically created button children. */
+  /** Remove and destroy all dynamically created button/outro children. */
   private _clearButtons(): void {
-    // Keep only bg and messageText (first two) — destroy the rest
+    this.buttons.forEach((b) => b.destroy());
+    this.buttons = [];
+
+    // Keep only bg and messageText (first two) — destroy remaining outro texts.
     const toRemove = this.list.slice(2);
     toRemove.forEach((child) => {
       this.remove(child, true);

@@ -2,10 +2,12 @@ import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 /**
- * Vite configuration for Codyssey Web.
+ * Vite configuration for Codysse Web.
  *
- * base: '/codyssee/' — deployed as a sub-path on ohvenus.fr/codyssee (ADR-004).
- * All asset URLs are relative to this base at build time.
+ * base: '/' — deployed at the domain root (codysse.fr), supersedes ADR-004's
+ * ohvenus.fr/codyssee sub-path. Multipage build: landing at `/` (index.html),
+ * game at `/play/` (play/index.html). import.meta.env.BASE_URL resolves to '/',
+ * so the game at /play/ still fetches /content/*.json and /assets/* correctly.
  *
  * resolve.alias: maps the '@/' TypeScript path alias (tsconfig.json `paths`)
  * to Vite/Rollup so @/ imports work at bundle time, not just during type-checking.
@@ -19,7 +21,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
  * and the game breaks (QA BUG-01). This copies `content/` → `dist/content/`.
  */
 export default defineConfig({
-  base: '/codyssee/',
+  base: '/',
 
   plugins: [
     viteStaticCopy({
@@ -40,6 +42,11 @@ export default defineConfig({
     emptyOutDir: true,
 
     rollupOptions: {
+      // Multipage: landing (/) + game (/play/)
+      input: {
+        landing: new URL('./index.html', import.meta.url).pathname,
+        play: new URL('./play/index.html', import.meta.url).pathname,
+      },
       output: {
         /**
          * Split Phaser into its own vendor chunk so the browser can cache it

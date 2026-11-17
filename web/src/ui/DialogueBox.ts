@@ -1,12 +1,19 @@
 import Phaser from 'phaser';
 import { InputLock } from '@/systems/InputLock';
+import { COLORS, FONTS } from '@/ui/theme';
+import { buildPanelPieces } from '@/ui/uiKit';
+
+/** Portrait display size (source art is 160×160, shown at ~96px per design spec). */
+const PORTRAIT_SIZE = 96;
 
 /**
  * DialogueBox — scrolling-text overlay displayed in UIScene.
  *
  * Shows one line at a time: speaker name at top, dialogue line in body,
- * optional portrait on the left side. Sets InputLock while open so movement
- * and E-interaction are frozen (Unity: DialogueBox.IsOpen).
+ * optional NPC portrait on the left (texture key `portrait_<npcId>`, shown
+ * only if that texture is loaded — engine/content agents own which NPCs
+ * ship a portrait, so this degrades gracefully to text-only).
+ * Sets InputLock while open so movement and E-interaction are frozen.
  *
  * Lifecycle: show() → visible; hide() → invisible and InputLock released.
  * Caller (UIScene) controls when to hide based on GameEvents.
@@ -17,6 +24,15 @@ export class DialogueBox extends Phaser.GameObjects.Container {
   private readonly bodyText: Phaser.GameObjects.Text;
   private readonly portraitImage: Phaser.GameObjects.Image;
   private readonly hintText: Phaser.GameObjects.Text;
+
+  /** Left edge x for text when no portrait is shown. */
+  private readonly textXNoPortrait: number;
+  /** Left edge x for text when a portrait is shown. */
+  private readonly textXWithPortrait: number;
+  /** Wrap width when no portrait is shown. */
+  private readonly wrapWidthNoPortrait: number;
+  /** Wrap width when a portrait is shown (narrower — portrait takes the left column). */
+  private readonly wrapWidthWithPortrait: number;
 
   // Dimensions (logical 1280×720)
   private static readonly W = 900;
@@ -32,42 +48,45 @@ export class DialogueBox extends Phaser.GameObjects.Container {
     const H = DialogueBox.H;
     const PAD = DialogueBox.PAD;
 
-    // Semi-transparent dark background
-    this.bg = scene.add.rectangle(0, 0, W, H, 0x0d0d1a, 0.93).setOrigin(0);
-    // Thin accent border
-    scene.add.rectangle(0, 0, W, 3, 0x8888cc).setOrigin(0); // top border — added later as child
+    // Panel background: theme panel colour + hairline border + corner notch.
+    const { bg, notch } = buildPanelPieces(scene, W, H);
+    this.bg = bg;
+
+    this.textXNoPortrait = PAD;
+    this.textXWithPortrait = PAD + PORTRAIT_SIZE + PAD;
+    this.wrapWidthNoPortrait = W - PAD * 2;
+    this.wrapWidthWithPortrait = W - PAD * 2 - PORTRAIT_SIZE - PAD;
 
     this.speakerText = scene.add.text(PAD, PAD, '', {
-      fontFamily: 'monospace',
-      fontSize: '18px',
-      color: '#aaaaff',
-      fontStyle: 'bold',
+      fontFamily: FONTS.pixel,
+      fontSize: '12px',
+      color: COLORS.greenCss,
     });
 
-    this.bodyText = scene.add.text(PAD, PAD + 34, '', {
-      fontFamily: 'monospace',
+    this.bodyText = scene.add.text(PAD, PAD + 30, '', {
+      fontFamily: FONTS.body,
       fontSize: '16px',
-      color: '#e0e0e0',
-      wordWrap: { width: W - PAD * 2 - 80 },
+      color: COLORS.inkCss,
+      lineSpacing: 4,
+      wordWrap: { width: this.wrapWidthNoPortrait },
     });
 
-    // Portrait — rendered left of body if a portrait key is provided
-    this.portraitImage = scene.add.image(W - PAD - 50, H / 2, '').setVisible(false);
-    this.portraitImage.setDisplaySize(80, 80);
+    // Portrait — rendered left of the text block when a `portrait_<npcId>`
+    // texture is loaded for the current speaker.
+    this.portraitImage = scene.add
+      .image(PAD + PORTRAIT_SIZE / 2, H / 2, '')
+      .setVisible(false);
+    this.portraitImage.setDisplaySize(PORTRAIT_SIZE, PORTRAIT_SIZE);
 
     // Hint text at bottom right: "Appuie sur E pour continuer…"
     this.hintText = scene.add.text(W - PAD, H - PAD, '', {
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#666699',
+      fontFamily: FONTS.body,
+      fontSize: '11px',
+      color: COLORS.inkDimCss,
     }).setOrigin(1, 1);
 
-    // Assemble container children
-    this.add([this.bg, this.speakerText, this.bodyText, this.portraitImage, this.hintText]);
-
-    // Border line on top
-    const border = scene.add.rectangle(0, 0, W, 3, 0x8888cc).setOrigin(0);
-    this.add(border);
+    // Assemble container children — notch drawn last so it sits on top of bg.
+    this.add([this.bg, notch, this.portraitImage, this.speakerText, this.bodyText, this.hintText]);
 
     this.setDepth(100);
     this.setVisible(false);
@@ -80,20 +99,33 @@ export class DialogueBox extends Phaser.GameObjects.Container {
    *
    * @param speakerName - Name shown in the header (e.g. NPC name)
    * @param line - The dialogue line to display
-   * @param portraitKey - Phaser texture key for the portrait; undefined = no portrait
    * @param hint - Footer hint text (e.g. "Appuie sur E pour continuer…")
+   * @param npcId - NPC content id; used to resolve the `portrait_<npcId>`
+   *   texture key. Optional — dialogue without a matching portrait texture
+   *   renders text-only (unchanged layout).
    */
-  show(speakerName: string, line: string, portraitKey?: string, hint?: string): void {
+  show(speakerName: string, line: string, hint?: string, npcId?: string): void {
     this.speakerText.setText(speakerName);
     this.bodyText.setText(line);
+    this.hintText.setText(hint ?? '');
 
-    if (portraitKey) {
-      this.portraitImage.setTexture(portraitKey).setVisible(true);
+    const portraitKey = npcId ? `portrait_${npcId}` : undefined;
+    const showPortrait = !!portraitKey && this.scene.textures.exists(portraitKey);
+
+    if (showPortrait) {
+      // setDisplaySize must run AFTER setTexture: it stores a scale factor
+      // relative to the current frame, and setTexture swaps the frame size
+      // (the constructor call ran against the 32px placeholder → ×3 blow-up).
+      this.portraitImage.setTexture(portraitKey!).setDisplaySize(PORTRAIT_SIZE, PORTRAIT_SIZE).setVisible(true);
+      this.speakerText.setPosition(this.textXWithPortrait, this.speakerText.y);
+      this.bodyText.setPosition(this.textXWithPortrait, this.bodyText.y);
+      this.bodyText.setWordWrapWidth(this.wrapWidthWithPortrait);
     } else {
       this.portraitImage.setVisible(false);
+      this.speakerText.setPosition(this.textXNoPortrait, this.speakerText.y);
+      this.bodyText.setPosition(this.textXNoPortrait, this.bodyText.y);
+      this.bodyText.setWordWrapWidth(this.wrapWidthNoPortrait);
     }
-
-    this.hintText.setText(hint ?? '');
 
     this.setVisible(true);
     InputLock.lock();

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
+import { EditorScene } from './scenes/EditorScene';
 import { ZoneScene } from './scenes/ZoneScene';
 import { UIScene } from './scenes/UIScene';
 import { TimelineScene } from './scenes/TimelineScene';
@@ -65,7 +66,8 @@ const config: Phaser.Types.Core.GameConfig = {
 
   // All scenes registered here. Start with BootScene; others activated by scene manager.
   // TimelineScene is registered last so it renders above all other scenes (highest depth).
-  scene: [BootScene, PreloadScene, MainMenuScene, ZoneScene, UIScene, TimelineScene],
+  // EditorScene sits with the full-screen scenes (never parallel to UIScene).
+  scene: [BootScene, PreloadScene, MainMenuScene, EditorScene, ZoneScene, UIScene, TimelineScene],
 };
 
 // Instantiate game — stored so the browser doesn't GC it

@@ -4,6 +4,7 @@ import type { NpcData } from '@/types/NpcData';
 import type { CardData } from '@/types/CardData';
 import { GameEvents } from '@/systems/GameEvents';
 import { InputLock } from '@/systems/InputLock';
+import { createInteractHighlight } from '@/ui/uiKit';
 
 /**
  * NPC state machine values.
@@ -23,16 +24,18 @@ type NpcState =
  * Implements Interactable so InteractionSystem can trigger it on E.
  *
  * Design decisions:
- * - Rendered as a coloured Rectangle placeholder (agent-art replaces later).
+ * - Rendered as a `npc_<id>` Sprite (phase 2 art overhaul) — same 3×3 32×32
+ *   frame layout as player.png (rows: down/up/left, cols: step/idle/step).
+ *   Only the idle frames (1/4/7) are used; NPCs never walk.
  * - All text comes from npcContent (npcs.json) — never hardcoded.
  * - Cross-scene communication via game.events (GameEvents constants).
  * - Note: property is named `npcContent` (not `data`) to avoid clashing with
- *   Phaser.GameObjects.Rectangle's inherited `data: DataManager` property.
+ *   Phaser.GameObjects.Sprite's inherited `data: DataManager` property.
  * - After a wrong answer: state = ShowingResponse, next E reopens deck (awaitingRetry).
  *
  * Unity reference: NPC.cs state machine + NPC.OnCardPicked().
  */
-export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
+export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
   /** NPC content data from npcs.json. Named npcContent to avoid Phaser's `data` property clash. */
   readonly npcContent: NpcData;
 
@@ -56,34 +59,50 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
 
   private readonly gameScene: Phaser.Scene;
 
+  /** Proximity outline + [E] prompt, driven by InteractionSystem. */
+  private highlight: ReturnType<typeof createInteractHighlight>;
+
   /**
    * @param scene      - Parent scene that owns this NPC (ZoneScene)
    * @param npcContent - NPC content data loaded from npcs.json
    */
   constructor(scene: Phaser.Scene, npcContent: NpcData) {
-    // Visual placeholder: 32×48 game-px. Phaser Rectangle origin = centre.
-    // setScale(5) below makes it 160×240 display pixels.
-    super(scene, npcContent.position.x, npcContent.position.y, 32, 48, 0xffcc00);
+    // `npc_<id>` sheet: 96×96, 3×3 frames of 32×32 (same layout as player.png).
+    // Frame 1 = idle-down — the default resting pose.
+    super(scene, npcContent.position.x, npcContent.position.y, `npc_${npcContent.id}`, 1);
     this.setScale(5);
-
-    // Top-down y-sort (BUG-09): depth = feet Y (centre + half display height).
-    // The player uses the same rule, so it renders in front of this NPC when
-    // standing south of it instead of disappearing behind the placeholder.
-    this.setDepth(npcContent.position.y + (48 * 5) / 2);
 
     this.gameScene = scene;
     this.npcContent = npcContent;
 
-    // Rectangle extends GameObject — add to scene display list
-    scene.add.existing(this as unknown as Phaser.GameObjects.GameObject);
+    scene.add.existing(this);
+
+    // Top-down y-sort (BUG-09): depth = feet Y (centre + half display height).
+    // The player uses the same rule, so it renders in front of this NPC when
+    // standing south of it instead of disappearing behind it.
+    this.setDepth(npcContent.position.y + this.displayHeight / 2);
+
+    // Subtle idle bob (±2px, ~1.6s, yoyo) — keeps NPCs feeling alive while idle.
+    // Tiny enough to not meaningfully perturb interaction-radius math or y-sort.
+    scene.tweens.add({
+      targets: this,
+      y: npcContent.position.y - 2,
+      duration: 1600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
 
     // Name label floated above the sprite — same depth as the NPC so it stays
     // attached to it in the y-sorted world.
-    scene.add.text(npcContent.position.x, npcContent.position.y - 48 * 5 / 2 - 10, npcContent.name, {
+    scene.add.text(npcContent.position.x, npcContent.position.y - this.displayHeight / 2 - 10, npcContent.name, {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffffaa',
-    }).setOrigin(0.5, 1).setDepth(npcContent.position.y + (48 * 5) / 2);
+    }).setOrigin(0.5, 1).setDepth(npcContent.position.y + this.displayHeight / 2);
+
+    // Proximity feedback — offset above the name label so they don't overlap.
+    this.highlight = createInteractHighlight(scene, this, -34);
 
     // Listen for deck picks on the global bus — filter to our npcId
     scene.game.events.on(
@@ -145,6 +164,11 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
     return this.npcState === 'Idle' && !InputLock.isLocked();
   }
 
+  /** Proximity feedback (Interactable) — outline + [E] prompt on/off. */
+  setHighlighted(on: boolean): void {
+    this.highlight.set(on);
+  }
+
   /**
    * Returns true when the NPC is actively mid-dialogue (not Idle).
    *
@@ -193,10 +217,46 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
     this.lineIndex = 0;
     this.npcState = 'ShowingLines';
 
+    // Face the player so the conversation reads naturally.
+    this._facePlayer();
+
     // Notify AudioManager to play the interaction SFX (TASK-016).
     this.gameScene.game.events.emit(GameEvents.PLAYER_INTERACT);
 
     this._showCurrentLine();
+  }
+
+  /**
+   * Turn to face the player when dialogue starts, picking the idle frame
+   * for the dominant axis of the direction from this NPC to the player
+   * (down=1, up=4, right=7, left=7+flipX — same frame layout as player.png,
+   * whose side frames face right).
+   *
+   * Reads the player's position via a narrow structural cast on the parent
+   * scene (ZoneScene.getPlayerPosition()) rather than importing ZoneScene
+   * directly, avoiding a circular import (mirrors _openDeck()'s getAllCards()
+   * pattern below).
+   */
+  private _facePlayer(): void {
+    const zoneScene = this.gameScene as Phaser.Scene & {
+      getPlayerPosition?(): { x: number; y: number };
+    };
+    const playerPos = zoneScene.getPlayerPosition?.();
+    if (!playerPos) return;
+
+    const dx = playerPos.x - this.x;
+    const dy = playerPos.y - this.y;
+
+    if (Math.abs(dy) >= Math.abs(dx)) {
+      this.setFlipX(false);
+      this.setFrame(dy >= 0 ? 1 : 4); // player below → face down; above → face up
+    } else if (dx > 0) {
+      this.setFlipX(false);
+      this.setFrame(7); // player to the right → side frame faces right natively
+    } else {
+      this.setFlipX(true);
+      this.setFrame(7); // player to the left → mirror the right-facing frame
+    }
   }
 
   /** Advance to the next line or trigger end-of-dialogue action. */
@@ -224,6 +284,7 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
       speakerName: this.npcContent.name,
       line: this.activeLines[this.lineIndex],
       portrait: this.npcContent.portrait,
+      npcId: this.npcContent.id,
     });
   }
 
@@ -263,6 +324,7 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
         speakerName: this.npcContent.name,
         line: this.npcContent.question.thanksLine,
         portrait: this.npcContent.portrait,
+        npcId: this.npcContent.id,
       });
 
       // Notify ProgressionSystem and DeckSystem
@@ -283,6 +345,7 @@ export class NPC extends Phaser.GameObjects.Rectangle implements Interactable {
         speakerName: this.npcContent.name,
         line: this.npcContent.question.hintLine,
         portrait: this.npcContent.portrait,
+        npcId: this.npcContent.id,
       });
     }
   }

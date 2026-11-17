@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { InputLock } from '@/systems/InputLock';
+import { COLORS, FONTS } from '@/ui/theme';
+import { buildPanelPieces } from '@/ui/uiKit';
 
 /**
  * NarrativeOverlay — fullscreen modal that displays a sequence of text slides.
@@ -41,33 +43,43 @@ export class NarrativeOverlay extends Phaser.GameObjects.Container {
 
     const { width, height } = scene.scale;
 
-    // Full-screen semi-opaque background — matches EndScreen dark style (#0a0a14, 0.95)
-    this.bg = scene.add.rectangle(width / 2, height / 2, width, height, 0x0a0a14, 0.95).setOrigin(0.5);
+    // Full-screen dim backdrop — theme deep-space background.
+    this.bg = scene.add.rectangle(width / 2, height / 2, width, height, COLORS.bg, 0.95).setOrigin(0.5);
+
+    // Centered themed panel behind the slide text (panel-style per spec) —
+    // spans the vertical range from the slide text down through the hint.
+    const panelW = width * 0.76;
+    const panelH = height * 0.5;
+    const panelX = (width - panelW) / 2;
+    const panelY = height * 0.22;
+    const { bg: panelBg, notch: panelNotch } = buildPanelPieces(scene, panelW, panelH, 0.9);
+    panelBg.setPosition(panelX, panelY);
+    panelNotch.setPosition(panelX, panelY);
 
     // Main slide text — centered, large, readable
     this.slideText = scene.add.text(width / 2, height * 0.42, '', {
-      fontFamily: 'monospace',
-      fontSize: '26px',
-      color: '#e0e0ff',
+      fontFamily: FONTS.body,
+      fontSize: '24px',
+      color: COLORS.inkCss,
       align: 'center',
-      wordWrap: { width: width * 0.7 },
+      wordWrap: { width: width * 0.68 },
     }).setOrigin(0.5);
 
     // Slide counter (e.g. "2 / 4") — bottom-right corner for orientation
     this.counterText = scene.add.text(width * 0.88, height * 0.88, '', {
-      fontFamily: 'monospace',
+      fontFamily: FONTS.body,
       fontSize: '14px',
-      color: '#555577',
+      color: COLORS.inkDimCss,
     }).setOrigin(0.5);
 
-    // Advance hint at the bottom — pulsed alpha for affordance
+    // Advance hint at the bottom — amber accent for affordance
     this.hintText = scene.add.text(width / 2, height * 0.72, '', {
-      fontFamily: 'monospace',
+      fontFamily: FONTS.body,
       fontSize: '16px',
-      color: '#7777aa',
+      color: COLORS.amberCss,
     }).setOrigin(0.5);
 
-    this.add([this.bg, this.slideText, this.counterText, this.hintText]);
+    this.add([this.bg, panelBg, panelNotch, this.slideText, this.counterText, this.hintText]);
     this.setDepth(500); // above EndScreen (300), UIScene, everything
     this.setVisible(false);
 

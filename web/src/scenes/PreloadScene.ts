@@ -10,6 +10,17 @@ import { AudioManager } from '@/systems/AudioManager';
  * Phaser's load queue, we guarantee MainMenuScene has all data and all assets
  * before any gameplay scene is created. No fetch during gameplay = no jank.
  *
+ * Two-phase load pattern (phase 2 art overhaul):
+ *  Phase 1 (preload()): static assets whose keys are known ahead of time
+ *    (player, tiles, props atlas, gate). Phaser's loader starts automatically
+ *    after preload() returns.
+ *  Phase 2 (create() → _loadContentThenMenu()): ContentLoader.load() fetches
+ *    npcs.json — only then do we know the NPC ids, so `npc_<id>` spritesheets
+ *    and `portrait_<id>` images are queued in a SECOND Phaser load pass
+ *    (this.load.start() can be called again after the first pass completes).
+ *    Audio (content/audio.json) is queued in the same second pass since it is
+ *    also content-driven. No NPC id is ever hardcoded here (ADR-002).
+ *
  * Asset paths use import.meta.env.BASE_URL prefix so Vite resolves them
  * correctly in both dev (/) and production (/codyssee/) builds (ADR-004).
  */
@@ -57,12 +68,21 @@ export class PreloadScene extends Phaser.Scene {
       frameHeight: 32,
     });
 
-    // Tile atlas for the zone tilemap
+    // Tile atlas for the zone tilemap (10×10 grid of 32×32 tiles, 02-assets.md §2)
     this.load.image('tiles', `${base}assets/tiles/neo_zero_tiles_and_buildings_01.png`);
 
-    // NPC portraits (placeholder assets from agent-art §4)
-    this.load.image('portrait_zelda', `${base}assets/sprites/portraits/zelda_portrait.png`);
-    this.load.image('portrait_link', `${base}assets/sprites/portraits/link.png`);
+    // Props atlas — ZoneScene registers a custom texture frame per prop rect
+    // from zone.map.props at runtime (02-assets.md §3 / phase2 spec §Zone map schema).
+    this.load.image('props_atlas', `${base}assets/sprites/neo_zero_props_and_items_01.png`);
+
+    // Door replacement: 128×96 spritesheet, two 64×96 frames (0 = locked, 1 = open).
+    this.load.spritesheet('gate', `${base}assets/sprites/gate.png`, {
+      frameWidth: 64,
+      frameHeight: 96,
+    });
+
+    // NPC `npc_<id>` sheets and `portrait_<id>` images are content-driven (ids come
+    // from npcs.json) and are queued in the second load pass — see _queueNpcAssets().
   }
 
   /**
@@ -92,26 +112,29 @@ export class PreloadScene extends Phaser.Scene {
       return;
     }
 
-    // Queue audio files from the manifest into a second Phaser load pass.
-    // We do this here (after ContentLoader resolves) because audio paths come
-    // from content/audio.json which is fetched at runtime, not known at preload() time.
+    // Queue NPC assets (content-driven ids) and audio files (content-driven
+    // manifest) into a second Phaser load pass. Both depend on JSON that only
+    // resolved just above, so they could not be queued in preload().
     // Graceful: AudioManager.queuePreload() is a no-op if audio.json is missing.
-    await this._loadAudioAssets();
+    await this._loadSecondPhaseAssets();
 
     this.scene.start('MainMenuScene');
   }
 
   /**
-   * Second load pass: queue audio files from the manifest and await completion.
+   * Second load pass: queue `npc_<id>`/`portrait_<id>` assets (ids from
+   * npcs.json) and audio files (from audio.json), then await completion.
    *
    * Phaser's loader can be restarted after its initial run by calling
    * this.load.start() again. We wrap the 'complete' event in a Promise so
    * we can await it cleanly.
    *
-   * If no audio files are queued (missing manifest), resolves immediately.
+   * If nothing is queued, resolves immediately.
    */
-  private _loadAudioAssets(): Promise<void> {
+  private _loadSecondPhaseAssets(): Promise<void> {
     return new Promise((resolve) => {
+      this._queueNpcAssets();
+
       // Queue all audio from the manifest into Phaser's loader.
       AudioManager.getInstance().queuePreload(this);
 
@@ -128,7 +151,7 @@ export class PreloadScene extends Phaser.Scene {
 
       // Guard: if loader errors out on all files, still resolve so the game continues.
       this.load.once('loaderror', () => {
-        console.warn('PreloadScene: one or more audio files failed to load (non-fatal).');
+        console.warn('PreloadScene: one or more assets failed to load (non-fatal).');
         // We don't resolve here — the 'complete' event still fires after errors.
         // Each individual error is logged by Phaser's loader.
       });
@@ -136,5 +159,26 @@ export class PreloadScene extends Phaser.Scene {
       // Start the load pass.
       this.load.start();
     });
+  }
+
+  /**
+   * Queue `npc_<id>` spritesheets and `portrait_<id>` images for every NPC
+   * declared in npcs.json. Must run after ContentLoader.load() resolves.
+   *
+   * Zero hardcoded NPC ids (ADR-002) — the id list comes entirely from content.
+   */
+  private _queueNpcAssets(): void {
+    const base = import.meta.env.BASE_URL;
+    const npcs = ContentLoader.getInstance().getNpcs();
+
+    for (const npc of npcs) {
+      // Sheet layout matches player.png: 96×96, 3×3 frames of 32×32
+      // (rows: down/up/left, cols: step/idle/step) — 02-assets.md §1 / phase2 spec §1.
+      this.load.spritesheet(`npc_${npc.id}`, `${base}assets/sprites/npcs/${npc.id}.png`, {
+        frameWidth: 32,
+        frameHeight: 32,
+      });
+      this.load.image(`portrait_${npc.id}`, `${base}assets/sprites/portraits/${npc.id}.png`);
+    }
   }
 }

@@ -5,6 +5,7 @@ import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
 import { SaveSystem } from '@/systems/SaveSystem';
 import type { TimelineEntry } from '@/types/TimelineEntry';
+import { COLORS, FONTS } from '@/ui/theme';
 
 // ---------------------------------------------------------------------------
 // Layout constants — all in logical pixels (1280×720)
@@ -36,17 +37,17 @@ const NODE_TIERS = [-150, 60, -80, 130];
 /** Depth of the frieze overlay — must be above ZoneScene (0) + UIScene (300). */
 const DEPTH_BASE = 400;
 
-/** Color for a revealed node. */
-const COLOR_REVEALED = 0x44ccff;
+/** Color for a revealed node — theme phosphor green. */
+const COLOR_REVEALED = COLORS.green;
 
-/** Color for a locked ("???") node. */
-const COLOR_LOCKED = 0x445566;
+/** Color for a locked ("???") node — dimmed. */
+const COLOR_LOCKED = COLORS.inkDim;
 
 /** Color for the axis line. */
-const COLOR_AXIS = 0x88aacc;
+const COLOR_AXIS = COLORS.cyan;
 
 /** Color for influence arrows between revealed nodes. */
-const COLOR_INFLUENCE = 0xffcc44;
+const COLOR_INFLUENCE = COLORS.cyan;
 
 /**
  * Background overlay alpha — fully opaque (BUG-07).
@@ -141,39 +142,42 @@ export class TimelineScene extends Phaser.Scene {
     this.entries = [...raw].sort((a, b) => a.year - b.year);
 
     // ---- Background overlay ----
-    this.bg = this.add.rectangle(0, 0, 1280, 720, 0x08080f, BG_ALPHA).setOrigin(0).setDepth(DEPTH_BASE);
+    // Opaque (BUG-07): a translucent backdrop let bright placeholder
+    // NPCs/zone bleed through and the frieze read as floating labels.
+    this.bg = this.add.rectangle(0, 0, 1280, 720, COLORS.bg, BG_ALPHA).setOrigin(0).setDepth(DEPTH_BASE);
 
     // ---- Graphics layer for axis, ticks, nodes, arrows ----
     this.gfx = this.add.graphics().setDepth(DEPTH_BASE + 1);
 
     // ---- Title ----
     this.titleText = this.add.text(640, 28, cl.getString('timeline.title'), {
-      fontFamily: 'monospace',
-      fontSize: '22px',
-      color: '#cce8ff',
+      fontFamily: FONTS.pixel,
+      fontSize: '16px',
+      color: COLORS.greenCss,
     }).setOrigin(0.5, 0).setDepth(DEPTH_BASE + 2);
 
     // ---- Counter ----
     this.counterText = this.add.text(1240, 30, '', {
-      fontFamily: 'monospace',
+      fontFamily: FONTS.body,
       fontSize: '16px',
-      color: '#aaccee',
+      color: COLORS.cyanCss,
     }).setOrigin(1, 0).setDepth(DEPTH_BASE + 2);
 
     // ---- Close hint ----
     this.hintText = this.add.text(640, 690, cl.getString('timeline.hint'), {
-      fontFamily: 'monospace',
+      fontFamily: FONTS.body,
       fontSize: '13px',
-      color: '#667788',
+      color: COLORS.inkDimCss,
     }).setOrigin(0.5, 1).setDepth(DEPTH_BASE + 2);
 
     // ---- Detail panel (hidden by default) ----
-    this.detailBg = this.add.rectangle(640, 620, 800, 90, 0x111122, 0.95)
+    this.detailBg = this.add.rectangle(640, 620, 800, 90, COLORS.panel, 0.95)
+      .setStrokeStyle(1, COLORS.line, 1)
       .setDepth(DEPTH_BASE + 3);
     this.detailText = this.add.text(640, 620, '', {
-      fontFamily: 'monospace',
+      fontFamily: FONTS.body,
       fontSize: '14px',
-      color: '#ddeeff',
+      color: COLORS.inkCss,
       wordWrap: { width: 770 },
       align: 'center',
     }).setOrigin(0.5).setDepth(DEPTH_BASE + 4);
@@ -311,7 +315,7 @@ export class TimelineScene extends Phaser.Scene {
     if (total === 0) {
       // Empty state — no entries in timeline.json
       const emptyMsg = cl.getString('timeline.empty');
-      this.gfx.fillStyle(0x667788, 1);
+      this.gfx.fillStyle(COLORS.inkDim, 1);
       const cx = 1280 / 2;
       const cy = 360;
       // Draw a simple placeholder indicator
@@ -392,23 +396,32 @@ export class TimelineScene extends Phaser.Scene {
       hitZone.on('pointerdown', () => this._showDetail(entryCapture, isRevealed, cl));
       this.nodeZones.push(hitZone);
 
-      // Label text above/below node
-      const labelText = isRevealed
-        ? `${entry.language}\n${entry.year}`
-        : `???\n${entry.year}`;
+      // Label text above/below node — language name (green/dim) on one line,
+      // year (amber, per spec) on the next. Two Text objects since a single
+      // styled Text can't mix colors per line.
+      const nameLine = isRevealed ? entry.language : '???';
 
       const labelY = pos.y > AXIS_Y
         ? pos.y + NODE_RADIUS + 8  // below: label underneath node
         : pos.y - NODE_RADIUS - 8; // above: label above node
       const labelOriginY = pos.y > AXIS_Y ? 0 : 1;
+      const yearOffset = labelOriginY === 0 ? 16 : -16; // stack year below/above name line
 
-      const lbl = this.add.text(pos.x, labelY, labelText, {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: isRevealed ? '#aaeeff' : '#445566',
+      const nameLbl = this.add.text(pos.x, labelY, nameLine, {
+        fontFamily: FONTS.pixel,
+        fontSize: '9px',
+        color: isRevealed ? COLORS.greenCss : COLORS.inkDimCss,
         align: 'center',
       }).setOrigin(0.5, labelOriginY).setDepth(DEPTH_BASE + 2);
-      this.nodeLabelTexts.push(lbl);
+
+      const yearLbl = this.add.text(pos.x, labelY + yearOffset, String(entry.year), {
+        fontFamily: FONTS.body,
+        fontSize: '11px',
+        color: COLORS.amberCss,
+        align: 'center',
+      }).setOrigin(0.5, labelOriginY).setDepth(DEPTH_BASE + 2);
+
+      this.nodeLabelTexts.push(nameLbl, yearLbl);
     }
   }
 

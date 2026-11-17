@@ -2,7 +2,10 @@
   {
     "id": "npc_lea",
     "name": "Léa",
-    "position": { "x": 320, "y": 240 },
+    "position": {
+      "x": 2139,
+      "y": 296
+    },
     "dialogueLines": [
       "Bonjour ! Je construis des sites web depuis quelques mois.",
       "J'aimerais rendre mes pages interactives, qu'elles réagissent aux clics.",
@@ -21,7 +24,10 @@
   {
     "id": "npc_thomas",
     "name": "Thomas",
-    "position": { "x": 640, "y": 400 },
+    "position": {
+      "x": 2249,
+      "y": 1283
+    },
     "dialogueLines": [
       "Salut ! Je développe un jeu vidéo en ce moment.",
       "J'ai entendu parler d'un moteur de jeu très populaire avec un langage dédié.",
@@ -40,7 +46,10 @@
   {
     "id": "npc_clara",
     "name": "Clara",
-    "position": { "x": 900, "y": 180 },
+    "position": {
+      "x": 881,
+      "y": 1264
+    },
     "dialogueLines": [
       "Bonjour voyageur ! Je travaille sur une base de données pour notre bibliothèque.",
       "Il me faut un moyen d'interroger et de filtrer des milliers d'entrées efficacement.",
@@ -59,7 +68,10 @@
   {
     "id": "npc_ernst",
     "name": "Ernst",
-    "position": { "x": 280, "y": 320 },
+    "position": {
+      "x": 259,
+      "y": 722
+    },
     "dialogueLines": [
       "Grüss Gott ! Je suis ingénieur à l'université, nous faisons des calculs de trajectoires.",
       "En 1957, un nouveau langage a révolutionné le calcul scientifique sur ordinateur.",
@@ -78,7 +90,10 @@
   {
     "id": "npc_grace",
     "name": "Grace",
-    "position": { "x": 620, "y": 200 },
+    "position": {
+      "x": 883,
+      "y": 686
+    },
     "dialogueLines": [
       "Bonjour ! Je suis administratrice dans une grande banque.",
       "Nous gérons des millions de transactions chaque jour sur des mainframes.",
@@ -97,7 +112,10 @@
   {
     "id": "npc_john",
     "name": "John",
-    "position": { "x": 950, "y": 400 },
+    "position": {
+      "x": 2293,
+      "y": 354
+    },
     "dialogueLines": [
       "Hello ! Je travaille au MIT sur des programmes d'intelligence artificielle.",
       "Notre équipe utilise un langage basé sur les listes et la récursion, né en 1958.",
@@ -116,7 +134,10 @@
   {
     "id": "npc_bjarne",
     "name": "Bjarne",
-    "position": { "x": 300, "y": 260 },
+    "position": {
+      "x": 1915,
+      "y": 971
+    },
     "dialogueLines": [
       "Hej ! Je développe des logiciels complexes qui demandent vitesse et organisation.",
       "En 1985, un langage a étendu le C en ajoutant les classes et l'orienté objet.",
@@ -135,7 +156,10 @@
   {
     "id": "npc_larry",
     "name": "Larry",
-    "position": { "x": 660, "y": 420 },
+    "position": {
+      "x": 1439,
+      "y": 876
+    },
     "dialogueLines": [
       "Hey ! Je suis administrateur système et je dois traiter des milliers de fichiers texte.",
       "J'ai besoin d'un langage de script créé en 1987, célèbre pour ses expressions régulières.",
@@ -154,7 +178,10 @@
   {
     "id": "npc_ada",
     "name": "Ada",
-    "position": { "x": 960, "y": 260 },
+    "position": {
+      "x": 1987,
+      "y": 322
+    },
     "dialogueLines": [
       "Bonjour. Je travaille sur des systèmes embarqués pour l'aéronautique.",
       "Mon équipe utilise un langage né en 1972, proche du matériel, sans abstraction superflue.",
@@ -173,7 +200,10 @@
   {
     "id": "npc_rasmus",
     "name": "Rasmus",
-    "position": { "x": 300, "y": 260 },
+    "position": {
+      "x": 259,
+      "y": 384
+    },
     "dialogueLines": [
       "Salut ! Je gère un serveur web pour une boutique en ligne.",
       "En 1994, un étudiant danois a créé un langage pour générer des pages HTML dynamiquement.",
@@ -192,7 +222,10 @@
   {
     "id": "npc_yukihiro",
     "name": "Yukihiro",
-    "position": { "x": 640, "y": 420 },
+    "position": {
+      "x": 2036,
+      "y": 740
+    },
     "dialogueLines": [
       "Bonjour ! Je cherche un langage qui rende la programmation agréable, presque poétique.",
       "En 1995, un ingénieur japonais a conçu un langage orienté objet centré sur la joie du développeur.",
@@ -211,7 +244,10 @@
   {
     "id": "npc_james",
     "name": "James",
-    "position": { "x": 960, "y": 240 },
+    "position": {
+      "x": 744,
+      "y": 760
+    },
     "dialogueLines": [
       "Hey ! Je développe une application d'entreprise qui doit tourner sur tous les systèmes.",
       "En 1995, Sun Microsystems a lancé un langage avec le slogan 'Write once, run anywhere'.",
@@ -230,7 +266,10 @@
   {
     "id": "npc_rob",
     "name": "Rob",
-    "position": { "x": 300, "y": 260 },
+    "position": {
+      "x": 465,
+      "y": 903
+    },
     "dialogueLines": [
       "Salut ! Je construis des microservices pour une infrastructure cloud massivement parallèle.",
       "En 2009, Google a publié un langage compilé, minimaliste, avec des goroutines pour la concurrence.",
@@ -249,7 +288,10 @@
   {
     "id": "npc_jetbrains",
     "name": "Svetlana",
-    "position": { "x": 650, "y": 420 },
+    "position": {
+      "x": 1856,
+      "y": 267
+    },
     "dialogueLines": [
       "Bonjour ! Je migre une application Android de Java vers un langage plus moderne.",
       "En 2016, Google a officiellement soutenu un langage JetBrains qui compile vers la JVM.",
@@ -268,7 +310,10 @@
   {
     "id": "npc_anders",
     "name": "Anders",
-    "position": { "x": 960, "y": 240 },
+    "position": {
+      "x": 2168,
+      "y": 1127
+    },
     "dialogueLines": [
       "Bonjour ! Je maintiens une grande base de code JavaScript qui devient ingérable.",
       "En 2012, Microsoft a publié un sur-ensemble de JavaScript qui ajoute un système de types statiques.",

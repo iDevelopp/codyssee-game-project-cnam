@@ -4,13 +4,16 @@ import type { DoorData } from '@/types/ZoneData';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { GameEvents } from '@/systems/GameEvents';
 import { InputLock } from '@/systems/InputLock';
+import { COLORS } from '@/ui/theme';
+import { createInteractHighlight } from '@/ui/uiKit';
 
 /**
  * Door entity — interactable zone exit point.
  *
- * Starts grey (locked) and turns green when all quest NPCs are helped.
- * Always canInteract() = true; locked state is communicated inside interact()
- * via a dialogue message rather than blocking interaction.
+ * Rendered as the `gate` spritesheet (128×96, two 64×96 frames): frame 0 =
+ * locked, frame 1 = open. Turns green-glowing when all quest NPCs are
+ * helped. Always canInteract() = true; locked state is communicated inside
+ * interact() via a dialogue message rather than blocking interaction.
  *
  * On open door interaction:
  *   - If doorData.leadsToZoneId is set: emits ZONE_TRANSITION with nextZoneId.
@@ -18,49 +21,57 @@ import { InputLock } from '@/systems/InputLock';
  *   - If no leadsToZoneId: emits ZONE_TRANSITION with nextZoneId=undefined,
  *     which ZoneScene interprets as "final zone" and shows EndScreen.
  *
- * Colours (Unity Door.cs):
- *  - Locked: (0.3, 0.3, 0.3) → #4d4d4d
- *  - Open:   (0.4, 1.0, 0.4) → #66ff66
- *
  * Unity reference: Door.cs — IInteractable, CanInteract always true,
  * Open() subscribes to OnAllNPCsHelped, E→locked message or EndScreen.
  */
-export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
+export class Door extends Phaser.GameObjects.Sprite implements Interactable {
   private isOpen = false;
 
   /** True after a locked-door message is shown — next E closes the dialogue. */
   private showingLockedMsg = false;
 
+  /** Green glow rectangle behind the gate, pulsed while open. Created lazily on unlock. */
+  private glow?: Phaser.GameObjects.Rectangle;
+
   private readonly doorData: DoorData;
   private readonly gameScene: Phaser.Scene;
+
+  /** Proximity outline + [E] prompt, driven by InteractionSystem. */
+  private highlight: ReturnType<typeof createInteractHighlight>;
 
   /**
    * @param scene    - Parent scene (ZoneScene)
    * @param doorData - Door configuration from zone JSON
    */
   constructor(scene: Phaser.Scene, doorData: DoorData) {
-    // Door visual: 32×64 px at ×5 scale = 160×320 px
-    // Locked colour: (0.3, 0.3, 0.3) × 255 ≈ 0x4d4d4d
-    super(scene, doorData.position.x, doorData.position.y, 32, 64, 0x4d4d4d);
-    this.setScale(5);
+    // `gate` sheet: 64×96 frames. Frame 0 = locked. Display scale ×2.5 → 160×240.
+    super(scene, doorData.position.x, doorData.position.y, 'gate', 0);
+    this.setScale(2.5);
 
     this.doorData = doorData;
     this.gameScene = scene;
 
-    scene.add.existing(this as unknown as Phaser.GameObjects.GameObject);
+    scene.add.existing(this);
+
+    // Top-down y-sort, same convention as Player/NPC — keeps the player
+    // rendering in front of the gate when standing south of it.
+    this.setDepth(doorData.position.y + this.displayHeight / 2);
 
     // Exit label above the door — text from strings.fr.json so it is never hardcoded
     const cl = ContentLoader.getInstance();
     scene.add.text(
       doorData.position.x,
-      doorData.position.y - 64 * 5 / 2 - 10,
+      doorData.position.y - this.displayHeight / 2 - 10,
       cl.getString('door.exitLabel'),
       {
         fontFamily: 'monospace',
         fontSize: '14px',
         color: '#cccccc',
       }
-    ).setOrigin(0.5, 1);
+    ).setOrigin(0.5, 1).setDepth(doorData.position.y + this.displayHeight / 2);
+
+    // Proximity feedback — offset above the exit label so they don't overlap.
+    this.highlight = createInteractHighlight(scene, this, -34);
 
     // Subscribe to all-helped event to unlock and turn green.
     // Note: ZoneScene._unbindEvents() removes ALL_NPCS_HELPED listeners on zone
@@ -94,6 +105,11 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
     // not the door) — but we use DIALOGUE_ADVANCE for that, so we return false
     // here while the message is shown to avoid retriggering.
     return !InputLock.isLocked();
+  }
+
+  /** Proximity feedback (Interactable) — outline + [E] prompt on/off. */
+  setHighlighted(on: boolean): void {
+    this.highlight.set(on);
   }
 
   /**
@@ -138,11 +154,30 @@ export class Door extends Phaser.GameObjects.Rectangle implements Interactable {
     }
   }
 
-  /** Open the door: turn green. Called when ALL_NPCS_HELPED fires. */
+  /** Open the door: switch to the open frame and start a green glow pulse. */
   private _unlock(): void {
     this.isOpen = true;
-    // Open colour: (0.4, 1.0, 0.4) × 255 → #66ff66
-    this.setFillStyle(0x66ff66);
+    this.setFrame(1); // 1 = open
+
+    if (!this.glow) {
+      this.glow = this.gameScene.add.rectangle(
+        this.x,
+        this.y,
+        this.displayWidth,
+        this.displayHeight,
+        COLORS.green,
+        0.2,
+      );
+      this.glow.setDepth(this.depth - 1);
+      this.gameScene.tweens.add({
+        targets: this.glow,
+        alpha: { from: 0.12, to: 0.4 },
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
 
     // Notify AudioManager to play door SFX (TASK-016).
     this.gameScene.game.events.emit(GameEvents.DOOR_OPEN, { doorId: this.doorData.id });

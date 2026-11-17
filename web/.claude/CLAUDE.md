@@ -1,10 +1,11 @@
-# Codyssey Web — Stack memo (agent-infra)
+# Codysse Web — Stack memo
 
 ## Stack
 - Phaser 3 + TypeScript + Vite 6
 - pnpm (not npm/yarn)
-- Static build: `dist/` served by nginx at `ohvenus.fr/codyssee`
-- Vite `base: '/codyssee/'` — mandatory, do not remove (ADR-004)
+- Static multipage build: `dist/` served by nginx at `codysse.fr` — landing at `/` (index.html), game at `/play/` (play/index.html)
+- Vite `base: '/'` — domain root deploy (supersedes ADR-004's ohvenus.fr/codyssee sub-path)
+- Landing source: `src/landing/` (main.ts + landing.css), French copy, CRT/arcade aesthetic
 
 ## Conventions
 - **Code language**: English (identifiers, comments, commits)

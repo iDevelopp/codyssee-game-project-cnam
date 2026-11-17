@@ -16,11 +16,18 @@ import Phaser from 'phaser';
  *  See boucle-reference.md §Déplacement.
  *
  * Walk cycle: [1,0,1,2] per direction group, 8 fps, as specified in 02-assets.md.
- * Right direction = left group frames with flipX=true.
+ * The side frames (6-8) in player.png face RIGHT, so right = no flip and
+ * left = flipX=true. (02-assets.md called the group "left" — the sheet says
+ * otherwise; trusting the pixels, not the doc. Getting this backwards makes
+ * the character moonwalk.)
  */
 export class Player extends Phaser.Physics.Arcade.Sprite {
-  /** Pixel/s movement speed — calibrated to Unity's speed=5 feel at ×5 scale. */
-  static readonly SPEED = 180;
+  /**
+   * Pixel/s movement speed. Originally 180 (calibrated to Unity's speed=5
+   * feel at ×5 scale) — raised to 240 after playtest: crossing a zone felt
+   * sluggish.
+   */
+  static readonly SPEED = 240;
 
   /** Sprite display scale — pixel-art ×5 (02-assets.md §Animations Phaser). */
   static readonly SCALE = 5;
@@ -99,13 +106,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     if (vx < 0) {
       this.lastDirection = 'left';
-      this.setFlipX(false);
-      this.play('walk-left', true);
+      // Side frames face right — mirror them for left
+      this.setFlipX(true);
+      this.play('walk-side', true);
     } else if (vx > 0) {
       this.lastDirection = 'right';
-      // Right = left animation with flipX (02-assets.md §Animations)
-      this.setFlipX(true);
-      this.play('walk-left', true);
+      this.setFlipX(false);
+      this.play('walk-side', true);
     } else if (vy < 0) {
       this.lastDirection = 'up';
       this.setFlipX(false);
@@ -141,13 +148,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setFrame(4); // idle-up = frame 4
         break;
       case 'left':
-        this.setFlipX(false);
-        this.setFrame(7); // idle-left = frame 7
-        break;
-      case 'right':
-        // idle-right = idle-left frame with flipX
+        // side frames face right — mirror for left
         this.setFlipX(true);
         this.setFrame(7);
+        break;
+      case 'right':
+        this.setFlipX(false);
+        this.setFrame(7); // idle-side = frame 7, faces right natively
         break;
     }
   }
@@ -173,8 +180,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const defs: Array<{ key: string; base: number }> = [
       { key: 'walk-down', base: 0 },
       { key: 'walk-up', base: 3 },
-      { key: 'walk-left', base: 6 },
-      // walk-right reuses walk-left with flipX — no separate anim needed
+      // Frames 6-8 face right; walk-left reuses walk-side with flipX
+      { key: 'walk-side', base: 6 },
     ];
 
     for (const def of defs) {

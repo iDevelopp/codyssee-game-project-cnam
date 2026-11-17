@@ -2,13 +2,18 @@ import Phaser from 'phaser';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { AudioManager } from '@/systems/AudioManager';
 import { SaveSystem } from '@/systems/SaveSystem';
+import { COLORS, FONTS } from '@/ui/theme';
+import { createPixelButton, createScanlineOverlay } from '@/ui/uiKit';
 
 /**
- * MainMenuScene — title screen with Jouer and Quitter buttons.
+ * MainMenuScene — title screen with Jouer/Continuer and Quitter buttons,
+ * styled after the codysse.fr landing hero (CRT/arcade identity).
  *
  * Button labels come from strings.fr.json so they never appear hardcoded
  * in engine code (ADR-002). "Quitter" maps to MainMenuScene itself on web
- * because Application.Quit has no web equivalent (ADR-004).
+ * because Application.Quit has no web equivalent (ADR-004). The primary
+ * action button reads "Jouer" for a fresh save and "Continuer" when a
+ * saved zone exists — same underlying new-game/resume logic either way.
  */
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -36,39 +41,44 @@ export class MainMenuScene extends Phaser.Scene {
     // Must happen after PreloadScene has loaded audio files into the cache.
     AudioManager.getInstance().init(this);
 
-    // Request ambient music. Because this runs in create() (not a user gesture),
+    // Request the menu theme. Because this runs in create() (not a user gesture),
     // the browser AudioContext may be suspended. AudioManager will defer the
     // actual play() until 'unlocked' fires on the first pointer/key event.
-    AudioManager.getInstance().startAmbient();
+    AudioManager.getInstance().playMusic('music.menu');
 
-    this.cameras.main.setBackgroundColor('#1a1a2e');
+    this.cameras.main.setBackgroundColor(COLORS.bgCss);
 
-    // Title — from strings.fr.json so it is never hardcoded in engine
+    // Subtle CRT scanlines over the whole hero — matches the landing/game identity.
+    createScanlineOverlay(this, width, height).setDepth(0);
+
+    // Title — from strings.fr.json so it is never hardcoded in engine.
+    // Phosphor-green glow via setShadow mirrors the landing hero's
+    // `text-shadow: 0 0 18px / 0 0 60px rgba(green)` treatment.
     this.add.text(width / 2, height * 0.28, cl.getString('menu.title'), {
-      fontFamily: 'monospace',
-      fontSize: '64px',
-      color: '#e0e0ff',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+      fontFamily: FONTS.pixel,
+      fontSize: '48px',
+      color: COLORS.greenCss,
+      align: 'center',
+    }).setOrigin(0.5).setShadow(0, 0, COLORS.greenCss, 18, true, true);
 
-    // Tagline from strings
+    // Tagline from strings — amber secondary accent.
     this.add.text(width / 2, height * 0.42, cl.getString('menu.tagline'), {
-      fontFamily: 'monospace',
-      fontSize: '20px',
-      color: '#9999bb',
+      fontFamily: FONTS.body,
+      fontSize: '18px',
+      color: COLORS.amberCss,
+      align: 'center',
+      wordWrap: { width: width * 0.7 },
     }).setOrigin(0.5);
 
-    // Jouer button — new game or resume depending on save state.
+    // Jouer/Continuer button — new game or resume depending on save state.
     // currentZoneId in SaveSystem is the resume point written by ZoneScene.create()
     // on each zone entry. null = first launch ever = NEW GAME.
-    this._makeButton(width / 2, height * 0.58, cl.getString('menu.play'), 0x4444aa, () => {
-      const save = SaveSystem.getInstance();
-      const currentZoneId = save.getCurrentZoneId();
+    const save = SaveSystem.getInstance();
+    const currentZoneId = save.getCurrentZoneId();
+    const isNewGame = currentZoneId === null;
+    const playLabel = isNewGame ? cl.getString('menu.play') : cl.getString('menu.continue');
 
-      // Determine whether this is a new game or a resume.
-      // new game: currentZoneId === null (never entered a zone).
-      // resume:   currentZoneId is set — pick up where the player left off.
-      const isNewGame = currentZoneId === null;
+    createPixelButton(this, width / 2, height * 0.50, 280, 56, playLabel, () => {
       const startData = currentZoneId ? { zoneId: currentZoneId } : undefined;
 
       // Ensure UIScene and TimelineScene are running before emitting events.
@@ -104,45 +114,18 @@ export class MainMenuScene extends Phaser.Scene {
         // RESUME: skip intro, jump straight to the saved zone.
         this.scene.start('ZoneScene', startData);
       }
-    });
+    }, 16);
 
-    // Quitter button — on web, returns to main menu (ADR-004; no Application.Quit)
-    // Shown for parity with Unity but effectively a no-op from this scene.
-    this._makeButton(width / 2, height * 0.70, cl.getString('menu.quit'), 0x333355, () => {
-      // Reload the page on web as the closest equivalent to quitting
-      window.location.reload();
-    });
-  }
+    // Créer un niveau — level editor entry (J6). Resumes the auto-saved draft
+    // when one exists (EditorScene falls back to a fresh zone_01 clone otherwise).
+    createPixelButton(this, width / 2, height * 0.62, 280, 44, cl.getString('menu.create'), () => {
+      this.scene.start('EditorScene');
+    }, 12);
 
-  /**
-   * Creates a styled clickable button with hover feedback.
-   *
-   * @param x - Center X
-   * @param y - Center Y
-   * @param label - Button text
-   * @param color - Fill colour (hex number)
-   * @param onClick - Callback invoked on pointer down
-   */
-  private _makeButton(
-    x: number,
-    y: number,
-    label: string,
-    color: number,
-    onClick: () => void,
-  ): void {
-    const bg = this.add.rectangle(x, y, 280, 52, color)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add.text(x, y, label, {
-      fontFamily: 'monospace',
-      fontSize: '24px',
-      color: '#e0e0ff',
-    }).setOrigin(0.5);
-
-    bg.on('pointerover', () => bg.setFillStyle(color + 0x222222));
-    bg.on('pointerout', () => bg.setFillStyle(color));
-    bg.on('pointerdown', onClick);
-
-    // Keep text above background in render order
-    text.setDepth(1);
+    // Quitter button — on web the closest thing to quitting is leaving the
+    // game page: go back to the landing at / (ADR-004; no Application.Quit).
+    createPixelButton(this, width / 2, height * 0.74, 280, 44, cl.getString('menu.quit'), () => {
+      window.location.href = '/';
+    }, 12);
   }
 }

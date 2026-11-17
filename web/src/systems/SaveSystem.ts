@@ -63,6 +63,14 @@ export class SaveSystem {
   /** In-memory cache of the current save data. */
   private data: SaveDataV1 = SaveSystem._empty();
 
+  /**
+   * When true, all writes are in-memory only (level-editor test sessions).
+   * save() is a no-op, so testing a draft zone never pollutes the real save.
+   * Leaving sandbox mode calls load() to re-sync memory with disk, discarding
+   * any in-memory-only changes accumulated during the test.
+   */
+  private sandbox = false;
+
   private constructor() {}
 
   /** Singleton accessor — one save system per game session. */
@@ -71,6 +79,22 @@ export class SaveSystem {
       SaveSystem.instance = new SaveSystem();
     }
     return SaveSystem.instance;
+  }
+
+  /**
+   * Enter/leave sandbox mode (level-editor test sessions).
+   *
+   * Enter: writes become in-memory only. Call load() right after to reset the
+   *        in-memory copy to the on-disk state.
+   * Leave: reloads from localStorage, discarding in-memory-only changes.
+   *
+   * @param on - true to enter sandbox, false to leave
+   */
+  setSandbox(on: boolean): void {
+    this.sandbox = on;
+    if (!on) {
+      this.load();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -110,6 +134,7 @@ export class SaveSystem {
    * Called after every state change (card add, NPC resolved, door unlocked).
    */
   save(): void {
+    if (this.sandbox) return; // editor test session — never persist
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(this.data));
     } catch (e) {

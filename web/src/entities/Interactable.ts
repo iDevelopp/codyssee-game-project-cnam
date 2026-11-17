@@ -39,4 +39,12 @@ export interface Interactable {
    * World-space Y position used for distance calculation.
    */
   readonly y: number;
+
+  /**
+   * Optional proximity feedback. InteractionSystem calls this with `true`
+   * when this object becomes the nearest interactable in range (the one an
+   * E press would target) and `false` when it stops being it. Implementers
+   * show an outline/prompt so the player knows E will act on them.
+   */
+  setHighlighted?(on: boolean): void;
 }

@@ -34,6 +34,9 @@ export class InteractionSystem {
   /** Whether E was pressed last frame — used for single-press detection. */
   private wasEDown = false;
 
+  /** The interactable currently highlighted as the would-be E target. */
+  private highlighted: Interactable | null = null;
+
   /**
    * @param scene - The scene that owns this system (provides keyboard access)
    */
@@ -53,6 +56,9 @@ export class InteractionSystem {
 
   /** Unregister an interactable (e.g. when it's destroyed). */
   unregister(obj: Interactable): void {
+    if (this.highlighted === obj) {
+      this.highlighted = null; // don't call setHighlighted on a destroyed object
+    }
     this.interactables.delete(obj);
   }
 
@@ -80,12 +86,21 @@ export class InteractionSystem {
     const eJustPressed = eDown && !this.wasEDown;
     this.wasEDown = eDown;
 
+    // Proximity highlight — evaluated every frame, not just on E, so the
+    // outline appears as the player walks into range. Cleared while a UI
+    // overlay is open (an E press would advance the dialogue, not interact).
+    const target = InputLock.isLocked() ? null : this._findNearest(playerX, playerY);
+    if (target !== this.highlighted) {
+      this.highlighted?.setHighlighted?.(false);
+      this.highlighted = target;
+      this.highlighted?.setHighlighted?.(true);
+    }
+
     if (!eJustPressed) return false;
 
     // Input frozen by UI overlay — ignore E while any overlay is open
     if (InputLock.isLocked()) return false;
 
-    const target = this._findNearest(playerX, playerY);
     if (target) {
       target.interact();
       return true;

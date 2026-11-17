@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { CardData } from '@/types/CardData';
 import { InputLock } from '@/systems/InputLock';
+import { COLORS, FONTS } from '@/ui/theme';
+import { buildPanelPieces } from '@/ui/uiKit';
 
 /**
  * DeckPanel — full-screen card selection overlay displayed in UIScene.
@@ -29,13 +31,13 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     super(scene, 0, 0);
 
     // Full-screen dim overlay
-    this.bg = scene.add.rectangle(0, 0, 1280, 720, 0x000000, 0.88).setOrigin(0);
+    this.bg = scene.add.rectangle(0, 0, 1280, 720, COLORS.bg, 0.92).setOrigin(0);
 
     this.titleText = scene.add.text(640, 80, '', {
-      fontFamily: 'monospace',
-      fontSize: '24px',
-      color: '#e0e0ff',
-      fontStyle: 'bold',
+      fontFamily: FONTS.pixel,
+      fontSize: '16px',
+      color: COLORS.amberCss,
+      align: 'center',
     }).setOrigin(0.5);
 
     this.add([this.bg, this.titleText]);
@@ -140,20 +142,23 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     const W = DeckPanel.CARD_W;
     const H = DeckPanel.CARD_H;
 
-    const bg = this.scene.add.rectangle(0, 0, W, H, 0x222244)
-      .setInteractive({ useHandCursor: true });
+    // Panel piece origin is top-left — offset into the container's centred space.
+    const { bg, notch } = buildPanelPieces(this.scene, W, H);
+    bg.setPosition(-W / 2, -H / 2).setInteractive({ useHandCursor: true });
+    notch.setPosition(-W / 2, -H / 2);
 
     const nameTxt = this.scene.add.text(0, -H / 2 + 12, card.displayName, {
-      fontFamily: 'monospace',
-      fontSize: '15px',
-      color: '#ffffff',
-      fontStyle: 'bold',
+      fontFamily: FONTS.pixel,
+      fontSize: '10px',
+      color: COLORS.amberCss,
+      align: 'center',
+      wordWrap: { width: W - 16 },
     }).setOrigin(0.5, 0);
 
-    const descTxt = this.scene.add.text(0, -H / 2 + 34, card.description, {
-      fontFamily: 'monospace',
+    const descTxt = this.scene.add.text(0, -H / 2 + 38, card.description, {
+      fontFamily: FONTS.body,
       fontSize: '11px',
-      color: '#cccccc',
+      color: COLORS.inkCss,
       wordWrap: { width: W - 16 },
       align: 'center',
     }).setOrigin(0.5, 0);
@@ -161,23 +166,29 @@ export class DeckPanel extends Phaser.GameObjects.Container {
     // wordWrap keeps long usage strings inside the card instead of bleeding
     // over the neighbouring grid cells (anchored bottom, grows upward).
     const usageTxt = this.scene.add.text(0, H / 2 - 8, card.usage, {
-      fontFamily: 'monospace',
+      fontFamily: FONTS.body,
       fontSize: '10px',
-      color: '#8888aa',
+      color: COLORS.inkDimCss,
       fontStyle: 'italic',
       wordWrap: { width: W - 16 },
       align: 'center',
     }).setOrigin(0.5, 1);
 
-    bg.on('pointerover', () => bg.setFillStyle(0x3333aa));
-    bg.on('pointerout', () => bg.setFillStyle(0x222244));
+    bg.on('pointerover', () => {
+      bg.setFillStyle(COLORS.panel);
+      bg.setStrokeStyle(1, COLORS.green, 1);
+    });
+    bg.on('pointerout', () => {
+      bg.setFillStyle(COLORS.panel);
+      bg.setStrokeStyle(1, COLORS.line, 1);
+    });
     bg.on('pointerdown', () => {
       if (this.onCardPicked) {
         this.onCardPicked(card);
       }
     });
 
-    container.add([bg, nameTxt, descTxt, usageTxt]);
+    container.add([bg, notch, nameTxt, descTxt, usageTxt]);
     return container;
   }
 

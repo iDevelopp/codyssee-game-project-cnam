@@ -12,7 +12,7 @@ import type { AudioManifest } from '@/systems/ContentLoader';
  *   via ContentLoader.getAudioManifest(). The engine is fully decoupled from asset names.
  * - Graceful: if audio.json is missing, or a specific file fails to load, the
  *   manager logs once and continues — audio must never crash the game.
- * - Autoplay policy: ambient music starts only after the first user interaction
+ * - Autoplay policy: music starts only after the first user interaction
  *   (pointerdown or keydown). Phaser's sound.unlock() handles the AudioContext
  *   resume; we track whether the context is already unlocked to avoid duplicate starts.
  * - Volume + mute: persisted in SaveSystem (codyssee.save.v1). Restored on boot.
@@ -23,9 +23,9 @@ import type { AudioManifest } from '@/systems/ContentLoader';
  *     → queues all audio files from the manifest into Phaser's loader.
  *  2. After PreloadScene finishes, AudioManager.getInstance().init(scene)
  *     → binds GameEvents and restores saved volume/mute.
- *  3. Any scene can call AudioManager.getInstance().startAmbient()
- *     → starts the looping ambient track. Safe to call before unlock; it will
- *     auto-start once the browser unlocks audio.
+ *  3. Any scene can call AudioManager.getInstance().playMusic(key)
+ *     → switches to that looping track (menu theme, per-zone theme). Safe to
+ *     call before unlock; it will auto-start once the browser unlocks audio.
  *
  * Singleton: one instance per game session (matches SaveSystem pattern).
  */
@@ -35,17 +35,14 @@ export class AudioManager {
   /** Phaser sound objects keyed by manifest key (e.g. 'sfx.interact'). */
   private sounds: Map<string, Phaser.Sound.BaseSound> = new Map();
 
-  /** The ambient music track — kept separate for loop/volume control. */
-  private ambientTrack: Phaser.Sound.BaseSound | null = null;
-
-  /** Key of the ambient music entry in the manifest. */
-  private static readonly AMBIENT_KEY = 'music.ambient';
+  /** Manifest key of the music track currently playing (or requested), if any. */
+  private currentMusicKey: string | null = null;
 
   /**
-   * Whether startAmbient() has been requested but the browser hasn't unlocked
-   * audio yet. On unlock, the ambient track will auto-start.
+   * Music key requested before the browser unlocked audio. On unlock, this
+   * track auto-starts (browser autoplay policy: no sound before user gesture).
    */
-  private ambientPending = false;
+  private pendingMusicKey: string | null = null;
 
   /** True once the Phaser scene reference is available for sound operations. */
   private initialized = false;
@@ -148,10 +145,6 @@ export class AudioManager {
       });
 
       this.sounds.set(key, soundObj);
-
-      if (key === AudioManager.AMBIENT_KEY) {
-        this.ambientTrack = soundObj;
-      }
     }
 
     // Restore saved volume and mute state.
@@ -166,31 +159,53 @@ export class AudioManager {
     // Handle browser autoplay policy: Phaser emits 'unlocked' on the sound manager
     // once the AudioContext is resumed after a user gesture.
     scene.sound.once('unlocked', () => {
-      if (this.ambientPending) {
-        this.ambientPending = false;
-        this._playAmbient();
+      if (this.pendingMusicKey) {
+        const key = this.pendingMusicKey;
+        this.pendingMusicKey = null;
+        this._switchMusic(key);
       }
     });
   }
 
   // ---------------------------------------------------------------------------
-  // Ambient music
+  // Music
   // ---------------------------------------------------------------------------
 
   /**
-   * Request ambient music to start looping.
+   * Play a looping music track by manifest key (e.g. 'music.zone_01'),
+   * stopping whichever track was playing before (hard cut, chiptune-style).
    *
-   * If the browser AudioContext is already unlocked (user has interacted), the
-   * music starts immediately. Otherwise, we set ambientPending=true so the
-   * 'unlocked' event handler in init() will start it once audio is allowed.
+   * - No-op if the requested track is already the current one.
+   * - Graceful if the key is missing (file failed to load): current music keeps
+   *   playing, a warning is logged in dev.
+   * - Autoplay-safe: if the browser AudioContext is still suspended (no user
+   *   gesture yet), the request is deferred and starts on Phaser's 'unlocked'.
+   * - Mute-safe: a muted track still starts (at volume 0) so unmuting resumes
+   *   music seamlessly without a restart.
    *
-   * Safe to call multiple times — does nothing if already playing.
+   * Scenes call this on entry: MainMenuScene → 'music.menu', ZoneScene → the
+   * zone's `music` key from content/zones/zone_0X.json.
    */
-  startAmbient(): void {
-    if (!this.ambientTrack) return;
+  playMusic(key: string): void {
+    if (!this.sounds.has(key)) {
+      if (import.meta.env.DEV) {
+        console.warn(`AudioManager.playMusic(): key "${key}" not found.`);
+      }
+      return;
+    }
 
-    const track = this.ambientTrack as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
-    if (track.isPlaying) return; // already going
+    // Dev/test hook — mirrors play()'s __audioCalls audit log (see play()).
+    if (import.meta.env.DEV) {
+      const w = window as unknown as { __audioCalls?: string[] };
+      if (!w.__audioCalls) w.__audioCalls = [];
+      w.__audioCalls.push(key);
+      if (w.__audioCalls.length > 200) w.__audioCalls.shift();
+    }
+
+    const current = this.currentMusicKey ? this.sounds.get(this.currentMusicKey) : null;
+    if (this.currentMusicKey === key && (current?.isPlaying || this.pendingMusicKey === key)) {
+      return; // already playing (or already queued for unlock)
+    }
 
     // Check if the AudioContext is ready (state === 'running').
     // On Web Audio, context.state is 'suspended' before first user gesture.
@@ -198,21 +213,22 @@ export class AudioManager {
     const contextReady = !soundManager?.context || soundManager.context.state === 'running';
 
     if (contextReady) {
-      this._playAmbient();
+      this._switchMusic(key);
     } else {
-      // Defer until Phaser's 'unlocked' event fires.
-      this.ambientPending = true;
+      // Defer until Phaser's 'unlocked' event fires (handler set in init()).
+      this.pendingMusicKey = key;
+      this.currentMusicKey = key;
     }
   }
 
   /**
-   * Stop the ambient track (e.g. when returning to main menu with no music).
-   * Safe to call when not playing.
+   * Stop the current music track, if any. Safe to call when nothing plays.
    */
-  stopAmbient(): void {
-    this.ambientPending = false;
-    if (this.ambientTrack) {
-      this.ambientTrack.stop();
+  stopMusic(): void {
+    this.pendingMusicKey = null;
+    if (this.currentMusicKey) {
+      this.sounds.get(this.currentMusicKey)?.stop();
+      this.currentMusicKey = null;
     }
   }
 
@@ -398,17 +414,23 @@ export class AudioManager {
   }
 
   /**
-   * Actually start the ambient loop. Called once the AudioContext is ready.
-   * Respects mute state: if muted, the track plays at volume 0 so it can
-   * seamlessly resume when unmuted (no gap/restart needed).
+   * Actually switch music tracks. Called once the AudioContext is ready.
+   * Respects mute state: a muted track plays at volume 0 (set by _applyMute)
+   * so it can seamlessly resume when unmuted (no gap/restart needed).
    */
-  private _playAmbient(): void {
-    if (!this.ambientTrack) return;
+  private _switchMusic(key: string): void {
+    if (this.currentMusicKey && this.currentMusicKey !== key) {
+      this.sounds.get(this.currentMusicKey)?.stop();
+    }
+    this.currentMusicKey = key;
+
+    const track = this.sounds.get(key);
+    if (!track || track.isPlaying) return;
 
     try {
-      this.ambientTrack.play();
+      track.play();
     } catch (e) {
-      console.warn('AudioManager: could not start ambient music:', e);
+      console.warn(`AudioManager: could not start music "${key}":`, e);
     }
   }
 }

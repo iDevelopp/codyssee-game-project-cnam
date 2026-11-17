@@ -43,3 +43,6 @@ sysinfo.txt
 
 # QA scratch / diagnostic playwright scripts (not part of the suite)
 web/tests/e2e/diag-*.js
+
+# Variables d'environnement — ne jamais committer
+.env*

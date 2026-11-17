@@ -3,32 +3,190 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Codyssey</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <style>
-      /* Reset and dark background so Phaser canvas sits cleanly */
-      *, *::before, *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
+    <title>Codysse — L'odyssée des langages de programmation</title>
+    <meta
+      name="description"
+      content="Codysse : un jeu pixel-art pour explorer 60 ans d'histoire des langages de programmation. 5 zones, 19 langages, une aventure. Un produit ARKHYA."
+    />
+    <meta property="og:title" content="Codysse — L'odyssée des langages de programmation" />
+    <meta
+      property="og:description"
+      content="Explore 60 ans d'histoire du code. 5 zones, 19 langages à collectionner, une frise chronologique vivante."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://codysse.fr/" />
+    <meta property="og:site_name" content="Codysse" />
+
+    <!--
+      Site name in Google results: the grey line above the title comes from
+      WebSite.name in this JSON-LD block. Google only reads it on the HOME PAGE
+      (this file — not /play/), and falls back to the bare domain ("codysse.fr")
+      when it is missing, which is exactly what we were getting. The name must
+      stay exactly "Codysse".
+      https://developers.google.com/search/docs/appearance/site-names
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://codysse.fr/#organization",
+            "name": "Codysse",
+            "url": "https://codysse.fr"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://codysse.fr/#website",
+            "name": "Codysse",
+            "url": "https://codysse.fr",
+            "publisher": { "@id": "https://codysse.fr/#organization" },
+            "inLanguage": "fr"
+          }
+        ]
       }
-      html, body {
-        width: 100%;
-        height: 100%;
-        background: #000;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      /* Phaser injects its canvas here */
-      #game-container {
-        display: block;
-      }
-    </style>
+    </script>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" src="/src/landing/main.ts"></script>
   </head>
   <body>
-    <div id="game-container"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <!-- CRT scanline + vignette overlay, purely decorative -->
+    <div class="crt" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <span class="topbar__brand">CODYSSE<span class="cursor">_</span></span>
+      <span class="topbar__arkhya">un produit <a href="https://arkhya.com" rel="noopener">ARKHYA</a></span>
+    </header>
+
+    <main>
+      <!-- ============================== HERO ============================== -->
+      <section class="hero">
+        <div class="hero__stars" aria-hidden="true"></div>
+        <p class="hero__boot reveal">&gt; boot codysse.fr — insert coin</p>
+        <h1 class="hero__title reveal">
+          <span aria-hidden="true" class="hero__glitch" data-text="CODYSSE">CODYSSE</span>
+          <span class="sr-only">Codysse</span>
+        </h1>
+        <p class="hero__tagline reveal">L'odyssée des langages de programmation</p>
+        <p class="hero__pitch reveal">
+          Explore 60 ans d'histoire du code dans une aventure pixel-art.<br />
+          Traverse 5 zones, rencontre les pionniers, collectionne les 19 langages
+          qui ont façonné l'informatique — de Fortran&nbsp;1957 à Kotlin&nbsp;2016.
+        </p>
+        <a class="btn-play reveal" href="/play/">
+          <span class="btn-play__arrow" aria-hidden="true">▶</span> JOUER
+        </a>
+        <p class="hero__hint reveal">gratuit · navigateur · clavier requis</p>
+      </section>
+
+      <!-- ============================ TIMELINE ============================ -->
+      <section class="frieze" aria-label="Frise chronologique des langages">
+        <div class="frieze__track">
+          <!-- Track content duplicated in JS for the seamless marquee loop -->
+          <ul class="frieze__list">
+            <li><b>Fortran</b> 1957</li>
+            <li><b>Lisp</b> 1958</li>
+            <li><b>COBOL</b> 1959</li>
+            <li><b>C</b> 1972</li>
+            <li><b>SQL</b> 1974</li>
+            <li><b>C++</b> 1985</li>
+            <li><b>Perl</b> 1987</li>
+            <li><b>Python</b> 1991</li>
+            <li><b>HTML</b> 1993</li>
+            <li><b>PHP</b> 1994</li>
+            <li><b>Java</b> 1995</li>
+            <li><b>JavaScript</b> 1995</li>
+            <li><b>Ruby</b> 1995</li>
+            <li><b>C#</b> 2000</li>
+            <li><b>Go</b> 2009</li>
+            <li><b>Rust</b> 2010</li>
+            <li><b>TypeScript</b> 2012</li>
+            <li><b>Swift</b> 2014</li>
+            <li><b>Kotlin</b> 2016</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============================ FEATURES ============================ -->
+      <section class="features">
+        <h2 class="section-title reveal"><span>//</span> LE JEU</h2>
+        <div class="features__grid">
+          <article class="card reveal">
+            <span class="card__icon" aria-hidden="true">🗺</span>
+            <h3>5 zones à explorer</h3>
+            <p>
+              Des fondations des années 50 à l'ère moderne : chaque zone est une
+              époque, avec ses machines, ses idées et ses langages.
+            </p>
+          </article>
+          <article class="card reveal">
+            <span class="card__icon" aria-hidden="true">🃏</span>
+            <h3>19 langages à collectionner</h3>
+            <p>
+              Chaque langage débloqué devient une carte de ton deck — son
+              histoire, sa syntaxe, ce qu'il a changé.
+            </p>
+          </article>
+          <article class="card reveal">
+            <span class="card__icon" aria-hidden="true">⏳</span>
+            <h3>Une frise vivante</h3>
+            <p>
+              60 ans d'influences entre langages sur une frise chronologique
+              interactive. Qui a inspiré qui ? Tout se déverrouille en jouant.
+            </p>
+          </article>
+          <article class="card reveal">
+            <span class="card__icon" aria-hidden="true">💬</span>
+            <h3>Des rencontres</h3>
+            <p>
+              Des personnages inspirés des pionniers du code te guident, te
+              testent et te racontent la petite histoire de la grande.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- =========================== CONTRIBUTORS ========================== -->
+      <section class="crew">
+        <h2 class="section-title reveal"><span>//</span> L'ÉQUIPAGE</h2>
+        <p class="crew__sub reveal">Ils ont embarqué sur l'odyssée.</p>
+        <ul class="crew__grid">
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Arthur</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Egor</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Ivan</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Rayhan</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Baptiste</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Valentin</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Mateo</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Anthony</li>
+          <li class="crew__member reveal"><span class="crew__avatar" aria-hidden="true"></span>Romain</li>
+        </ul>
+      </section>
+
+      <!-- ============================== CTA =============================== -->
+      <section class="cta">
+        <p class="cta__line reveal">&gt; ready player one ?</p>
+        <a class="btn-play btn-play--big reveal" href="/play/">
+          <span class="btn-play__arrow" aria-hidden="true">▶</span> LANCER LA PARTIE
+        </a>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        <b>CODYSSE</b> — un produit <a href="https://arkhya.com" rel="noopener">ARKHYA</a>
+      </p>
+      <p class="footer__meta">Projet né au CNAM · fait avec Phaser &amp; beaucoup de café</p>
+      <p class="footer__meta">
+        art : tileset <a href="https://yaninyunus.itch.io/neo-zero-cyberpunk-city-tileset" rel="noopener">Neo Zero</a> par yanin · sons CC0 <a href="https://kenney.nl" rel="noopener">Kenney</a> · musique chiptune originale
+      </p>
+    </footer>
   </body>
 </html>

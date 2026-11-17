@@ -1,32 +1,90 @@
 {
-  "music.ambient": {
-    "files": ["assets/audio/ambient.ogg", "assets/audio/ambient.mp3"],
+  "music.menu": {
+    "files": [
+      "assets/audio/music-menu.ogg",
+      "assets/audio/music-menu.mp3"
+    ],
     "loop": true,
-    "volume": 0.4
+    "volume": 0.2
+  },
+  "music.zone_01": {
+    "files": [
+      "assets/audio/music-zone_01.ogg",
+      "assets/audio/music-zone_01.mp3"
+    ],
+    "loop": true,
+    "volume": 0.18
+  },
+  "music.zone_02": {
+    "files": [
+      "assets/audio/music-zone_02.ogg",
+      "assets/audio/music-zone_02.mp3"
+    ],
+    "loop": true,
+    "volume": 0.18
+  },
+  "music.zone_03": {
+    "files": [
+      "assets/audio/music-zone_03.ogg",
+      "assets/audio/music-zone_03.mp3"
+    ],
+    "loop": true,
+    "volume": 0.18
+  },
+  "music.zone_04": {
+    "files": [
+      "assets/audio/music-zone_04.ogg",
+      "assets/audio/music-zone_04.mp3"
+    ],
+    "loop": true,
+    "volume": 0.18
+  },
+  "music.zone_05": {
+    "files": [
+      "assets/audio/music-zone_05.ogg",
+      "assets/audio/music-zone_05.mp3"
+    ],
+    "loop": true,
+    "volume": 0.18
   },
   "sfx.interact": {
-    "files": ["assets/audio/interact.ogg", "assets/audio/interact.mp3"],
+    "files": [
+      "assets/audio/interact.ogg",
+      "assets/audio/interact.mp3"
+    ],
     "loop": false,
-    "volume": 0.7
+    "volume": 0.5
   },
   "sfx.correct": {
-    "files": ["assets/audio/correct.ogg", "assets/audio/correct.mp3"],
-    "loop": false,
-    "volume": 0.8
-  },
-  "sfx.wrong": {
-    "files": ["assets/audio/wrong.ogg", "assets/audio/wrong.mp3"],
-    "loop": false,
-    "volume": 0.8
-  },
-  "sfx.door": {
-    "files": ["assets/audio/door.ogg", "assets/audio/door.mp3"],
-    "loop": false,
-    "volume": 0.75
-  },
-  "sfx.uiClick": {
-    "files": ["assets/audio/ui-click.ogg", "assets/audio/ui-click.mp3"],
+    "files": [
+      "assets/audio/correct.ogg",
+      "assets/audio/correct.mp3"
+    ],
     "loop": false,
     "volume": 0.6
+  },
+  "sfx.wrong": {
+    "files": [
+      "assets/audio/wrong.ogg",
+      "assets/audio/wrong.mp3"
+    ],
+    "loop": false,
+    "volume": 0.6
+  },
+  "sfx.door": {
+    "files": [
+      "assets/audio/door.ogg",
+      "assets/audio/door.mp3"
+    ],
+    "loop": false,
+    "volume": 0.55
+  },
+  "sfx.uiClick": {
+    "files": [
+      "assets/audio/ui-click.ogg",
+      "assets/audio/ui-click.mp3"
+    ],
+    "loop": false,
+    "volume": 0.45
   }
 }

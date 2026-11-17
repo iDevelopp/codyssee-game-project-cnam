@@ -1,0 +1,9 @@
+# codysse.fr — served at the domain root.
+# Files in web/public/ are copied verbatim into dist/ by Vite, and nginx serves
+# dist/, so this ends up at https://codysse.fr/robots.txt (it used to 404).
+# Full crawl allowed: the whole site is public. No Sitemap: line on purpose —
+# the repo does not generate a sitemap.xml yet, and pointing at a missing file
+# is reported as an error in Search Console.
+
+User-agent: *
+Allow: /

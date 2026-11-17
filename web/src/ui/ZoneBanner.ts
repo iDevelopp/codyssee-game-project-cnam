@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { COLORS, FONTS } from '@/ui/theme';
 
 /**
  * ZoneBanner — non-blocking fade-in/fade-out text banner for zone entry.
@@ -26,7 +27,7 @@ export class ZoneBanner {
 
     // Semi-opaque strip across the top third
     this.bg = scene.add
-      .rectangle(width / 2, 0, width, 180, 0x000814, 0.75)
+      .rectangle(width / 2, 0, width, 180, COLORS.bg, 0.8)
       .setOrigin(0.5, 0)
       .setDepth(200)
       .setAlpha(0);
@@ -54,9 +55,9 @@ export class ZoneBanner {
     // Create text objects for each line, stacked vertically
     for (let i = 0; i < lines.length; i++) {
       const t = this.scene.add.text(width / 2, startY + i * lineHeight, lines[i], {
-        fontFamily: 'monospace',
+        fontFamily: FONTS.body,
         fontSize: '18px',
-        color: '#c0c0e8',
+        color: COLORS.cyanCss,
         align: 'center',
         wordWrap: { width: width * 0.8 },
       }).setOrigin(0.5, 0).setDepth(201).setAlpha(0);

@@ -155,6 +155,28 @@ function validateZone(zone: unknown, npcIds: Set<string>): void {
       );
     }
   }
+
+  // --- Phase 2 fields: `map` and `theme` are both optional and validated
+  // permissively (shape-only) so content authoring can land independently of
+  // this schema without breaking older zone files that predate it.
+  if (z['theme'] !== undefined && z['theme'] !== null) {
+    const theme = z['theme'] as Record<string, unknown>;
+    assertString(theme['background'], `zone "${z['id']}".theme.background`);
+  }
+
+  if (z['map'] !== undefined && z['map'] !== null) {
+    const map = z['map'] as Record<string, unknown>;
+    if (typeof map['tileSize'] !== 'number' || typeof map['tileScale'] !== 'number') {
+      throw new Error(`ContentLoader: zone "${z['id']}".map.tileSize/tileScale must be numbers`);
+    }
+    if (typeof map['width'] !== 'number' || typeof map['height'] !== 'number') {
+      throw new Error(`ContentLoader: zone "${z['id']}".map.width/height must be numbers`);
+    }
+    assertArray(map['ground'], `zone "${z['id']}".map.ground`);
+    assertArray(map['walls'], `zone "${z['id']}".map.walls`);
+    assertArray(map['decor'], `zone "${z['id']}".map.decor`);
+    assertArray(map['props'], `zone "${z['id']}".map.props`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +293,31 @@ export class ContentLoader {
   }
 
   /**
+   * Inject a runtime-authored zone into the in-memory zone list (level editor).
+   *
+   * Used by EditorScene (test play) and FanLevelsScene (imported fan levels):
+   * the zone is NOT on disk, so the normal fetch path cannot see it. Runtime
+   * zones are appended AFTER the authored ones in zoneOrder — order matters
+   * for the progressive card pool (ZoneScene.getAllCards), which must still
+   * start from zone_01.
+   *
+   * Deduplicated by id: re-registering a zone with the same id (e.g. a draft
+   * re-tested after edits) replaces the previous in-memory copy in place.
+   * The store is never written back to disk — reloads drop runtime zones.
+   *
+   * @param zone - Validated zone data (caller is responsible for validation)
+   */
+  registerRuntimeZone(zone: ZoneData): void {
+    const store = this._require();
+    if (store.zones.has(zone.id)) {
+      store.zones.set(zone.id, zone);
+      return;
+    }
+    store.zones.set(zone.id, zone);
+    store.zoneOrder.push(zone.id);
+  }
+
+  /**
    * Returns all timeline entries in authoring order.
    */
   getTimeline(): TimelineEntry[] {
@@ -315,10 +362,10 @@ export class ContentLoader {
   }
 
   /**
-   * Returns the ids of all cards that are NOT expected answers for any NPC.
-   *
-   * This is the initial player deck (complement set), matching the Unity
-   * GameManager.Start logic: deck = all cards minus expectedAnswer cards.
+   * Returns the initial player deck: cards that are NOT expected answers for
+   * any NPC (matching the Unity GameManager.Start complement-set logic),
+   * restricted to the first zone's `cardPool` when one is authored — so a
+   * fresh save doesn't start owning late-game languages (progressive unlock).
    * See gdd/01-boucle-reference.md §Deck & cartes.
    */
   getInitialDeckCards(): CardData[] {
@@ -329,7 +376,11 @@ export class ContentLoader {
         answerIds.add(npc.question.expectedCardId);
       }
     }
-    return store.cards.filter((c) => !answerIds.has(c.id));
+    const firstPool = store.zones.get(store.zoneOrder[0])?.cardPool;
+    const base = firstPool
+      ? store.cards.filter((c) => firstPool.includes(c.id))
+      : store.cards;
+    return base.filter((c) => !answerIds.has(c.id));
   }
 
   // -------------------------------------------------------------------------

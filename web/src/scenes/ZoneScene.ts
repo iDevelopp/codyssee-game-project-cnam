@@ -4,6 +4,7 @@ import { NPC } from '@/entities/NPC';
 import { Door } from '@/entities/Door';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { InteractionSystem } from '@/systems/InteractionSystem';
+import { MapBuilder } from '@/systems/MapBuilder';
 import { DeckSystem } from '@/systems/DeckSystem';
 import { ProgressionSystem } from '@/systems/ProgressionSystem';
 import { SaveSystem } from '@/systems/SaveSystem';
@@ -11,59 +12,29 @@ import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
 import { AudioManager } from '@/systems/AudioManager';
 import type { CardData } from '@/types/CardData';
-import type { ZoneData } from '@/types/ZoneData';
+import type { ZoneData, ZoneTheme } from '@/types/ZoneData';
 
 /**
- * Per-era background tint palette.
+ * Default zone theme, used when a zone JSON predates the `theme` schema
+ * (phase 2 art overhaul). Matches the deep-space codysse.fr identity
+ * (src/ui/theme.ts) so untouched zones still look coherent.
  *
- * Data-driven: map themeEra → camera background hex. If an era is not listed
- * here the hash fallback produces a deterministic colour from the string.
- * Real tilemaps (J5) will replace this with actual Tiled JSON — this is a
- * visual placeholder only.
+ * Replaces the old ERA_BACKGROUND/ERA_TILE_SHADES engine-hardcoded dicts —
+ * colours are now authored per zone in content/zones/zone_0X.json.
  */
-const ERA_BACKGROUND: Record<string, string> = {
-  '1950s': '#1a1a0a', // dark olive — vacuum tubes, early mainframes
-  '1960s': '#0a1a1a', // dark teal — Fortran, COBOL era
-  '1970s': '#1a0a1a', // dark purple — C, Unix era
-  '1980s': '#1a1a0a', // dark amber — PC revolution, Pascal
-  '1990s': '#1a2a1a', // dark green — web dawn, Java, Python
-  '2000s': '#0a1a2a', // dark blue — broadband, frameworks
-  '2010s': '#2a1a0a', // dark orange — mobile, JS explosion
-  '2020s': '#0a2a1a', // dark emerald — Rust, WASM, cloud-native
+const DEFAULT_THEME: ZoneTheme = {
+  background: '#0b1420',
+  ambient: '#102030',
+  ambientAlpha: 0.22,
+  accent: '#3dfc8e',
 };
 
 /**
- * Per-era checkerboard tint colours (light shade, dark shade) for the
- * placeholder floor tiles. Each era gets a distinct colour pair so zones
- * look visually different before real tilemaps arrive in J5.
+ * Normalise a theme hex string to always include the leading '#' — authors
+ * may write either "0b1420" or "#0b1420" (see ZoneTheme doc comment).
  */
-const ERA_TILE_SHADES: Record<string, [number, number]> = {
-  '1950s': [0x5a4a1b, 0x4a3a14],
-  '1960s': [0x1b4a4a, 0x143a3a],
-  '1970s': [0x4a1b4a, 0x3a143a],
-  '1980s': [0x5a4a1b, 0x4a3a14],
-  '1990s': [0x2d5a1b, 0x264d17],
-  '2000s': [0x1b2d5a, 0x17264d],
-  '2010s': [0x5a2d1b, 0x4d2617],
-  '2020s': [0x1b5a2d, 0x174d26],
-};
-
-/**
- * Fallback: hash a string into a valid hex colour string for unlisted eras.
- * Produces a dark colour (bits 0–5 of each channel clamped to [0x10, 0x2a]).
- *
- * @param s - Source string (themeEra value)
- * @returns CSS hex colour string like '#1a0f22'
- */
-function _hashEraColour(s: string): string {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-  }
-  const r = 0x10 + (Math.abs(h) % 0x1a);
-  const g = 0x10 + (Math.abs(h >> 8) % 0x1a);
-  const b = 0x10 + (Math.abs(h >> 16) % 0x1a);
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+function _normalizeHex(hex: string): string {
+  return hex.startsWith('#') ? hex : `#${hex}`;
 }
 
 /**
@@ -106,6 +77,9 @@ export class ZoneScene extends Phaser.Scene {
   private npcs: NPC[] = [];
   private doors: Door[] = [];
 
+  /** Walls tilemap layer (collidable), when the active zone has `map` data. */
+  private wallsLayer?: Phaser.Tilemaps.TilemapLayer;
+
   // ---- Systems ----
   private interaction!: InteractionSystem;
   private deck!: DeckSystem;
@@ -136,8 +110,20 @@ export class ZoneScene extends Phaser.Scene {
   /** Whether T was down last frame (single-press guard). */
   private wasTDown = false;
 
+  /** Escape key — exit to main menu (single-press guard). */
+  private escKey!: Phaser.Input.Keyboard.Key;
+
+  /** Whether Escape was down last frame (single-press guard). */
+  private wasEscDown = false;
+
   /** Whether the timeline frieze is currently open (to avoid double-toggle). */
   private timelineOpen = false;
+
+  /**
+   * Scene key to return to on Escape, when set via scene.start data.
+   * Undefined = standard main-menu exit. Set by EditorScene test plays (J6).
+   */
+  private returnTo?: string;
 
   /** Zone data loaded from ContentLoader for the active zone. */
   private zoneData!: ZoneData;
@@ -167,10 +153,12 @@ export class ZoneScene extends Phaser.Scene {
     // objects in the InputLock advance loop and cause errors.
     this.npcs = [];
     this.doors = [];
+    this.wallsLayer = undefined;
     this.transitioning = false;
     this.wasEDown = false;
     this.wasMDown = false;
     this.wasTDown = false;
+    this.wasEscDown = false;
     this.timelineOpen = false;
     // `player`, `interaction`, `deck`, `progression`, `cursors`, `wasd`,
     // `eKey`, `mKey`, `zoneData` are all reassigned unconditionally below —
@@ -185,8 +173,12 @@ export class ZoneScene extends Phaser.Scene {
     // ---- Zone data ----
     // Accept zoneId from scene.start() data (multi-zone path).
     // Fall back to the first zone in the index on first launch.
-    const sceneData = this.scene.settings.data as { zoneId?: string } | undefined;
+    // returnTo (optional) — scene key to return to on Escape. Used by the
+    // level editor's test-play loop: Escape brings the user back to the
+    // editor instead of the main menu (J6).
+    const sceneData = this.scene.settings.data as { zoneId?: string; returnTo?: string } | undefined;
     const requestedId = sceneData?.zoneId;
+    this.returnTo = sceneData?.returnTo;
 
     let zone: ZoneData | undefined;
     if (requestedId) {
@@ -206,15 +198,20 @@ export class ZoneScene extends Phaser.Scene {
     // ---- Record current zone in save (resume point for page reloads) ----
     save.recordZoneUnlocked(this.zoneData.id);
 
+    // ---- Zone music ----
+    // init() is idempotent — needed here for the direct-to-zone path (page
+    // reload resume) where MainMenuScene.create() may not have run yet.
+    AudioManager.getInstance().init(this);
+    if (this.zoneData.music) {
+      AudioManager.getInstance().playMusic(this.zoneData.music);
+    }
+
     // Reset transition guard each time the scene starts
     this.transitioning = false;
 
-    const { width, height } = this.scale;
-
-    // ---- Background (themeEra-driven) ----
-    const bgColour = ERA_BACKGROUND[this.zoneData.themeEra] ?? _hashEraColour(this.zoneData.themeEra);
-    this.cameras.main.setBackgroundColor(bgColour);
-    this._drawPlaceholderMap(width, height, this.zoneData.themeEra);
+    // ---- Theme (phase 2) ----
+    // Falls back to DEFAULT_THEME when the zone JSON predates the `theme` schema.
+    this._applyTheme(this.zoneData.theme ?? DEFAULT_THEME);
 
     // ---- Input ----
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -232,14 +229,34 @@ export class ZoneScene extends Phaser.Scene {
     // T key — timeline frieze toggle (TASK-023)
     this.tKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T);
 
+    // Escape — exit to main menu (progress is saved continuously, safe anytime)
+    this.escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
     // ---- Player ----
     const spawn = this.zoneData.spawn;
     this.player = new Player(this, spawn.x, spawn.y);
 
+    // ---- Map (tilemap layers + props if `map` data present, else placeholder floor) ----
+    // Built after the player exists so solid props/walls can collide with it immediately.
+    // Rendering itself lives in MapBuilder (shared with the level editor — J6).
+    let worldWidth: number;
+    let worldHeight: number;
+    if (this.zoneData.map) {
+      const built = MapBuilder.build(this, this.zoneData, this.player);
+      this.wallsLayer = built.wallsLayer;
+      worldWidth = built.worldWidth;
+      worldHeight = built.worldHeight;
+    } else {
+      const { width, height } = this.scale;
+      this._drawPlaceholderMap(width, height, this.zoneData.themeEra);
+      worldWidth = width * 2;
+      worldHeight = height * 2;
+    }
+
     // ---- Camera ----
     // Follow player with lerp ≈ 0.15 (matches Unity CameraFollow smoothTime=0.15)
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
-    this.cameras.main.setBounds(0, 0, width * 2, height * 2);
+    this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
     // ---- Systems ----
     this.interaction = new InteractionSystem(this);
@@ -289,10 +306,17 @@ export class ZoneScene extends Phaser.Scene {
     this.progression = new ProgressionSystem(this.game.events, questNPCCount, zoneQuestNpcIdSet);
 
     for (const npcId of questNPCIds) {
-      const npcData = cl.getNpc(npcId);
+      let npcData = cl.getNpc(npcId);
       if (!npcData) {
         console.warn(`ZoneScene: NPC "${npcId}" not found in npcs.json`);
         continue;
+      }
+
+      // Per-zone position override (editor/fan zones, J6): clone the npc data
+      // so the shared npcs.json object is never mutated.
+      const override = this.zoneData.npcPositions?.[npcId];
+      if (override) {
+        npcData = { ...npcData, position: { ...override } };
       }
 
       const npc = new NPC(this, npcData);
@@ -327,7 +351,12 @@ export class ZoneScene extends Phaser.Scene {
     this._bindEvents();
 
     // ---- Physics world bounds ----
-    this.physics.world.setBounds(0, 0, width * 2, height * 2);
+    this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+
+    // ---- Player ↔ walls collision (only when the zone has tilemap data) ----
+    if (this.wallsLayer) {
+      this.physics.add.collider(this.player, this.wallsLayer);
+    }
 
     // Make sure InputLock starts clean (in case UIScene leaked a lock from prev run)
     InputLock.unlock();
@@ -369,6 +398,17 @@ export class ZoneScene extends Phaser.Scene {
       }
     }
 
+    // Escape: exit to main menu (single-press — rising edge only).
+    // Only when no overlay holds the lock (dialogue/deck/timeline manage
+    // their own dismissal) — Escape must never yank the player out mid-answer.
+    const escDown = this.escKey.isDown;
+    const escJustPressed = escDown && !this.wasEscDown;
+    this.wasEscDown = escDown;
+    if (escJustPressed && !InputLock.isLocked() && !this.timelineOpen) {
+      this._exitToMenu();
+      return;
+    }
+
     // InteractionSystem handles E for NPCs and doors (unlocked state only).
     // Returns true if it triggered an interaction this frame — used below to
     // prevent the same E press from being consumed twice (single-press guarantee).
@@ -398,13 +438,39 @@ export class ZoneScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   /**
-   * Returns all cards from the content database.
-   * NPC calls this when opening DeckPanel — Unity DeckUI shows all cards, not just deck.
+   * Returns the cards available as answers in this zone.
    *
-   * @returns Full card catalog from ContentLoader
+   * Progressive pool: the union of `cardPool` over all zones up to and
+   * including the current one (zone index order = progression order), so the
+   * player starts with a handful of languages and unlocks more toward the
+   * final zone instead of seeing all 19 cards from the start.
+   *
+   * Falls back to the full catalog when any zone in range predates the
+   * `cardPool` schema — the game must never become unanswerable.
+   *
+   * @returns Cards NPC passes to DeckPanel when asking a question
    */
   getAllCards(): CardData[] {
-    return ContentLoader.getInstance().getCards();
+    const cl = ContentLoader.getInstance();
+    const all = cl.getCards();
+
+    const zones = cl.getZones();
+    const idx = zones.findIndex((z) => z.id === this.zoneData.id);
+    const unlocked = idx >= 0 ? zones.slice(0, idx + 1) : zones;
+    if (unlocked.some((z) => !z.cardPool)) return all;
+
+    const ids = new Set(unlocked.flatMap((z) => z.cardPool!));
+    return all.filter((c) => ids.has(c.id));
+  }
+
+  /**
+   * Returns the player's current world position.
+   * NPC calls this to compute which idle frame to face when dialogue starts.
+   *
+   * @returns Player's {x, y} in world space
+   */
+  getPlayerPosition(): { x: number; y: number } {
+    return { x: this.player.x, y: this.player.y };
   }
 
   // ---------------------------------------------------------------------------
@@ -424,6 +490,33 @@ export class ZoneScene extends Phaser.Scene {
    *
    * @param nextZoneId - Zone to transition to, or undefined for final zone
    */
+  /**
+   * Exit the zone back to the main menu (Escape key).
+   *
+   * Progress needs no explicit save here — deck, helped NPCs and current zone
+   * are persisted as they change. Stops the parallel overlay scenes
+   * (UIScene/TimelineScene) so the menu owns the screen; MainMenuScene
+   * relaunches them on the next play. Reuses the door-transition fade +
+   * `transitioning` guard so Escape can't double-fire or race a door exit.
+   */
+  private _exitToMenu(): void {
+    if (this.transitioning) return;
+    this.transitioning = true;
+
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this._unbindEvents();
+      this.scene.stop('UIScene');
+      this.scene.stop('TimelineScene');
+      // Editor test play: return to the editor, not the menu (J6).
+      if (this.returnTo === 'EditorScene') {
+        this.scene.start('EditorScene');
+      } else {
+        this.scene.start('MainMenuScene');
+      }
+    });
+  }
+
   private _triggerZoneTransition(nextZoneId: string | undefined): void {
     if (this.transitioning) return;
     this.transitioning = true;
@@ -567,34 +660,52 @@ export class ZoneScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   /**
-   * Draw a tiled placeholder background using era-specific colours.
+   * Apply the zone's visual theme: camera background colour and an optional
+   * full-screen ambient tint rectangle.
    *
-   * In J1–J4, no Tiled JSON tilemap is loaded — this gives a visual floor
-   * that differs per era so zones feel distinct.
-   * Agent-infra/contenu can replace this with a proper TilemapJSONFile loader
-   * in J5 without changing anything else.
+   * Replaces the old ERA_BACKGROUND/ERA_TILE_SHADES engine-hardcoded dicts —
+   * `theme` is authored per zone in content/zones/zone_0X.json, with
+   * DEFAULT_THEME as the fallback for zones that predate this schema.
+   *
+   * @param theme - Zone theme (or DEFAULT_THEME fallback)
+   */
+  private _applyTheme(theme: ZoneTheme): void {
+    this.cameras.main.setBackgroundColor(_normalizeHex(theme.background));
+
+    if (theme.ambient) {
+      const { width, height } = this.scale;
+      const ambientColour = Phaser.Display.Color.HexStringToColor(_normalizeHex(theme.ambient)).color;
+      const ambientRect = this.add.rectangle(width / 2, height / 2, width, height, ambientColour, theme.ambientAlpha ?? 0.2);
+      // Screen-fixed (not world-space) — an atmospheric overlay that follows the camera.
+      // Depth above tiles/props/entities (all negative-to-mid depths), below UI (separate scene).
+      ambientRect.setScrollFactor(0);
+      ambientRect.setDepth(9000);
+    }
+  }
+
+  /**
+   * Draw a tiled placeholder background using era-hashed colours.
+   *
+   * Fallback ONLY for zones that predate the `map` schema (phase 2). Once
+   * every zone JSON has `map` data this path becomes dead code but is kept
+   * so content and engine work can land independently without breaking
+   * older zone files.
    *
    * @param width   - Scene display width
    * @param height  - Scene display height
-   * @param themeEra - Zone's era string (used to pick the checkerboard colours)
+   * @param seed    - String used to derive deterministic checkerboard shades (zone's themeEra)
    */
-  private _drawPlaceholderMap(width: number, height: number, themeEra: string): void {
+  private _drawPlaceholderMap(width: number, height: number, seed: string): void {
     const mapW = width * 2;
     const mapH = height * 2;
     const tileSize = 32;
 
-    // Pick era-specific tile shades; fall back to a hash-derived pair.
-    let [shade0, shade1] = ERA_TILE_SHADES[themeEra] ?? [0x2d5a1b, 0x264d17];
-
-    // If era not in the table, derive two shades from the colour hash
-    if (!ERA_TILE_SHADES[themeEra]) {
-      let h = 0;
-      for (let i = 0; i < themeEra.length; i++) {
-        h = (Math.imul(31, h) + themeEra.charCodeAt(i)) | 0;
-      }
-      shade0 = 0x101010 + (Math.abs(h) % 0x1a1a1a);
-      shade1 = 0x0a0a0a + (Math.abs(h >> 4) % 0x141414);
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0;
     }
+    const shade0 = 0x101010 + (Math.abs(h) % 0x1a1a1a);
+    const shade1 = 0x0a0a0a + (Math.abs(h >> 4) % 0x141414);
 
     for (let ty = 0; ty < mapH / tileSize; ty++) {
       for (let tx = 0; tx < mapW / tileSize; tx++) {
