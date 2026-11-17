@@ -5,6 +5,7 @@ import type { CardData } from '@/types/CardData';
 import { GameEvents } from '@/systems/GameEvents';
 import { InputLock } from '@/systems/InputLock';
 import { createInteractHighlight } from '@/ui/uiKit';
+import { ContentLoader } from '@/systems/ContentLoader';
 import type { EventScope } from '@/systems/EventScope';
 
 /**
@@ -111,7 +112,7 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
     }).setOrigin(0.5, 1).setDepth(npcContent.position.y + this.displayHeight / 2);
 
     // Proximity feedback — offset above the name label so they don't overlap.
-    this.highlight = createInteractHighlight(scene, this, -34);
+    this.highlight = createInteractHighlight(scene, this, -34, () => this.promptLabel());
 
     // Listen for deck picks on the global bus — filter to our npcId
     scope.on(
@@ -239,6 +240,10 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
    */
   static questionPrompt(npc: NpcData): string {
     return npc.question?.prompt ?? npc.dialogueLines[npc.dialogueLines.length - 1] ?? '';
+  }
+
+  promptLabel(): string {
+    return ContentLoader.getInstance().getString('prompt.talk').replace('{name}', this.npcContent.name);
   }
 
   /** Current resolved state (read by ProgressionSystem and SaveSystem). */

@@ -76,7 +76,7 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
     ).setOrigin(0.5, 1).setDepth(doorData.position.y + this.displayHeight / 2);
 
     // Proximity feedback — offset above the exit label so they don't overlap.
-    this.highlight = createInteractHighlight(scene, this, -34);
+    this.highlight = createInteractHighlight(scene, this, -34, () => this.promptLabel());
 
     // Subscribe to all-helped event to unlock and turn green.
     // Registered on the zone scope, so it is removed on zone exit.
@@ -176,6 +176,12 @@ export class Door extends Phaser.GameObjects.Sprite implements Interactable {
     if (!this.showingLockedMsg) return false;
     this.showingLockedMsg = false;
     return true;
+  }
+
+  promptLabel(): string {
+    const cl = ContentLoader.getInstance();
+    if (!this.isOpen) return cl.getString('prompt.doorLocked');
+    return cl.getString(this.doorData.labelKey ?? 'door.exitLabel');
   }
 
   /** Change the message shown when the door is still locked. */

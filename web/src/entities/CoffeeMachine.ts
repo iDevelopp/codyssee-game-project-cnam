@@ -4,6 +4,7 @@ import type { PropData } from '@/types/ZoneData';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { GameEvents } from '@/systems/GameEvents';
 import { InputLock } from '@/systems/InputLock';
+import { createInteractHighlight } from '@/ui/uiKit';
 import type { EnergySystem } from '@/systems/EnergySystem';
 
 /**
@@ -23,6 +24,9 @@ export class CoffeeMachine extends Phaser.GameObjects.Rectangle implements Inter
   /** Scene time (ms) before which the machine refuses to serve. */
   private readyAt = 0;
 
+  /** Proximity outline + [E] prompt, driven by InteractionSystem. */
+  private readonly highlight: ReturnType<typeof createInteractHighlight>;
+
   constructor(scene: Phaser.Scene, prop: PropData, energy: EnergySystem) {
     super(scene, prop.position.x, prop.position.y, 72, 96, 0x6b4226);
     this.gameScene = scene;
@@ -40,6 +44,17 @@ export class CoffeeMachine extends Phaser.GameObjects.Rectangle implements Inter
       fontSize: '14px',
       color: '#ffd8a8',
     }).setOrigin(0.5, 1).setDepth(prop.position.y + 49);
+
+    this.highlight = createInteractHighlight(scene, this, -30, () => this.promptLabel());
+  }
+
+  promptLabel(): string {
+    return ContentLoader.getInstance().getString('prompt.coffee');
+  }
+
+  /** Proximity feedback (Interactable) — outline + "[E] …" prompt on/off. */
+  setHighlighted(on: boolean): void {
+    this.highlight.set(on);
   }
 
   canInteract(): boolean {

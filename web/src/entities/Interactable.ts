@@ -47,4 +47,10 @@ export interface Interactable {
    * show an outline/prompt so the player knows E will act on them.
    */
   setHighlighted?(on: boolean): void;
+
+  /**
+   * Short action shown in that prompt after "[E]" (e.g. "Parler à Léa").
+   * Optional: without it the prompt is just "[E]".
+   */
+  promptLabel?(): string;
 }

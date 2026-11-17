@@ -152,8 +152,9 @@ export function createScanlineOverlay(
  */
 export function createInteractHighlight(
   scene: Phaser.Scene,
-  sprite: Phaser.GameObjects.Sprite,
+  sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle,
   promptOffsetY = -12, // above the sprite's top edge; pass more when a label already sits there
+  label?: () => string, // action after "[E]", e.g. "Parler à Léa" — re-read on each show
 ): { set(on: boolean): void; destroy(): void } {
   let active = false;
   let prompt: Phaser.GameObjects.Text | null = null;
@@ -188,6 +189,8 @@ export function createInteractHighlight(
             ease: 'Sine.easeInOut',
           });
         }
+        // "[E] Parler à Léa": tells which object E targets when several are in reach
+        prompt.setText(label ? `[E] ${label()}` : '[E]');
         prompt.setVisible(true);
       } else {
         if (glow) {
