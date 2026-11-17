@@ -3,6 +3,7 @@ import type { NpcData } from '@/types/NpcData';
 import type { ZoneData } from '@/types/ZoneData';
 import type { TimelineEntry } from '@/types/TimelineEntry';
 import type { Strings } from '@/types/Strings';
+import { ECONOMY_DEFAULT, type EconomyData } from '@/types/Economy';
 
 // ---------------------------------------------------------------------------
 // Narrative types (TASK-026) — shape of content/narrative.json
@@ -57,6 +58,30 @@ interface ContentStore {
   audio: AudioManifest | null;
   /** Narrative data from content/narrative.json — defaults to empty if missing. */
   narrative: NarrativeData;
+  /** Game balance numbers from content/economy.json, merged over defaults. */
+  economy: EconomyData;
+}
+
+/**
+ * Recursively merge a parsed JSON object over a defaults object. Only keys that
+ * exist in the defaults are kept, and a value is taken from the JSON only when
+ * its type matches the default — so a typo in economy.json falls back silently
+ * to the default instead of injecting NaN into the economy.
+ */
+function mergeDefaults<T>(defaults: T, raw: unknown): T {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return defaults;
+  const src = raw as Record<string, unknown>;
+  const out = { ...(defaults as Record<string, unknown>) };
+  for (const key of Object.keys(out)) {
+    const def = out[key];
+    const val = src[key];
+    if (def !== null && typeof def === 'object' && !Array.isArray(def)) {
+      out[key] = mergeDefaults(def, val);
+    } else if (val !== undefined && typeof val === typeof def) {
+      out[key] = val;
+    }
+  }
+  return out as T;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +387,14 @@ export class ContentLoader {
   }
 
   /**
+   * Returns the game economy (XP rewards, costs…) from content/economy.json.
+   * Always complete: missing keys fall back to ECONOMY_DEFAULT.
+   */
+  getEconomy(): EconomyData {
+    return this._require().economy;
+  }
+
+  /**
    * Returns the initial player deck: cards that are NOT expected answers for
    * any NPC (matching the Unity GameManager.Start complement-set logic),
    * restricted to the first zone's `cardPool` when one is authored — so a
@@ -411,7 +444,7 @@ export class ContentLoader {
 
     // Fetch all root-level JSON files in parallel for performance.
     // audio.json and narrative.json are optional — gracefully degrade if missing.
-    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw] = await Promise.all([
+    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw, economyRaw] = await Promise.all([
       this._fetchJson(`${base}content/cards.json`),
       this._fetchJson(`${base}content/npcs.json`),
       // timeline.json is optional in J0 — returns empty array if missing
@@ -421,6 +454,8 @@ export class ContentLoader {
       this._fetchJsonOptional(`${base}content/audio.json`, null),
       // narrative.json is optional — default empty if missing (TASK-026)
       this._fetchJsonOptional(`${base}content/narrative.json`, null),
+      // economy.json is optional — every field has a default (ECONOMY_DEFAULT)
+      this._fetchJsonOptional(`${base}content/economy.json`, null),
     ]);
 
     // --- Parse cards ---
@@ -522,7 +557,9 @@ export class ContentLoader {
       };
     }
 
-    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative };
+    const economy = mergeDefaults(ECONOMY_DEFAULT, economyRaw);
+
+    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative, economy };
   }
 
   /**

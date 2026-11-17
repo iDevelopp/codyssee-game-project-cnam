@@ -27,7 +27,7 @@ export class ZoneBanner {
 
     // Semi-opaque strip across the top third
     this.bg = scene.add
-      .rectangle(width / 2, 0, width, 180, COLORS.bg, 0.8)
+      .rectangle(width / 2, 40, width, 180, COLORS.bg, 0.8) // starts under the HUD bar
       .setOrigin(0.5, 0)
       .setDepth(200)
       .setAlpha(0);
@@ -50,7 +50,7 @@ export class ZoneBanner {
 
     const { width } = this.scene.scale;
     const lineHeight = 30;
-    const startY = 28;
+    const startY = 68; // below the 40px HUD bar
 
     // Create text objects for each line, stacked vertically
     for (let i = 0; i < lines.length; i++) {

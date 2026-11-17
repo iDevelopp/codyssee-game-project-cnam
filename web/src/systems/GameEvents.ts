@@ -148,4 +148,20 @@ export const GameEvents = {
    * Payload: { zoneId: string }
    */
   ZONE_BANNER_SHOW: 'zone-banner-show',
+
+  // ---------------------------------------------------------------------------
+  // Progression & XP (feat/xp-progress)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emitted by XpSystem whenever the XP total changes.
+   * Payload: XpChange — { xp: number; delta: number; reason: string }
+   */
+  XP_CHANGED: 'xp-changed',
+
+  /**
+   * Emitted by ZoneScene on zone entry and after each NPC is helped.
+   * UIScene's HUD redraws the progress bars. Payload: ProgressSnapshot.
+   */
+  PROGRESS_CHANGED: 'progress-changed',
 } as const;

@@ -11,8 +11,10 @@ import { SaveSystem } from '@/systems/SaveSystem';
 import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
 import { AudioManager } from '@/systems/AudioManager';
+import { XpSystem } from '@/systems/XpSystem';
 import type { CardData } from '@/types/CardData';
 import type { ZoneData, ZoneTheme } from '@/types/ZoneData';
+import type { ProgressSnapshot } from '@/types/Progress';
 
 /**
  * Default zone theme, used when a zone JSON predates the `theme` schema
@@ -84,6 +86,7 @@ export class ZoneScene extends Phaser.Scene {
   private interaction!: InteractionSystem;
   private deck!: DeckSystem;
   private progression!: ProgressionSystem;
+  private xp!: XpSystem;
 
   // ---- Input ----
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -261,6 +264,7 @@ export class ZoneScene extends Phaser.Scene {
 
     // ---- Systems ----
     this.interaction = new InteractionSystem(this);
+    this.xp = new XpSystem(this.game.events);
 
     // Deck: initialise from save or from ContentLoader default.
     // Deck is GLOBAL across zones — cards earned in zone_01 carry over to zone_02.
@@ -371,6 +375,10 @@ export class ZoneScene extends Phaser.Scene {
     // narrative.json as a fade banner in UIScene. Emitted after the scene is
     // fully set up so UIScene can safely render it above the zone.
     this.game.events.emit('zone-banner-show', { zoneId: this.zoneData.id });
+
+    // ---- HUD initial state (XP total + progress bars) ----
+    this.xp.refresh();
+    this._emitProgress();
   }
 
   update(): void {
@@ -481,6 +489,45 @@ export class ZoneScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------------------
+  // Private — progress (HUD)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Compute where the player stands (zone n/N, NPCs helped here and overall)
+   * and broadcast it for the HUD. Only quest NPCs (with a question) count.
+   */
+  private _emitProgress(): void {
+    const cl = ContentLoader.getInstance();
+    const helped = new Set(SaveSystem.getInstance().getHelpedNpcIds());
+    const zones = cl.getZones();
+
+    const isQuest = (npcId: string): boolean => !!cl.getNpc(npcId)?.question;
+
+    let globalTotal = 0;
+    let globalHelped = 0;
+    for (const zone of zones) {
+      for (const npcId of zone.npcs) {
+        if (!isQuest(npcId)) continue;
+        globalTotal++;
+        if (helped.has(npcId)) globalHelped++;
+      }
+    }
+
+    const zoneQuest = this.zoneData.npcs.filter(isQuest);
+    const snapshot: ProgressSnapshot = {
+      zoneIndex: zones.findIndex((z) => z.id === this.zoneData.id) + 1,
+      zoneCount: zones.length,
+      zoneName: this.zoneData.displayName,
+      themeEra: this.zoneData.themeEra,
+      zoneHelped: zoneQuest.filter((id) => helped.has(id)).length,
+      zoneTotal: zoneQuest.length,
+      globalHelped,
+      globalTotal,
+    };
+    this.game.events.emit(GameEvents.PROGRESS_CHANGED, snapshot);
+  }
+
+  // ---------------------------------------------------------------------------
   // Private — conversation abort (ESC)
   // ---------------------------------------------------------------------------
 
@@ -578,19 +625,34 @@ export class ZoneScene extends Phaser.Scene {
     const save = SaveSystem.getInstance();
     const cl = ContentLoader.getInstance();
 
-    // NPC reward: add the answered card to player deck
-    ev.on('npc-reward-card', (payload: { npcId: string; cardId: string }) => {
+    // NPC reward: add the answered card to player deck + XP
+    ev.on('npc-reward-card', (payload: { npcId: string; cardId: string; wrongAttempts?: number }) => {
       const card = cl.getCard(payload.cardId);
       if (card) {
         this.deck.add(card);
       }
+      const economy = cl.getEconomy();
+      const firstTry = (payload.wrongAttempts ?? 0) === 0;
+      this.xp.gain(
+        firstTry ? economy.xp.correctFirstTry : economy.xp.correctAfterRetry,
+        firstTry ? 'npc-correct-first-try' : 'npc-correct',
+      );
       save.recordNpcHelped(payload.npcId);
+      this._emitProgress();
     });
 
-    // All NPCs helped → record door as unlocked in save
+    // All NPCs helped → record door as unlocked in save.
+    // Zone-clear bonus only the first time the door opens: on a reload the
+    // door is already in the save (ProgressionSystem re-emits this event from
+    // restoreResolved), so no XP is granted twice.
     ev.on(GameEvents.ALL_NPCS_HELPED, () => {
+      let firstClear = false;
       for (const doorData of this.zoneData.doors) {
+        if (!save.isDoorUnlocked(doorData.id)) firstClear = true;
         save.recordDoorUnlocked(doorData.id);
+      }
+      if (firstClear) {
+        this.xp.gain(cl.getEconomy().xp.zoneCleared, 'zone-cleared');
       }
     });
 

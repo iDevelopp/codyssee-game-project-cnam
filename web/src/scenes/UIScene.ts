@@ -4,6 +4,10 @@ import { DeckPanel } from '@/ui/DeckPanel';
 import { EndScreen } from '@/ui/EndScreen';
 import { NarrativeOverlay } from '@/ui/NarrativeOverlay';
 import { ZoneBanner } from '@/ui/ZoneBanner';
+import { Hud } from '@/ui/Hud';
+import { SaveSystem } from '@/systems/SaveSystem';
+import type { XpChange } from '@/systems/XpSystem';
+import type { ProgressSnapshot } from '@/types/Progress';
 import { GameEvents } from '@/systems/GameEvents';
 import type { CardData } from '@/types/CardData';
 import { ContentLoader } from '@/systems/ContentLoader';
@@ -35,6 +39,8 @@ export class UIScene extends Phaser.Scene {
   private narrativeOverlay!: NarrativeOverlay;
   /** Non-blocking zone-entry banner (TASK-026). */
   private zoneBanner!: ZoneBanner;
+  /** Top bar: XP counter + zone / game progress (feat/xp-progress). */
+  private hud!: Hud;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -65,6 +71,16 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0, 1)
       .setAlpha(0.75)
       .setDepth(SCANLINE_DEPTH - 1);
+    const cl = ContentLoader.getInstance();
+    this.hud = new Hud(this, {
+      xp: cl.getString('hud.xp'),
+      zoneProgress: cl.getString('hud.zoneProgress'),
+      globalProgress: cl.getString('hud.globalProgress'),
+    });
+    // Show the saved total right away; ZoneScene refreshes it on zone entry.
+    this.hud.setXp(SaveSystem.getInstance().getXp(), 0);
+    // Hidden during the intro overlay — revealed on the first zone progress event.
+    this.hud.setVisible(false);
 
     this._bindEvents();
   }
@@ -132,6 +148,17 @@ export class UIScene extends Phaser.Scene {
     ev.on(GameEvents.END_MENU, () => {
       this.endScreen.hide();
       // UIScene shuts down when ZoneScene stops; no extra cleanup needed
+    });
+
+    // ---- HUD (feat/xp-progress) ----
+
+    ev.on(GameEvents.XP_CHANGED, (change: XpChange) => {
+      this.hud.setXp(change.xp, change.delta);
+    });
+
+    ev.on(GameEvents.PROGRESS_CHANGED, (snapshot: ProgressSnapshot) => {
+      this.hud.setVisible(true);
+      this.hud.setProgress(snapshot);
     });
 
     // ---- Narration (TASK-026) ----

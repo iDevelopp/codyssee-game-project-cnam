@@ -57,6 +57,13 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
    */
   private awaitingRetry = false;
 
+  /**
+   * Wrong cards picked for this NPC's question. Deliberately NOT reset by
+   * cancel(): leaving with ESC and coming back must not count as a first try.
+   * Drives the XP reward (first try vs after retry).
+   */
+  private wrongAttempts = 0;
+
   private readonly gameScene: Phaser.Scene;
 
   /** Proximity outline + [E] prompt, driven by InteractionSystem. */
@@ -351,10 +358,12 @@ export class NPC extends Phaser.GameObjects.Sprite implements Interactable {
       this.gameScene.game.events.emit('npc-reward-card', {
         npcId: this.npcContent.id,
         cardId: this.npcContent.question.expectedCardId,
+        wrongAttempts: this.wrongAttempts,
       });
     } else {
       // Wrong answer — show hint, mark for retry
       this.awaitingRetry = true;
+      this.wrongAttempts++;
       this.npcState = 'ShowingResponse';
 
       // Notify AudioManager to play wrong-answer SFX (TASK-016).

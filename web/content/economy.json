@@ -1,0 +1,7 @@
+{
+  "xp": {
+    "correctFirstTry": 50,
+    "correctAfterRetry": 25,
+    "zoneCleared": 100
+  }
+}

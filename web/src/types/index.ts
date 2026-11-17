@@ -15,3 +15,5 @@ export type { ZoneData, DoorData } from './ZoneData';
 export type { DialogueData, DialogueLine } from './DialogueData';
 export type { TimelineEntry } from './TimelineEntry';
 export type { Strings } from './Strings';
+export type { EconomyData } from './Economy';
+export type { ProgressSnapshot } from './Progress';

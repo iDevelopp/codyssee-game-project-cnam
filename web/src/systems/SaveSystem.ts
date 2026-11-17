@@ -13,6 +13,7 @@
  *   currentZoneId: string | null,   // Last zone reached — resume point on reload (added TASK-020)
  *   masterVolume: number,           // [0..1] master volume (added TASK-016)
  *   muted: boolean,                 // global mute flag (added TASK-016)
+ *   xp: number,                     // experience points, never negative (feat/xp-progress)
  *   // timeline: [] — placeholder, not populated in J1
  * }
  *
@@ -53,6 +54,8 @@ interface SaveDataV1 {
   masterVolume: number;
   /** Global mute flag. Default false. Added in TASK-016. */
   muted: boolean;
+  /** Experience points (≥ 0). Default 0. Added in feat/xp-progress. */
+  xp: number;
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -295,6 +298,26 @@ export class SaveSystem {
   // Private helpers
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // XP (feat/xp-progress) — use XpSystem rather than calling these directly,
+  // so the HUD is notified of every change.
+  // ---------------------------------------------------------------------------
+
+  /** Returns the persisted XP total. */
+  getXp(): number {
+    return this.data.xp;
+  }
+
+  /**
+   * Overwrite the XP total and persist. Clamped to an integer ≥ 0.
+   *
+   * @param xp - New XP total
+   */
+  setXp(xp: number): void {
+    this.data.xp = Math.max(0, Math.round(xp));
+    this.save();
+  }
+
   /** Returns a fresh empty v1 save. */
   private static _empty(): SaveDataV1 {
     return {
@@ -306,6 +329,7 @@ export class SaveSystem {
       currentZoneId: null,
       masterVolume: 1.0,
       muted: false,
+      xp: 0,
     };
   }
 
@@ -331,6 +355,9 @@ export class SaveSystem {
     // Zone fields were added in TASK-020 — backfill for saves created before this task.
     if (!Array.isArray(obj['unlockedZoneIds'])) {
       (obj as Record<string, unknown>)['unlockedZoneIds'] = [];
+    }
+    if (typeof obj['xp'] !== 'number' || !Number.isFinite(obj['xp']) || (obj['xp'] as number) < 0) {
+      (obj as Record<string, unknown>)['xp'] = 0;
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;
