@@ -83,6 +83,7 @@
   "issue.npc.unreachable": "PNJ {id} inaccessible depuis le spawn.",
   "issue.noDoors": "Aucune porte — la zone n'a pas de fin.",
   "issue.noNpcs": "Aucun PNJ — la porte ne pourra jamais s'ouvrir.",
+  "editor.export": "EXPORTER (.json)",
   "editor.test": "TESTER",
   "editor.quit": "QUITTER",
   "editor.hints": "Clic: peindre/placer · Clic droit: déplacer · Molette: zoom",

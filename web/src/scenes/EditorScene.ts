@@ -225,6 +225,7 @@ export class EditorScene extends Phaser.Scene {
         zoneName: cl.getString('editor.zone.name'),
         zoneBg: cl.getString('editor.zone.bg'),
         zoneMusic: cl.getString('editor.zone.music'),
+        export: cl.getString('editor.export'),
         test: cl.getString('editor.test'),
         quit: cl.getString('editor.quit'),
         hints: cl.getString('editor.hints'),
@@ -247,6 +248,7 @@ export class EditorScene extends Phaser.Scene {
       onNameChange: (v) => this._setZoneName(v),
       onBgChange: (v) => this._setZoneBg(v),
       onMusicSelect: (m) => this._setZoneMusic(m),
+      onExport: () => this._export(),
       onTest: () => this._testPlay(),
       onQuit: () => this._quit(),
       onSelectTile: (idx) => this._selectTile(idx),
@@ -742,6 +744,22 @@ export class EditorScene extends Phaser.Scene {
    * writes to the real save, then starts ZoneScene with
    * returnTo=EditorScene so Escape brings the user back here.
    */
+  /**
+   * Download the current draft as a zone JSON file, ready to drop into
+   * content/zones/ (minimal implementation: the panel already had the
+   * button and its callback, the scene did not wire them).
+   */
+  private _export(): void {
+    this._persistDraft();
+    const blob = new Blob([JSON.stringify(this.draft, null, 2) + '\n'], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.draft.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   private _testPlay(): void {
     const cl = ContentLoader.getInstance();
 
