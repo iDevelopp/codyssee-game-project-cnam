@@ -41,6 +41,8 @@
  *   Both fields are backfilled to defaults in old saves (migration-safe).
  */
 
+import type { PlayerProfile } from '@/types/Profile';
+
 /** Shape of the v1 save file. */
 interface SaveDataV1 {
   version: 1;
@@ -63,6 +65,8 @@ interface SaveDataV1 {
   energy: number | null;
   /** Last story (non-hub) zone entered — where the cafeteria "Retour" door leads. */
   lastStoryZoneId: string | null;
+  /** Player character (name, pronoun, style) — null until created. */
+  profile: PlayerProfile | null;
 }
 
 const SAVE_KEY = 'codyssee.save.v1';
@@ -367,6 +371,27 @@ export class SaveSystem {
     this.save();
   }
 
+  // ---------------------------------------------------------------------------
+  // Player profile (feat/character-creation)
+  // ---------------------------------------------------------------------------
+
+  getProfile(): PlayerProfile | null {
+    return this.data.profile ? { ...this.data.profile } : null;
+  }
+
+  setProfile(profile: PlayerProfile): void {
+    this.data.profile = { ...profile };
+    this.save();
+  }
+
+  private static _isValidProfile(p: unknown): p is PlayerProfile {
+    if (typeof p !== 'object' || p === null) return false;
+    const o = p as Record<string, unknown>;
+    return typeof o['name'] === 'string' && o['name'].length > 0
+      && (o['pronoun'] === 'il' || o['pronoun'] === 'elle' || o['pronoun'] === 'iel')
+      && typeof o['styleId'] === 'string';
+  }
+
   /** Returns a fresh empty v1 save. */
   private static _empty(): SaveDataV1 {
     return {
@@ -382,6 +407,7 @@ export class SaveSystem {
       seenQuestionNpcIds: [],
       energy: null,
       lastStoryZoneId: null,
+      profile: null,
     };
   }
 
@@ -420,6 +446,9 @@ export class SaveSystem {
     }
     if (obj['currentZoneId'] === undefined) {
       (obj as Record<string, unknown>)['currentZoneId'] = null;
+    }
+    if (!SaveSystem._isValidProfile(obj['profile'])) {
+      (obj as Record<string, unknown>)['profile'] = null;
     }
     if (typeof obj['lastStoryZoneId'] !== 'string') {
       (obj as Record<string, unknown>)['lastStoryZoneId'] = obj['currentZoneId'] ?? null;

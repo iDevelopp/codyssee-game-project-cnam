@@ -212,4 +212,15 @@ export const GameEvents = {
    * Payload: { text: string; color?: string }
    */
   TOAST: 'toast',
+
+  // ---------------------------------------------------------------------------
+  // Character (feat/character-creation)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emitted by MainMenuScene when no character exists yet. UIScene shows the
+   * creator, saves the profile, then calls onComplete.
+   * Payload: { onComplete: () => void }
+   */
+  CHARACTER_CREATE: 'character-create',
 } as const;

@@ -32,6 +32,37 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   /** Speed multiplier (1 = normal). Lowered when out of energy. */
   speedFactor = 1;
 
+  /** Name floating above the head (feat/character-creation). */
+  private nameLabel: Phaser.GameObjects.Text | null = null;
+
+  /**
+   * Apply the player profile: outfit tint and name label.
+   * @param name - Display name, or null for no label
+   * @param tint - CSS hex tint ("#66e0ff") or null for original colours
+   */
+  applyLook(name: string | null, tint: string | null): void {
+    if (tint) this.setTint(Phaser.Display.Color.HexStringToColor(tint).color);
+    else this.clearTint();
+    this.nameLabel?.destroy();
+    this.nameLabel = name
+      ? this.scene.add.text(this.x, this.y, name, {
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          color: '#ffffff',
+          backgroundColor: '#00000088',
+          padding: { x: 4, y: 1 },
+        }).setOrigin(0.5, 1)
+      : null;
+    this._syncLabel();
+  }
+
+  /** Keep the name label above the head and in front of the sprite. */
+  private _syncLabel(): void {
+    if (!this.nameLabel) return;
+    this.nameLabel.setPosition(this.x, this.y - this.displayHeight / 2 - 2);
+    this.nameLabel.setDepth(this.depth + 1);
+  }
+
   /** Sprite display scale — pixel-art ×5 (02-assets.md §Animations Phaser). */
   static readonly SCALE = 5;
 
@@ -81,6 +112,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Top-down y-sort (BUG-09): keep depth in sync with the feet position
     // so NPC/player overlap resolves correctly while moving.
     this.setDepth(this.y + this.displayHeight / 2);
+    this._syncLabel();
 
     if (frozen) {
       // Freeze in place and show idle frame — don't let physics drift

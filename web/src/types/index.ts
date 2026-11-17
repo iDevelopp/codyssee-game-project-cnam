@@ -17,3 +17,4 @@ export type { TimelineEntry } from './TimelineEntry';
 export type { Strings } from './Strings';
 export type { EconomyData } from './Economy';
 export type { ProgressSnapshot } from './Progress';
+export type { PlayerProfile, Pronoun, CosmeticStyle } from './Profile';

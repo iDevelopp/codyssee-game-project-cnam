@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { AudioManager } from '@/systems/AudioManager';
+import { GameEvents } from '@/systems/GameEvents';
 import { SaveSystem } from '@/systems/SaveSystem';
 import { COLORS, FONTS } from '@/ui/theme';
 import { createPixelButton, createScanlineOverlay } from '@/ui/uiKit';
@@ -90,29 +91,42 @@ export class MainMenuScene extends Phaser.Scene {
         this.scene.launch('TimelineScene');
       }
 
-      if (isNewGame) {
-        // NEW GAME: show the intro narrative overlay before starting zone_01.
-        // UIScene must already be running (launched above) to receive INTRO_SHOW.
-        // We defer ZoneScene.start() to the callback so the zone loads AFTER
-        // the intro is dismissed (not alongside it).
-        // Small delay ensures UIScene.create() has completed before we emit.
-        this.time.delayedCall(100, () => {
-          // BUG-08: hide the menu and disable its buttons while the intro
-          // overlay is up. Otherwise the title/buttons bleed through the
-          // overlay AND clicks meant to advance the intro can re-trigger
-          // the menu buttons underneath. scene.start('ZoneScene') in the
-          // callback shuts this scene down; create() re-enables on return.
-          this.cameras.main.setVisible(false);
-          this.input.enabled = false;
+      // NEW GAME: intro narrative overlay before zone_01 (ZoneScene starts in
+      // its callback). RESUME: straight to the saved zone.
+      const launch = (): void => {
+        if (isNewGame) {
           this.game.events.emit('intro-show', {
             onComplete: () => {
               this.scene.start('ZoneScene', startData);
             },
           });
+        } else {
+          this.scene.start('ZoneScene', startData);
+        }
+      };
+
+      // No character yet (new game, or a save from before character
+      // creation existed): create it first, then launch.
+      const needsCharacter = save.getProfile() === null;
+
+      if (isNewGame || needsCharacter) {
+        // Small delay ensures UIScene.create() has completed before we emit.
+        this.time.delayedCall(100, () => {
+          // BUG-08: hide the menu and disable its buttons while an overlay
+          // is up. Otherwise the title/buttons bleed through the overlay AND
+          // clicks meant for it can re-trigger the menu buttons underneath.
+          // scene.start('ZoneScene') shuts this scene down; create()
+          // re-enables on return.
+          this.cameras.main.setVisible(false);
+          this.input.enabled = false;
+          if (needsCharacter) {
+            this.game.events.emit(GameEvents.CHARACTER_CREATE, { onComplete: launch });
+          } else {
+            launch();
+          }
         });
       } else {
-        // RESUME: skip intro, jump straight to the saved zone.
-        this.scene.start('ZoneScene', startData);
+        launch();
       }
     }, 16);
 

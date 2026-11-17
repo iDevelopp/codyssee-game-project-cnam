@@ -1,0 +1,9 @@
+{
+  "_doc": "Player outfit styles = sprite tints. price 0 = free, offered at character creation. tint null = original colours.",
+  "styles": [
+    { "id": "classic", "name": "Classique", "tint": null, "price": 0 },
+    { "id": "neon", "name": "Néon", "tint": "#66e0ff", "price": 0 },
+    { "id": "rose", "name": "Rose", "tint": "#ff9fd0", "price": 0 },
+    { "id": "mint", "name": "Menthe", "tint": "#9dffb8", "price": 0 }
+  ]
+}

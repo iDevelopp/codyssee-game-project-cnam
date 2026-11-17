@@ -4,6 +4,8 @@ import type { ZoneData } from '@/types/ZoneData';
 import type { TimelineEntry } from '@/types/TimelineEntry';
 import type { Strings } from '@/types/Strings';
 import { ECONOMY_DEFAULT, type EconomyData } from '@/types/Economy';
+import type { CosmeticStyle } from '@/types/Profile';
+import { personalize } from '@/systems/Personalize';
 
 // ---------------------------------------------------------------------------
 // Narrative types (TASK-026) — shape of content/narrative.json
@@ -74,6 +76,8 @@ interface ContentStore {
   economy: EconomyData;
   /** Procedural SFX recipes from content/synth-sfx.json ({} if missing). */
   synth: SynthManifest;
+  /** Outfit styles from content/cosmetics.json ([] if missing). */
+  styles: CosmeticStyle[];
 }
 
 /**
@@ -376,7 +380,8 @@ export class ContentLoader {
       console.warn(`ContentLoader: missing string key "${key}" in strings.fr.json`);
       return key;
     }
-    return s;
+    // {player} and "·e" agreement from the player profile (feat/character-creation)
+    return personalize(s);
   }
 
   /**
@@ -407,6 +412,11 @@ export class ContentLoader {
    */
   getEconomy(): EconomyData {
     return this._require().economy;
+  }
+
+  /** Outfit styles (content/cosmetics.json), in authoring order. */
+  getStyles(): CosmeticStyle[] {
+    return this._require().styles;
   }
 
   /** Procedural SFX recipes (content/synth-sfx.json). Never null. */
@@ -464,7 +474,7 @@ export class ContentLoader {
 
     // Fetch all root-level JSON files in parallel for performance.
     // audio.json and narrative.json are optional — gracefully degrade if missing.
-    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw, economyRaw, synthRaw] = await Promise.all([
+    const [cardsRaw, npcsRaw, timelineRaw, stringsRaw, audioRaw, narrativeRaw, economyRaw, synthRaw, cosmeticsRaw] = await Promise.all([
       this._fetchJson(`${base}content/cards.json`),
       this._fetchJson(`${base}content/npcs.json`),
       // timeline.json is optional in J0 — returns empty array if missing
@@ -478,6 +488,8 @@ export class ContentLoader {
       this._fetchJsonOptional(`${base}content/economy.json`, null),
       // synth-sfx.json is optional — no procedural SFX if missing
       this._fetchJsonOptional(`${base}content/synth-sfx.json`, null),
+      // cosmetics.json is optional — only the original look if missing
+      this._fetchJsonOptional(`${base}content/cosmetics.json`, null),
     ]);
 
     // --- Parse cards ---
@@ -587,6 +599,14 @@ export class ContentLoader {
 
     const economy = mergeDefaults(ECONOMY_DEFAULT, economyRaw);
 
+    // Outfit styles: keep well-formed entries only
+    const stylesRaw = (cosmeticsRaw as { styles?: unknown } | null)?.styles;
+    const styles: CosmeticStyle[] = Array.isArray(stylesRaw)
+      ? (stylesRaw as CosmeticStyle[]).filter((st) =>
+          st && typeof st.id === 'string' && typeof st.name === 'string'
+          && (st.tint === null || typeof st.tint === 'string') && typeof st.price === 'number')
+      : [];
+
     // Keep only well-formed recipes; "_doc" and malformed entries are skipped.
     const synth: SynthManifest = {};
     if (synthRaw !== null && typeof synthRaw === 'object' && !Array.isArray(synthRaw)) {
@@ -598,7 +618,7 @@ export class ContentLoader {
       }
     }
 
-    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative, economy, synth };
+    this.store = { cards, npcs, zones, zoneOrder: zoneIds, timeline, strings, audio, narrative, economy, synth, styles };
   }
 
   /**

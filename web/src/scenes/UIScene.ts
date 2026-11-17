@@ -6,6 +6,8 @@ import { NarrativeOverlay } from '@/ui/NarrativeOverlay';
 import { ZoneBanner } from '@/ui/ZoneBanner';
 import { Hud } from '@/ui/Hud';
 import { Toast } from '@/ui/Toast';
+import { CharacterCreator } from '@/ui/CharacterCreator';
+import { personalize } from '@/systems/Personalize';
 import type { EnergyChange } from '@/systems/EnergySystem';
 import { JournalPanel, type JournalEntry } from '@/ui/JournalPanel';
 import { SaveSystem } from '@/systems/SaveSystem';
@@ -49,6 +51,8 @@ export class UIScene extends Phaser.Scene {
   private scope!: EventScope;
   /** Question journal (J). */
   private journalPanel!: JournalPanel;
+  /** Character creation screen (first game only). */
+  private creator!: CharacterCreator;
   /** Short non-blocking messages under the HUD. */
   private toast!: Toast;
   /** XP wallet for the hint shop. */
@@ -103,6 +107,15 @@ export class UIScene extends Phaser.Scene {
     this.xp = new XpSystem(this.game.events);
     this.purchases = new Map();
     this.toast = new Toast(this);
+    this.creator = new CharacterCreator(this, {
+      title: cl.getString('creator.title'),
+      nameLabel: cl.getString('creator.nameLabel'),
+      namePlaceholder: cl.getString('creator.namePlaceholder'),
+      nameError: cl.getString('creator.nameError'),
+      pronounLabel: cl.getString('creator.pronounLabel'),
+      styleLabel: cl.getString('creator.styleLabel'),
+      confirm: cl.getString('creator.confirm'),
+    });
 
     this.journalPanel = new JournalPanel(this, {
       title: cl.getString('journal.title'),
@@ -130,7 +143,14 @@ export class UIScene extends Phaser.Scene {
 
     // Open dialogue box with given payload
     this.scope.on(GameEvents.DIALOGUE_OPEN, (data: { speakerName: string; line: string; portrait?: string; hint?: string; npcId?: string }) => {
-      this.dialogueBox.show(data.speakerName, data.line, data.hint ?? cl.getString('dialogue.continue'), data.npcId);
+      // NPC lines come straight from npcs.json: personalize them here
+      // ({player}, "·e" agreement) — getString() already does it for UI strings.
+      this.dialogueBox.show(
+        personalize(data.speakerName),
+        personalize(data.line),
+        data.hint ?? cl.getString('dialogue.continue'),
+        data.npcId,
+      );
     });
 
     // Close dialogue box (used by locked-door single-line messages after E press)
@@ -197,6 +217,15 @@ export class UIScene extends Phaser.Scene {
       // UIScene shuts down when ZoneScene stops; no extra cleanup needed
     });
 
+    // ---- Character creation ----
+    this.scope.on(GameEvents.CHARACTER_CREATE, (payload: { onComplete: () => void }) => {
+      const free = cl.getStyles().filter((st) => st.price === 0);
+      this.creator.open(free, (profile) => {
+        SaveSystem.getInstance().setProfile(profile);
+        payload.onComplete();
+      });
+    });
+
     // ---- HUD (feat/xp-progress) ----
 
     this.scope.on(GameEvents.XP_CHANGED, (change: XpChange) => {
@@ -225,14 +254,14 @@ export class UIScene extends Phaser.Scene {
     this.scope.on(GameEvents.INTRO_SHOW, (payload: { onComplete: () => void }) => {
       const narrative = cl.getNarrative();
       const hint = cl.getString('narrative.hint');
-      this.narrativeOverlay.show(narrative.intro, hint, payload.onComplete);
+      this.narrativeOverlay.show(narrative.intro.map(personalize), hint, payload.onComplete);
     });
 
     // ZONE_BANNER_SHOW: non-blocking banner on each zone entry (TASK-026).
     // Payload: { zoneId: string } — ZoneScene emits this in create().
     this.scope.on(GameEvents.ZONE_BANNER_SHOW, (payload: { zoneId: string }) => {
       const narrative = cl.getNarrative();
-      const lines = narrative.zoneIntros[payload.zoneId] ?? [];
+      const lines = (narrative.zoneIntros[payload.zoneId] ?? []).map(personalize);
       this.zoneBanner.show(lines);
     });
   }

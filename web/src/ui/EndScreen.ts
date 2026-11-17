@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ContentLoader } from '@/systems/ContentLoader';
 import { InputLock } from '@/systems/InputLock';
 import { GameEvents } from '@/systems/GameEvents';
+import { personalize } from '@/systems/Personalize';
 import type { NarrativeData } from '@/systems/ContentLoader';
 import { COLORS, FONTS } from '@/ui/theme';
 import { createPixelButton, type PixelButton } from '@/ui/uiKit';
@@ -72,7 +73,7 @@ export class EndScreen extends Phaser.GameObjects.Container {
     const outroStartY = 220;
     const outroLineHeight = 32;
     for (let i = 0; i < narrative.outro.length; i++) {
-      const outroText = this.scene.add.text(640, outroStartY + i * outroLineHeight, narrative.outro[i], {
+      const outroText = this.scene.add.text(640, outroStartY + i * outroLineHeight, personalize(narrative.outro[i]), {
         fontFamily: FONTS.body,
         fontSize: '16px',
         color: COLORS.inkDimCss,

@@ -303,6 +303,10 @@ export class ZoneScene extends Phaser.Scene {
       worldWidth = width * 2;
       worldHeight = height * 2;
     }
+    // Character look: name above the head + outfit style tint
+    const profile = save.getProfile();
+    const style = cl.getStyles().find((st) => st.id === profile?.styleId);
+    this.player.applyLook(profile?.name ?? null, style?.tint ?? null);
 
     // ---- Camera ----
     // Follow player with lerp ≈ 0.15 (matches Unity CameraFollow smoothTime=0.15)
